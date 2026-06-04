@@ -15,7 +15,7 @@ use Flarum\User\User;
 use Flarum\Api\Resource\UserResource;
 use ErnestDefoe\Calendar\Api\Controller;
 
-return [
+$extenders = [
     (new Extend\Frontend('forum'))
         ->js(__DIR__ . '/js/dist/forum.js')
         ->css(__DIR__ . '/less/forum.less')
@@ -102,3 +102,19 @@ return [
             );
         }),
 ];
+
+// ---- Page Builder blocks (palette) ----------------------------------------
+// The JS render components for these blocks are always registered (in
+// integrations.ts, guarded on app.pageBuilder). But to appear in Page Builder's
+// editor PALETTE a block must also have a SERVER manifest entry — contributed
+// via Page Builder's own PageBuilderBlock extender. Only register when Page
+// Builder is installed, so this is a no-op (and the AbstractBlock parent stays
+// unautoloaded) on a forum without it.
+if (class_exists(\Ernestdefoe\PageBuilder\Extend\PageBuilderBlock::class)) {
+    $extenders[] = new \Ernestdefoe\PageBuilder\Extend\PageBuilderBlock(\ErnestDefoe\Calendar\PageBuilder\EventsBlock::class);
+    $extenders[] = new \Ernestdefoe\PageBuilder\Extend\PageBuilderBlock(\ErnestDefoe\Calendar\PageBuilder\PulseBlock::class);
+    $extenders[] = new \Ernestdefoe\PageBuilder\Extend\PageBuilderBlock(\ErnestDefoe\Calendar\PageBuilder\MemoriesBlock::class);
+    $extenders[] = new \Ernestdefoe\PageBuilder\Extend\PageBuilderBlock(\ErnestDefoe\Calendar\PageBuilder\CelebrationsBlock::class);
+}
+
+return $extenders;
