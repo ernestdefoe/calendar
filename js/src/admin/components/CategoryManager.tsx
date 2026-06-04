@@ -11,6 +11,13 @@ interface Cat { id?: number; name: string; slug?: string; color: string }
 const api = (path: string) => app.forum.attribute('apiUrl') + path;
 const PRESETS = ['#3b5bdb', '#e8590c', '#2f9e44', '#9c36b5', '#e03131', '#1098ad', '#f08c00', '#495057'];
 
+// Module-level cache. The admin settings page re-runs customSetting's
+// `() => m(CategoryManager)` on every redraw, which remounts this component — so
+// fetching in oninit + redrawing would loop forever (perpetual spinner + request
+// flood). Caching the loaded categories means a remounted instance shows them
+// instantly and never re-fetches, breaking the loop.
+let CACHE: Cat[] | null = null;
+
 /**
  * In-place CRUD for event categories, rendered inside the extension's settings
  * page. Talks straight to the JSON API (admin-guarded) so it needs no store
@@ -24,14 +31,19 @@ export default class CategoryManager extends Component {
 
   oninit(vnode: any) {
     super.oninit(vnode);
-    this.load();
+    if (CACHE) {
+      this.cats = CACHE;
+      this.loading = false;
+    } else {
+      this.load();
+    }
   }
 
   load() {
     this.loading = true;
     app.request<any>({ method: 'GET', url: api('/calendar/categories') })
-      .then((res: any) => { this.cats = res.data || []; this.loading = false; m.redraw(); })
-      .catch(() => { this.loading = false; m.redraw(); });
+      .then((res: any) => { this.cats = CACHE = res.data || []; this.loading = false; m.redraw(); })
+      .catch(() => { this.cats = CACHE = []; this.loading = false; m.redraw(); });
   }
 
   view() {
@@ -88,6 +100,7 @@ export default class CategoryManager extends Component {
     app.request<any>({ method: 'POST', url: api('/calendar/categories'), body: { data: { attributes: { name: this.draft.name, color: this.draft.color } } } })
       .then((res: any) => {
         this.cats.push(res.data);
+        CACHE = this.cats;
         this.draft = { name: '', color: PRESETS[this.cats.length % PRESETS.length] };
         this.saving['new'] = false;
         m.redraw();
@@ -98,7 +111,7 @@ export default class CategoryManager extends Component {
   remove(c: Cat) {
     if (!confirm(t('category_delete_confirm') as any)) return;
     app.request({ method: 'DELETE', url: api('/calendar/categories/' + c.id) })
-      .then(() => { this.cats = this.cats.filter((x) => x !== c); m.redraw(); })
+      .then(() => { this.cats = CACHE = this.cats.filter((x) => x !== c); m.redraw(); })
       .catch(() => {});
   }
 }

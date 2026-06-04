@@ -129,6 +129,8 @@ ernestdefoe-calendar:
     index_widget_count: Events to show in the index widget
     show_pulse_widget: Show a “Forum pulse” widget on the forum index
     show_pulse_widget_help: An activity heatmap + most-active leaderboard that shows the community is alive. (A contribution graph also appears on every member’s profile.)
+    show_memories_widget: Show an “On this day” widget on the forum index
+    show_celebrations_widget: Show a “Today’s celebrations” widget on the forum index
     link_discussion: Create a discussion thread for each new event (for comments)
     categories: Event categories
     categories_help: Colour-coded categories let members filter the calendar and give each event a coloured accent. Changes save per row.
