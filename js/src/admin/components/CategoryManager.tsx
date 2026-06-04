@@ -71,7 +71,9 @@ export default class CategoryManager extends Component {
 
   newRow() {
     const d = this.draft;
-    return m('.CalendarAdmin-category.CalendarAdmin-new', [
+    // Keyed like the rows above it — a fragment can't mix keyed + unkeyed
+    // children (Mithril throws "all have keys or none"), which crashed the render.
+    return m('.CalendarAdmin-category.CalendarAdmin-new', { key: 'new' }, [
       this.swatch(d),
       m('input.FormControl', { value: d.name, placeholder: t('category_add'), oninput: (e: any) => (d.name = e.target.value) }),
       Button.component({ className: 'Button Button--primary', icon: 'fas fa-plus', loading: !!this.saving['new'], disabled: !d.name.trim(), onclick: () => this.create() }, t('category_add')),
