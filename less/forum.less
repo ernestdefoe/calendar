@@ -1,0 +1,131 @@
+// ============================================================
+//  ernestdefoe/calendar — forum styles
+//  Everything resolves through Flarum's own theme variables so it looks correct
+//  on the default theme AND on Bespoke / custom themes (light + dark).
+// ============================================================
+
+@cal-border: var(--control-bg, rgba(127, 127, 127, 0.18));
+@cal-muted: var(--muted-color, #8a8a8a);
+@cal-surface: var(--body-bg, #fff);
+@cal-accentFallback: var(--primary-color, #3b5bdb);
+
+.CalendarPage {
+  padding: 24px 0 60px;
+
+  &-header { margin-bottom: 18px; }
+  &-titlebar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  &-title { margin: 0; font-size: 24px; }
+  &-nav { display: flex; gap: 6px; align-items: center; }
+
+  &-tools {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px;
+  }
+  &-views { display: inline-flex; border: 1px solid @cal-border; border-radius: 8px; overflow: hidden; }
+  &-view {
+    border: 0 !important; border-radius: 0 !important; background: transparent; box-shadow: none;
+    padding: 7px 14px; font-weight: 600; color: @cal-muted;
+    &.is-active { background: var(--primary-color, #3b5bdb); color: #fff; }
+  }
+  &-filter { width: auto; min-width: 140px; }
+  &-subscribe { margin-left: auto; }
+
+  &-loading, &-empty { text-align: center; padding: 60px 0; color: @cal-muted; }
+}
+
+// ---- Month grid ----
+.CalendarGrid {
+  border: 1px solid @cal-border; border-radius: 12px; overflow: hidden; background: @cal-surface;
+
+  &-weekdays {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    background: var(--control-bg, rgba(127, 127, 127, 0.06));
+    span { padding: 9px 10px; font-size: 12px; font-weight: 700; color: @cal-muted; text-transform: uppercase; letter-spacing: .04em; }
+  }
+  &-days { display: grid; grid-template-columns: repeat(7, 1fr); }
+  &-cell {
+    min-height: 104px; padding: 6px; border-top: 1px solid @cal-border; border-left: 1px solid @cal-border;
+    display: flex; flex-direction: column; gap: 4px;
+    &:nth-child(7n + 1) { border-left: 0; }
+    &.is-out { opacity: .45; }
+    &.is-today { background: var(--primary-color-light, rgba(59, 91, 219, 0.08)); }
+  }
+  &-num { font-size: 12.5px; font-weight: 600; color: @cal-muted; align-self: flex-end; }
+  &-events { display: flex; flex-direction: column; gap: 3px; }
+}
+
+.CalendarChip {
+  display: flex; align-items: center; gap: 5px; width: 100%; text-align: left;
+  border: 0; border-radius: 6px; padding: 3px 7px; cursor: pointer; font-size: 12px;
+  background: ~"color-mix(in srgb, var(--cal-accent, @{cal-accentFallback}) 16%, transparent)";
+  color: var(--text-color, inherit);
+  border-left: 3px solid var(--cal-accent, @cal-accentFallback);
+  overflow: hidden;
+  &-time { font-weight: 700; opacity: .8; flex: none; }
+  &-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &:hover { filter: brightness(1.05); }
+}
+
+// ---- List view ----
+.CalendarList { list-style: none; margin: 0; padding: 0; }
+.CalendarList-item, .CalendarWidget-event {
+  display: flex; gap: 14px; align-items: center; padding: 12px; cursor: pointer;
+  border-radius: 10px; transition: background .12s ease;
+  &:hover { background: var(--control-bg, rgba(127, 127, 127, 0.08)); }
+}
+.CalendarList-date, .CalendarWidget-date {
+  flex: none; width: 54px; text-align: center; border-radius: 10px; padding: 6px 0;
+  background: ~"color-mix(in srgb, var(--cal-accent, @{cal-accentFallback}) 14%, transparent)";
+  border-top: 3px solid var(--cal-accent, @cal-accentFallback);
+  .CalendarList-mon, .CalendarWidget-mon { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--cal-accent, @cal-accentFallback); }
+  .CalendarList-day, .CalendarWidget-day { display: block; font-size: 20px; font-weight: 800; line-height: 1; }
+}
+.CalendarList-body, .CalendarWidget-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.CalendarList-name, .CalendarWidget-name { font-weight: 700; }
+.CalendarList-meta, .CalendarList-loc, .CalendarWidget-meta { font-size: 12.5px; color: @cal-muted; }
+.CalendarList-loc .icon, .CalendarWidget-loc .icon { font-size: 11px; }
+
+// ---- Upcoming widget ----
+.CalendarWidget {
+  &-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  &-title { margin: 0; font-size: 15px; }
+  &-all { font-size: 12px; font-weight: 600; }
+  &-list { list-style: none; margin: 0; padding: 0; }
+  &-event { padding: 8px; gap: 10px; }
+  &-date { width: 46px; padding: 4px 0; }
+  &-empty { color: @cal-muted; font-size: 13px; margin: 4px 0; }
+  &-loading { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; }
+  &-skel { height: 38px; border-radius: 8px; background: var(--control-bg, rgba(127, 127, 127, 0.12)); animation: cal-pulse 1.2s ease-in-out infinite; }
+}
+@keyframes cal-pulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+
+// ---- Event detail modal ----
+.CalendarBadge { display: inline-block; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 20px; }
+.CalendarDetail {
+  &-cover { height: 160px; border-radius: 10px; background-size: cover; background-position: center; margin-bottom: 14px; }
+  &-meta { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+  &-row { display: flex; align-items: center; gap: 10px; .icon { color: @cal-muted; width: 16px; text-align: center; } }
+  &-desc { margin: 14px 0; line-height: 1.6; }
+  &-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  &-manage { display: flex; gap: 8px; margin-top: 12px; border-top: 1px solid @cal-border; padding-top: 12px; }
+  &-delete { color: var(--alert-error-color, #c0392b) !important; }
+}
+.CalendarRsvp {
+  display: flex; gap: 8px; margin-top: 16px;
+  &-btn {
+    flex: 1; justify-content: center; border: 1px solid @cal-border; background: transparent; border-radius: 8px;
+    padding: 9px; font-weight: 600; cursor: pointer; color: var(--text-color, inherit);
+    &.is-active { background: var(--primary-color, #3b5bdb); border-color: transparent; color: #fff; }
+  }
+  &-count { margin-left: 6px; opacity: .75; font-variant-numeric: tabular-nums; }
+}
+
+// ---- Editor form ----
+.CalendarForm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.CalendarForm-check { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+
+@media (max-width: 767px) {
+  .CalendarGrid-cell { min-height: 76px; }
+  .CalendarChip-time { display: none; }
+  .CalendarForm-grid { grid-template-columns: 1fr; }
+  .CalendarPage-subscribe { margin-left: 0; }
+}
