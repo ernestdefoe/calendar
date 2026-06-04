@@ -1,4 +1,5 @@
 import app from 'flarum/forum/app';
+import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import { onThisDay, type Memory } from '../../common/api';
 
 declare const m: any;
@@ -26,7 +27,7 @@ const OnThisDayWidget = {
     return m('.CalMemories', [
       m('.CalMemories-head', [m('h4.CalMemories-title', ['🕰️ ', title])]),
       memories === null
-        ? m('.CalMemories-loading', [m('span.CalMemories-skel'), m('span.CalMemories-skel')])
+        ? m('.CalMemories-loading', m(LoadingIndicator))
         : memories.length === 0
         ? m('p.CalMemories-empty', t('memories_empty'))
         : m('ul.CalMemories-list', memories.map((mem) => row(mem))),

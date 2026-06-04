@@ -1,4 +1,5 @@
 import app from 'flarum/forum/app';
+import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import EventDetailModal from './EventDetailModal';
 import { listEvents, type CalEvent } from '../../common/api';
 import { shortTime } from '../../common/dates';
@@ -44,7 +45,7 @@ const UpcomingEvents = {
         m('a.CalendarWidget-all', { href: app.route('calendar'), oncreate: m.route.Link }, t('nav')),
       ]),
       events === null
-        ? m('.CalendarWidget-loading', [m('span.CalendarWidget-skel'), m('span.CalendarWidget-skel')])
+        ? m('.CalendarWidget-loading', m(LoadingIndicator))
         : events.length === 0
         ? m('p.CalendarWidget-empty', t('no_events'))
         : m('ul.CalendarWidget-list', events.map((ev) => eventRow(ev))),

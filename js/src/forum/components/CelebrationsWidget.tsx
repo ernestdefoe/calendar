@@ -1,4 +1,5 @@
 import app from 'flarum/forum/app';
+import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import { celebrations, type Celebrant } from '../../common/api';
 
 declare const m: any;
@@ -28,7 +29,7 @@ const CelebrationsWidget = {
     return m('.CalCeleb', [
       m('.CalCeleb-head', [m('h4.CalCeleb-title', ['🎉 ', title])]),
       people === null
-        ? m('.CalCeleb-loading', m('span.CalCeleb-skel'))
+        ? m('.CalCeleb-loading', m(LoadingIndicator))
         : m('ul.CalCeleb-list', people.map((p) => row(p))),
     ]);
   },

@@ -1,4 +1,5 @@
 import app from 'flarum/forum/app';
+import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import { userActivity, type UserActivity } from '../../common/api';
 
 declare const m: any;
@@ -98,7 +99,7 @@ const ActivityHeatmap = {
     const d: UserActivity | null = this.data;
 
     if (!d) {
-      return m('.CalHeat.CalHeat--loading', [m('.CalHeat-bar'), m('.CalHeat-bar')]);
+      return m('.CalHeat.CalHeat--loading', m(LoadingIndicator));
     }
 
     const weekStart = (app.forum.attribute('ernestdefoe-calendar.weekStartsOn') as number) || 0;

@@ -63,47 +63,57 @@ export default class EventFormModal extends Modal<FormAttrs> {
 
   content() {
     const d = this.data;
-    const field = (label: string, input: any) => m('.Form-group', [m('label', label), input]);
+    const field = (label: string, input: any) => m('.CalendarForm-field', [m('label.CalendarForm-label', label), input]);
 
-    return m('.Modal-body', [
-      m('.Form', [
-        field(t('field_title'), m('input.FormControl', { value: d.title, oninput: (e: any) => (d.title = e.target.value), required: true })),
+    // Flarum 2's Modal does NOT wrap content() in a form (unlike 1.x), so we must
+    // render our own <form> — otherwise the type="submit" button submits nothing
+    // and "create" appears to do nothing.
+    return m('.Modal-body.CalendarForm', m('form.CalendarForm-form', { onsubmit: (e: Event) => this.onsubmit(e) }, [
+      m('input.FormControl.CalendarForm-titleInput', {
+        value: d.title, placeholder: t('field_title'), required: true, autofocus: true,
+        oninput: (e: any) => (d.title = e.target.value),
+      }),
 
-        m('.Form-group.CalendarForm-row', [
-          m('label.CalendarForm-check', [
-            m('input', { type: 'checkbox', checked: d.allDay, onchange: (e: any) => (d.allDay = e.target.checked) }),
-            ' ', t('field_all_day'),
-          ]),
+      // ---- When ----
+      m('.CalendarForm-section', [
+        m('.CalendarForm-sectionTitle', [m('i.icon.fas.fa-clock'), ' ', t('section_when')]),
+        m('label.CalendarForm-toggle', [
+          m('input', { type: 'checkbox', checked: d.allDay, onchange: (e: any) => (d.allDay = e.target.checked) }),
+          m('span.CalendarForm-toggleTrack'),
+          m('span.CalendarForm-toggleLabel', t('field_all_day')),
         ]),
-
         m('.CalendarForm-grid', [
           field(t('field_start'), m('input.FormControl', { type: d.allDay ? 'date' : 'datetime-local', value: d.allDay ? d.start.slice(0, 10) : d.start, oninput: (e: any) => (d.start = d.allDay ? e.target.value + 'T00:00' : e.target.value) })),
           field(t('field_end'), m('input.FormControl', { type: d.allDay ? 'date' : 'datetime-local', value: d.allDay ? (d.end || '').slice(0, 10) : d.end, oninput: (e: any) => (d.end = d.allDay ? (e.target.value ? e.target.value + 'T00:00' : '') : e.target.value) })),
         ]),
+        field(t('field_repeat'), m('select.FormControl', { value: d.repeat, onchange: (e: any) => (d.repeat = e.target.value) }, [
+          m('option', { value: '' }, t('repeat_none')),
+          m('option', { value: 'DAILY' }, t('repeat_daily')),
+          m('option', { value: 'WEEKLY' }, t('repeat_weekly')),
+          m('option', { value: 'MONTHLY' }, t('repeat_monthly')),
+          m('option', { value: 'YEARLY' }, t('repeat_yearly')),
+        ])),
+      ]),
 
+      // ---- Details ----
+      m('.CalendarForm-section', [
+        m('.CalendarForm-sectionTitle', [m('i.icon.fas.fa-circle-info'), ' ', t('section_details')]),
         field(t('field_location'), m('input.FormControl', { value: d.location, placeholder: '123 Main St, City', oninput: (e: any) => (d.location = e.target.value) })),
-
-        m('.CalendarForm-grid', [
-          field(t('field_category'), m('select.FormControl', { value: d.categoryId, onchange: (e: any) => (d.categoryId = e.target.value) }, [
-            m('option', { value: '' }, '—'),
-            ...this.categories.map((c) => m('option', { value: c.id }, c.name)),
-          ])),
-          field(t('field_repeat'), m('select.FormControl', { value: d.repeat, onchange: (e: any) => (d.repeat = e.target.value) }, [
-            m('option', { value: '' }, t('repeat_none')),
-            m('option', { value: 'DAILY' }, t('repeat_daily')),
-            m('option', { value: 'WEEKLY' }, t('repeat_weekly')),
-            m('option', { value: 'MONTHLY' }, t('repeat_monthly')),
-            m('option', { value: 'YEARLY' }, t('repeat_yearly')),
-          ])),
-        ]),
-
+        field(t('field_category'), m('select.FormControl', { value: d.categoryId, onchange: (e: any) => (d.categoryId = e.target.value) }, [
+          m('option', { value: '' }, '—'),
+          ...this.categories.map((c) => m('option', { value: c.id }, c.name)),
+        ])),
         field(t('field_url'), m('input.FormControl', { value: d.url, placeholder: 'https://…', oninput: (e: any) => (d.url = e.target.value) })),
         this.coverField(),
-        field(t('field_description'), m('textarea.FormControl', { rows: 4, value: d.description, oninput: (e: any) => (d.description = e.target.value) })),
-
-        m('.Form-group', Button.component({ type: 'submit', className: 'Button Button--primary Button--block', loading: this.loading }, t('save'))),
+        field(t('field_description'), m('textarea.FormControl', { rows: 4, value: d.description, placeholder: t('field_description'), oninput: (e: any) => (d.description = e.target.value) })),
       ]),
-    ]);
+
+      // ---- Actions ----
+      m('.CalendarForm-actions', [
+        Button.component({ className: 'Button', type: 'button', onclick: () => app.modal.close() }, t('cancel')),
+        Button.component({ type: 'submit', className: 'Button Button--primary', icon: 'fas fa-check', loading: this.loading }, t('save')),
+      ]),
+    ]));
   }
 
   /**

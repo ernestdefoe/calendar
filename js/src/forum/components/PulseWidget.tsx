@@ -1,4 +1,5 @@
 import app from 'flarum/forum/app';
+import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import { forumPulse, type ForumPulse, type PulseLeader } from '../../common/api';
 
 declare const m: any;
@@ -63,7 +64,7 @@ const PulseWidget = {
       ]),
 
       !d
-        ? m('.CalPulse-loading', [m('span.CalPulse-skel'), m('span.CalPulse-skel')])
+        ? m('.CalPulse-loading', m(LoadingIndicator))
         : [
             m('.CalPulse-grid', miniGrid(d.days, d.max, weeks).map((col: any) =>
               m('.CalPulse-col', col.map((cell: any) =>

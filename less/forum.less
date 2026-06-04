@@ -179,9 +179,50 @@
   &-count { margin-left: 6px; opacity: .75; font-variant-numeric: tabular-nums; }
 }
 
-// ---- Editor form ----
+// ---- Event create / edit form ----
+.CalendarForm {
+  &-form { display: flex; flex-direction: column; gap: 18px; }
+
+  // Big, borderless title input as the focal point.
+  &-titleInput {
+    font-size: 20px !important; font-weight: 700; padding: 6px 2px !important;
+    border: 0 !important; border-bottom: 2px solid @cal-border !important;
+    border-radius: 0 !important; background: transparent !important; box-shadow: none !important;
+    &:focus { border-bottom-color: var(--primary-color, #3b5bdb) !important; }
+  }
+
+  &-section {
+    border: 1px solid @cal-border; border-radius: 12px; padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 12px; background: var(--control-bg, rgba(127, 127, 127, 0.03));
+  }
+  &-sectionTitle {
+    font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: @cal-muted;
+    display: flex; align-items: center; gap: 7px; .icon { font-size: 12px; }
+  }
+
+  &-field { display: flex; flex-direction: column; gap: 5px; }
+  &-label { font-size: 13px; font-weight: 600; color: @cal-muted; }
+
+  // All-day pill toggle.
+  &-toggle {
+    display: inline-flex; align-items: center; gap: 9px; cursor: pointer; font-weight: 600; user-select: none;
+    input { position: absolute; opacity: 0; width: 0; height: 0; }
+    &Track {
+      position: relative; width: 38px; height: 22px; border-radius: 22px; flex: none;
+      background: @cal-border; transition: background .15s ease;
+      &::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .15s ease; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+    }
+    input:checked + &Track { background: var(--primary-color, #3b5bdb); }
+    input:checked + &Track::after { transform: translateX(16px); }
+  }
+
+  &-actions {
+    display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px;
+    .Button--primary { min-width: 130px; }
+  }
+}
+
 .CalendarForm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.CalendarForm-check { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
 
 .CalendarForm-cover {
   position: relative; height: 130px; border-radius: 10px; margin-bottom: 8px;

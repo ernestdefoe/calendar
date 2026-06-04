@@ -1,6 +1,7 @@
 import app from 'flarum/forum/app';
 import Page from 'flarum/common/components/Page';
 import Button from 'flarum/common/components/Button';
+import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import EventFormModal from './EventFormModal';
 import EventDetailModal from './EventDetailModal';
 import { listEvents, feedUrl, type CalEvent, type CalCategory } from '../../common/api';
@@ -81,7 +82,7 @@ export default class CalendarPage extends Page {
     return m('.CalendarPage', m('.container', [
       this.header(),
       this.loading
-        ? m('.CalendarPage-loading', m('div.LoadingIndicator'))
+        ? m('.CalendarPage-loading', m(LoadingIndicator, { size: 'large' }))
         : this.mode === 'month' ? this.monthView()
         : this.mode === 'week' ? this.timeGrid(weekDays(this.cursor, this.weekStart()))
         : this.mode === 'day' ? this.timeGrid([startOfDay(this.cursor)])

@@ -57,6 +57,9 @@ ernestdefoe-calendar:
     repeat_weekly: Weekly
     repeat_monthly: Monthly
     repeat_yearly: Yearly
+    section_when: When
+    section_details: Details
+    cancel: Cancel
     save: Save event
     saved: Event saved.
     save_error: Couldn’t save the event — please check the form and try again.
