@@ -18,7 +18,10 @@ declare const m: any;
 app.initializers.add('ernestdefoe/calendar', () => {
   app.routes.calendar = { path: '/calendar', component: CalendarPage };
 
-  extend(IndexSidebar.prototype, 'items', function (items: any) {
+  // Nav link sits with "All Discussions" in the sidebar navigation (Flarum 2
+  // exposes these via navItems, not items — items is the New Discussion button +
+  // the nav dropdown itself).
+  extend(IndexSidebar.prototype, 'navItems', function (items: any) {
     items.add(
       'calendar',
       LinkButton.component(
@@ -27,8 +30,11 @@ app.initializers.add('ernestdefoe/calendar', () => {
       ),
       5
     );
+  });
 
-    // Stock-theme upcoming-events widget in the index sidebar.
+  // Stock-theme upcoming-events widget, mounted as its own sidebar block below
+  // the navigation.
+  extend(IndexSidebar.prototype, 'items', function (items: any) {
     if (app.forum.attribute('ernestdefoe-calendar.showIndexWidget')) {
       const count = app.forum.attribute('ernestdefoe-calendar.indexWidgetCount') || 5;
       items.add('calendar-upcoming', m(UpcomingEvents, { count }), -10);

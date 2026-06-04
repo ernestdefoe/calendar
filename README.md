@@ -24,7 +24,9 @@ natively with [Bespoke](https://github.com/ernestdefoe/bespoke) and
 - ✅ **RSVP** — members mark themselves *Going* or *Interested*, with live counts.
 - 🎨 **Categories with colours** — filter the calendar and give each event a
   coloured accent. Managed from a dedicated admin panel with a colour picker.
-- 🖼️ **Cover image** per event.
+- 🖼️ **Cover image** per event — paste a URL, or **upload a file** directly when
+  [FoF Upload](https://github.com/FriendsOfFlarum/upload) is installed (auto-detected;
+  falls back to a URL field otherwise).
 - 📅 **iCal export** — a subscribable `feed.ics` for the whole calendar plus a
   per-event `.ics` download (RFC 5545, proper escaping & folding).
 - 🟦 **Google Calendar** — "Add to Google Calendar" deep-links with title, time,
@@ -107,6 +109,8 @@ exactly as members expect — no parallel comment system to learn.
 - PHP `^8.3`
 - No required third-party extensions. Plays nicely with Bespoke & Page Builder
   when present, and degrades gracefully when they aren't.
+- **Optional:** [FoF Upload](https://github.com/FriendsOfFlarum/upload) — enables
+  drag-free file uploads for event cover images.
 
 ## Contributing
 

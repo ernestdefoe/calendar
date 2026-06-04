@@ -91,7 +91,11 @@ class EventInput
     {
         $v = trim((string) $v);
         if ($v === '') return null;
-        return filter_var($v, FILTER_VALIDATE_URL) ? mb_substr($v, 0, 600) : null;
+        // Accept absolute URLs, plus root-relative paths (e.g. FoF Upload's local
+        // file URLs) — but never protocol-relative "//host" which could point off-site.
+        $ok = filter_var($v, FILTER_VALIDATE_URL)
+            || (str_starts_with($v, '/') && !str_starts_with($v, '//'));
+        return $ok ? mb_substr($v, 0, 600) : null;
     }
 
     /** Keep only a safe RRULE-ish charset; the expander/iCal tolerate the rest. */

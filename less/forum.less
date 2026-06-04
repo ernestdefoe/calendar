@@ -123,6 +123,23 @@
 .CalendarForm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .CalendarForm-check { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
 
+.CalendarForm-cover {
+  position: relative; height: 130px; border-radius: 10px; margin-bottom: 8px;
+  background-size: cover; background-position: center;
+  border: 1px solid @cal-border;
+}
+.CalendarForm-coverRemove {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(0, 0, 0, 0.55) !important; color: #fff !important; border: 0;
+}
+.CalendarForm-coverControls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.CalendarForm-upload {
+  position: relative; overflow: hidden; cursor: pointer; flex: none;
+  &.disabled { opacity: .6; pointer-events: none; }
+  input[type='file'] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+}
+.CalendarForm-coverControls .FormControl { flex: 1; min-width: 160px; }
+
 @media (max-width: 767px) {
   .CalendarGrid-cell { min-height: 76px; }
   .CalendarChip-time { display: none; }

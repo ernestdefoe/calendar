@@ -16,6 +16,7 @@ interface FormAttrs extends IInternalModalAttrs {
 export default class EventFormModal extends Modal<FormAttrs> {
   data!: Record<string, any>;
   categories: CalCategory[] = [];
+  uploading = false;
 
   oninit(vnode: any) {
     super.oninit(vnode);
@@ -96,12 +97,67 @@ export default class EventFormModal extends Modal<FormAttrs> {
         ]),
 
         field(t('field_url'), m('input.FormControl', { value: d.url, placeholder: 'https://…', oninput: (e: any) => (d.url = e.target.value) })),
-        field(t('field_cover'), m('input.FormControl', { value: d.coverUrl, placeholder: 'https://…/cover.jpg', oninput: (e: any) => (d.coverUrl = e.target.value) })),
+        this.coverField(),
         field(t('field_description'), m('textarea.FormControl', { rows: 4, value: d.description, oninput: (e: any) => (d.description = e.target.value) })),
 
         m('.Form-group', Button.component({ type: 'submit', className: 'Button Button--primary Button--block', loading: this.loading }, t('save'))),
       ]),
     ]);
+  }
+
+  /**
+   * Cover image control. With FoF Upload enabled (and the actor permitted), this
+   * shows a real file picker; either way a plain URL field remains so covers work
+   * without any extra extension installed.
+   */
+  coverField() {
+    const d = this.data;
+    const canUpload = !!app.forum.attribute('calendarCoverUploads');
+
+    return m('.Form-group', [
+      m('label', t('field_cover')),
+      d.coverUrl
+        ? m('.CalendarForm-cover', { style: { backgroundImage: `url("${String(d.coverUrl).replace(/"/g, '%22')}")` } }, [
+            m('button.Button.Button--icon.CalendarForm-coverRemove', { type: 'button', title: t('cover_remove'), onclick: () => (d.coverUrl = '') }, m('i.fas.fa-times')),
+          ])
+        : null,
+      m('.CalendarForm-coverControls', [
+        canUpload
+          ? m('label.Button.CalendarForm-upload' + (this.uploading ? '.disabled' : ''), [
+              m('i.Button-icon.fas.fa-upload'),
+              m('span.Button-label', this.uploading ? t('cover_uploading') : t('cover_upload')),
+              m('input', { type: 'file', accept: 'image/*', disabled: this.uploading, onchange: (e: any) => this.uploadCover(e) }),
+            ])
+          : null,
+        m('input.FormControl', { value: d.coverUrl, placeholder: canUpload ? t('cover_or_url') : 'https://…/cover.jpg', oninput: (e: any) => (d.coverUrl = e.target.value) }),
+      ]),
+    ]);
+  }
+
+  uploadCover(e: any) {
+    const file = e.target?.files?.[0];
+    if (!file) return;
+    this.uploading = true;
+    m.redraw();
+
+    const body = new FormData();
+    body.append('files[]', file);
+
+    fetch(app.forum.attribute('apiUrl') + '/fof/upload', {
+      method: 'POST',
+      body,
+      credentials: 'include',
+      headers: { 'X-CSRF-Token': (app.session as any).csrfToken },
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+      .then((res: any) => {
+        const f = res?.data?.[0]?.attributes || {};
+        const url = f.url || f.relativeUrl || f.uploadUrl;
+        if (url) this.data.coverUrl = url;
+        else app.alerts.show({ type: 'error' }, t('cover_error'));
+      })
+      .catch(() => app.alerts.show({ type: 'error' }, t('cover_error')))
+      .then(() => { this.uploading = false; m.redraw(); });
   }
 
   onsubmit(e: Event) {

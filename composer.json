@@ -32,7 +32,10 @@
         "name": "fas fa-calendar-days",
         "backgroundColor": "#3b5bdb",
         "color": "#fff"
-      }
+      },
+      "optional-dependencies": [
+        "fof/upload"
+      ]
     },
     "flarum-cli": {
       "modules": {

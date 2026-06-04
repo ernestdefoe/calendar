@@ -10,6 +10,7 @@ use Flarum\Extend;
 use Flarum\Api\Context;
 use Flarum\Api\Schema;
 use Flarum\Api\Resource\ForumResource;
+use Flarum\Extension\ExtensionManager;
 use ErnestDefoe\Calendar\Api\Controller;
 
 return [
@@ -56,5 +57,11 @@ return [
                 ->get(fn ($model, Context $context) => $context->getActor()->can('calendar.create')),
             Schema\Boolean::make('canManageCalendar')
                 ->get(fn ($model, Context $context) => $context->getActor()->can('calendar.manage')),
+            // True when FoF Upload is installed + enabled AND the actor may upload,
+            // so the event form can offer a real file picker for cover images
+            // (it always falls back to a plain URL field otherwise).
+            Schema\Boolean::make('calendarCoverUploads')
+                ->get(fn ($model, Context $context) => resolve(ExtensionManager::class)->isEnabled('fof-upload')
+                    && $context->getActor()->hasPermission('fof-upload.upload')),
         ]),
 ];

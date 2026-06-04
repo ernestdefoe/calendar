@@ -42,7 +42,12 @@ ernestdefoe-calendar:
     field_timezone: Time zone
     field_location: Location
     field_url: Link (optional)
-    field_cover: Cover image URL (optional)
+    field_cover: Cover image (optional)
+    cover_upload: Upload image
+    cover_uploading: Uploading…
+    cover_remove: Remove cover
+    cover_or_url: …or paste an image URL
+    cover_error: Couldn’t upload that image — please try again or paste a URL.
     field_category: Category
     field_repeat: Repeat
     repeat_none: Does not repeat
