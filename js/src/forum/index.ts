@@ -8,6 +8,7 @@ import UpcomingEvents from './components/UpcomingEvents';
 import ActivityHeatmap from './components/ActivityHeatmap';
 import PulseWidget from './components/PulseWidget';
 import { registerIntegrations } from './integrations';
+import { startCountdowns } from './countdowns';
 
 declare const m: any;
 
@@ -58,6 +59,9 @@ app.initializers.add('ernestdefoe/calendar', () => {
   // widgets into them — cross-extension initializer order isn't guaranteed, and a
   // macrotask runs after Flarum's synchronous boot completes.
   setTimeout(registerIntegrations, 0);
+
+  // Turn [countdown=…] placeholders (and event-modal countdowns) into live timers.
+  startCountdowns();
 });
 
 export { default as UpcomingEvents } from './components/UpcomingEvents';

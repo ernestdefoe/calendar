@@ -87,6 +87,15 @@ ernestdefoe-calendar:
     pulse_total: "{count} posts (120d)"
     pulse_empty: No activity yet.
 
+    # ---- live countdowns ----
+    starts_in: Starts in
+    cd_days: days
+    cd_hours: hrs
+    cd_mins: min
+    cd_secs: sec
+    cd_here: is here!
+    cd_live: Happening now 🎉
+
   admin:
     settings_title: Calendar
     default_view: Default calendar view

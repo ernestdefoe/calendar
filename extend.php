@@ -68,4 +68,16 @@ return [
                 ->get(fn ($model, Context $context) => resolve(ExtensionManager::class)->isEnabled('fof-upload')
                     && $context->getActor()->hasPermission('fof-upload.upload')),
         ]),
+
+    // ---- Live countdowns: a [countdown] BBCode usable in any post ----
+    // The formatter emits a placeholder span; countdowns.ts turns it into a live
+    // ticking timer client-side. Server output is cached HTML, so the clock has
+    // to run on the client. `[countdown=2026-12-31T23:59:59]New Year[/countdown]`.
+    (new Extend\Formatter())
+        ->configure(function ($config) {
+            $config->BBCodes->addCustom(
+                '[COUNTDOWN={TEXT1}]{TEXT2}[/COUNTDOWN]',
+                '<span class="CalCountdown" data-deadline="{TEXT1}">{TEXT2}</span>'
+            );
+        }),
 ];

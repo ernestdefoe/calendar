@@ -35,6 +35,12 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
 
       ev.category ? m('span.CalendarBadge', { style: { background: ev.category.color } }, ev.category.name) : null,
 
+      // Live countdown for events that haven't started yet (the global ticker in
+      // countdowns.ts animates any .CalCountdown[data-deadline] it finds).
+      new Date(ev.start).getTime() > Date.now()
+        ? m('.CalCountdown.CalCountdown--event', { 'data-deadline': ev.start }, t('starts_in'))
+        : null,
+
       m('.CalendarDetail-meta', [
         row('fas fa-clock', formatRange(ev) + (ev.recurring ? ' · ' + t('repeat_' + freqWord(ev.rrule)) : '')),
         ev.location
