@@ -9,6 +9,7 @@ const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calenda
 
 interface FormAttrs extends IInternalModalAttrs {
   event?: CalEvent;
+  day?: Date;
   onsave?: (ev: CalEvent) => void;
 }
 
@@ -21,9 +22,9 @@ export default class EventFormModal extends Modal<FormAttrs> {
   oninit(vnode: any) {
     super.oninit(vnode);
     const ev: CalEvent | undefined = this.attrs.event;
-    const now = new Date();
-    now.setMinutes(0, 0, 0);
-    now.setHours(now.getHours() + 1);
+    // Default start: a clicked day/slot if provided, else the next whole hour.
+    const now = this.attrs.day ? new Date(this.attrs.day) : new Date();
+    if (!this.attrs.day) { now.setMinutes(0, 0, 0); now.setHours(now.getHours() + 1); }
     const later = new Date(now.getTime() + 60 * 60 * 1000);
 
     this.data = ev

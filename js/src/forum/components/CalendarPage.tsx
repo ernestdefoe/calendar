@@ -4,15 +4,20 @@ import Button from 'flarum/common/components/Button';
 import EventFormModal from './EventFormModal';
 import EventDetailModal from './EventDetailModal';
 import { listEvents, feedUrl, type CalEvent, type CalCategory } from '../../common/api';
-import { monthMatrix, weekdayNames, monthLabel, eventOnDay, isToday, sameDay, shortTime, formatRange } from '../../common/dates';
+import {
+  monthMatrix, weekdayNames, monthLabel, eventOnDay, isToday, shortTime, formatRange,
+  weekDays, weekRangeLabel, dayTitle, hourLabel, layoutDay, startOfDay, addDays,
+} from '../../common/dates';
 
 declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
 
+type Mode = 'month' | 'week' | 'day' | 'list';
+const HOURS = Array.from({ length: 24 }, (_, h) => h);
+
 export default class CalendarPage extends Page {
-  mode: 'month' | 'list' = 'month';
-  year!: number;
-  month!: number;
+  mode: Mode = 'month';
+  cursor!: Date; // the focused reference date for all views
   events: CalEvent[] = [];
   categories: CalCategory[] = [];
   category = '';
@@ -20,11 +25,9 @@ export default class CalendarPage extends Page {
 
   oninit(vnode: any) {
     super.oninit(vnode);
-    const now = new Date();
-    this.year = now.getFullYear();
-    this.month = now.getMonth();
-    this.mode = (app.forum.attribute('ernestdefoe-calendar.defaultView') as any) || 'month';
-    app.setTitle(t('page_title') as any);
+    this.cursor = new Date();
+    this.mode = (app.forum.attribute('ernestdefoe-calendar.defaultView') as Mode) || 'month';
+    app.setTitle(t('page_title'));
     this.load();
   }
 
@@ -32,14 +35,21 @@ export default class CalendarPage extends Page {
 
   range(): { from: Date; to: Date } {
     if (this.mode === 'month') {
-      const cells = monthMatrix(this.year, this.month, this.weekStart());
-      const from = cells[0];
+      const cells = monthMatrix(this.cursor.getFullYear(), this.cursor.getMonth(), this.weekStart());
       const to = new Date(cells[41]);
       to.setHours(23, 59, 59);
-      return { from, to };
+      return { from: cells[0], to };
     }
-    const from = new Date();
-    from.setHours(0, 0, 0, 0);
+    if (this.mode === 'week') {
+      const days = weekDays(this.cursor, this.weekStart());
+      return { from: days[0], to: addDays(days[6], 1) };
+    }
+    if (this.mode === 'day') {
+      const from = startOfDay(this.cursor);
+      return { from, to: addDays(from, 1) };
+    }
+    // list
+    const from = startOfDay(new Date());
     const to = new Date(from);
     to.setMonth(to.getMonth() + 12);
     return { from, to };
@@ -54,47 +64,57 @@ export default class CalendarPage extends Page {
   }
 
   step(delta: number) {
-    this.month += delta;
-    if (this.month < 0) { this.month = 11; this.year--; }
-    if (this.month > 11) { this.month = 0; this.year++; }
+    if (this.mode === 'month') this.cursor = new Date(this.cursor.getFullYear(), this.cursor.getMonth() + delta, 1);
+    else if (this.mode === 'week') this.cursor = addDays(this.cursor, 7 * delta);
+    else if (this.mode === 'day') this.cursor = addDays(this.cursor, delta);
     this.load();
   }
 
-  goToday() {
-    const now = new Date();
-    this.year = now.getFullYear();
-    this.month = now.getMonth();
-    this.load();
-  }
+  goToday() { this.cursor = new Date(); this.load(); }
 
-  openCreate(day?: Date) {
-    app.modal.show(EventFormModal, { day, onsave: () => this.load() });
-  }
-  openEvent(ev: CalEvent) {
-    app.modal.show(EventDetailModal, { event: ev, onchange: () => this.load() });
-  }
+  setMode(mode: Mode) { this.mode = mode; this.load(); }
+
+  openCreate(day?: Date) { app.modal.show(EventFormModal, { day, onsave: () => this.load() }); }
+  openEvent(ev: CalEvent) { app.modal.show(EventDetailModal, { event: ev, onchange: () => this.load() }); }
 
   view() {
     return m('.CalendarPage', m('.container', [
       this.header(),
-      this.loading ? m('.CalendarPage-loading', m('div.LoadingIndicator')) : (this.mode === 'month' ? this.monthView() : this.listView()),
+      this.loading
+        ? m('.CalendarPage-loading', m('div.LoadingIndicator'))
+        : this.mode === 'month' ? this.monthView()
+        : this.mode === 'week' ? this.timeGrid(weekDays(this.cursor, this.weekStart()))
+        : this.mode === 'day' ? this.timeGrid([startOfDay(this.cursor)])
+        : this.listView(),
     ]));
+  }
+
+  title(): string {
+    if (this.mode === 'month') return monthLabel(this.cursor.getFullYear(), this.cursor.getMonth());
+    if (this.mode === 'week') return weekRangeLabel(weekDays(this.cursor, this.weekStart()));
+    if (this.mode === 'day') return dayTitle(this.cursor);
+    return t('upcoming');
   }
 
   header() {
     const canCreate = app.forum.attribute('canCreateEvent');
+    const navable = this.mode !== 'list';
     return m('.CalendarPage-header', [
       m('.CalendarPage-titlebar', [
-        m('h1.CalendarPage-title', this.mode === 'month' ? monthLabel(this.year, this.month) : t('upcoming')),
-        m('.CalendarPage-nav', this.mode === 'month' ? [
-          Button.component({ className: 'Button Button--icon', icon: 'fas fa-chevron-left', onclick: () => this.step(-1) }),
-          Button.component({ className: 'Button', onclick: () => this.goToday() }, t('today')),
-          Button.component({ className: 'Button Button--icon', icon: 'fas fa-chevron-right', onclick: () => this.step(1) }),
-        ] : null),
+        m('h1.CalendarPage-title', this.title()),
+        navable
+          ? m('.CalendarPage-nav', [
+              Button.component({ className: 'Button Button--icon', icon: 'fas fa-chevron-left', onclick: () => this.step(-1) }),
+              Button.component({ className: 'Button', onclick: () => this.goToday() }, t('today')),
+              Button.component({ className: 'Button Button--icon', icon: 'fas fa-chevron-right', onclick: () => this.step(1) }),
+            ])
+          : null,
       ]),
       m('.CalendarPage-tools', [
         m('.CalendarPage-views', [
           tab(this, 'month', t('view_month')),
+          tab(this, 'week', t('view_week')),
+          tab(this, 'day', t('view_day')),
           tab(this, 'list', t('view_list')),
         ]),
         this.categories.length
@@ -109,8 +129,9 @@ export default class CalendarPage extends Page {
     ]);
   }
 
+  // ---- month ----
   monthView() {
-    const cells = monthMatrix(this.year, this.month, this.weekStart());
+    const cells = monthMatrix(this.cursor.getFullYear(), this.cursor.getMonth(), this.weekStart());
     return m('.CalendarGrid', [
       m('.CalendarGrid-weekdays', weekdayNames(this.weekStart()).map((d) => m('span', d))),
       m('.CalendarGrid-days', cells.map((day) => this.dayCell(day))),
@@ -118,7 +139,7 @@ export default class CalendarPage extends Page {
   }
 
   dayCell(day: Date) {
-    const inMonth = day.getMonth() === this.month;
+    const inMonth = day.getMonth() === this.cursor.getMonth();
     const dayEvents = this.events.filter((e) => eventOnDay(e, day)).slice(0, 4);
     const canCreate = app.forum.attribute('canCreateEvent');
     return m('.CalendarGrid-cell' + (inMonth ? '' : '.is-out') + (isToday(day) ? '.is-today' : ''), {
@@ -136,6 +157,84 @@ export default class CalendarPage extends Page {
     ]);
   }
 
+  // ---- week / day (shared time grid) ----
+  timeGrid(days: Date[]) {
+    return m('.CalendarTime' + (days.length === 1 ? '.CalendarTime--day' : '.CalendarTime--week'), [
+      m('.CalendarTime-head', [
+        m('.CalendarTime-gutter'),
+        m('.CalendarTime-heads', days.map((d) => m('.CalendarTime-dayhead' + (isToday(d) ? '.is-today' : ''), [
+          m('span.CalendarTime-dow', d.toLocaleDateString(undefined, { weekday: 'short' })),
+          m('span.CalendarTime-dnum', d.getDate()),
+        ]))),
+      ]),
+      this.allDayRow(days),
+      m('.CalendarTime-body', [
+        m('.CalendarTime-hours', HOURS.map((h) => m('.CalendarTime-hourlabel', h === 0 ? null : m('span', hourLabel(h))))),
+        m('.CalendarTime-grid', days.map((d) => this.timeColumn(d))),
+      ]),
+    ]);
+  }
+
+  allDayRow(days: Date[]) {
+    const has = this.events.some((e) => e.allDay && days.some((d) => eventOnDay(e, d)));
+    if (!has) return null;
+    return m('.CalendarTime-allday', [
+      m('.CalendarTime-gutter.CalendarTime-alldayLabel', t('all_day')),
+      m('.CalendarTime-alldayCells', days.map((d) =>
+        m('.CalendarTime-alldayCell', this.events.filter((e) => e.allDay && eventOnDay(e, d)).map((ev) =>
+          m('button.CalendarChip', {
+            type: 'button',
+            style: ev.category ? { '--cal-accent': ev.category.color } : undefined,
+            onclick: () => this.openEvent(ev),
+          }, m('span.CalendarChip-title', ev.title))
+        ))
+      )),
+    ]);
+  }
+
+  timeColumn(day: Date) {
+    const segs = layoutDay(this.events, day);
+    const canCreate = app.forum.attribute('canCreateEvent');
+    return m('.CalendarTime-col' + (isToday(day) ? '.is-today' : ''), {
+      ondblclick: canCreate ? (e: any) => this.createAt(e, day) : undefined,
+    }, [
+      ...HOURS.map((h) => m('.CalendarTime-line', { style: { top: (h / 24) * 100 + '%' } })),
+      isToday(day) ? this.nowLine() : null,
+      ...segs.map((s) => m('button.CalendarTime-event', {
+        type: 'button',
+        style: {
+          top: s.top + '%',
+          height: s.height + '%',
+          left: (s.col / s.cols) * 100 + '%',
+          width: 100 / s.cols + '%',
+          ...(s.ev.category ? { '--cal-accent': s.ev.category.color } : {}),
+        },
+        title: s.ev.title,
+        onclick: (e: Event) => { e.stopPropagation(); this.openEvent(s.ev); },
+      }, [
+        m('span.CalendarTime-eventTime', shortTime(s.ev.start)),
+        m('span.CalendarTime-eventTitle', s.ev.title),
+      ])),
+    ]);
+  }
+
+  nowLine() {
+    const now = new Date();
+    const pct = ((now.getHours() * 60 + now.getMinutes()) / 1440) * 100;
+    return m('.CalendarTime-now', { style: { top: pct + '%' } });
+  }
+
+  /** Double-click a time column → open the create form pre-filled at that slot. */
+  createAt(e: any, day: Date) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+    const slot = Math.round((pct * 1440) / 30) * 30; // snap to 30 min
+    const start = startOfDay(day);
+    start.setMinutes(Math.min(slot, 23 * 60 + 30));
+    this.openCreate(start);
+  }
+
+  // ---- list ----
   listView() {
     const now = Date.now();
     const upcoming = this.events.filter((e) => new Date(e.end || e.start).getTime() >= now);
@@ -154,9 +253,9 @@ export default class CalendarPage extends Page {
   }
 }
 
-function tab(page: CalendarPage, mode: 'month' | 'list', label: string) {
+function tab(page: CalendarPage, mode: Mode, label: string) {
   return m('button.Button.CalendarPage-view' + (page.mode === mode ? '.is-active' : ''), {
     type: 'button',
-    onclick: () => { page.mode = mode; page.load(); },
+    onclick: () => page.setMode(mode),
   }, label);
 }

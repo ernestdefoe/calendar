@@ -6,6 +6,8 @@ ernestdefoe-calendar:
     upcoming: Upcoming events
     no_events: No upcoming events.
     view_month: Month
+    view_week: Week
+    view_day: Day
     view_list: List
     today: Today
     add_event: Add event

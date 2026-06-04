@@ -65,6 +65,66 @@
   &:hover { filter: brightness(1.05); }
 }
 
+// ---- Week / Day time grid ----
+@cal-gutter: 58px;
+@cal-hour: 48px;
+
+.CalendarTime {
+  border: 1px solid @cal-border; border-radius: 12px; overflow: hidden; background: @cal-surface;
+
+  &-head { display: flex; border-bottom: 1px solid @cal-border; }
+  &-gutter { width: @cal-gutter; flex: none; }
+  &-heads { display: flex; flex: 1; }
+  &-dayhead {
+    flex: 1; text-align: center; padding: 8px 4px; border-left: 1px solid @cal-border;
+    display: flex; flex-direction: column; gap: 2px;
+    &.is-today { background: var(--primary-color-light, rgba(59, 91, 219, 0.08)); }
+  }
+  &-dow { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: @cal-muted; }
+  &-dnum { font-size: 18px; font-weight: 800; line-height: 1; }
+
+  // all-day strip
+  &-allday { display: flex; border-bottom: 1px solid @cal-border; background: var(--control-bg, rgba(127, 127, 127, 0.04)); }
+  &-alldayLabel { width: @cal-gutter; flex: none; font-size: 10px; font-weight: 700; text-transform: uppercase; color: @cal-muted; padding: 6px 6px 0; text-align: right; }
+  &-alldayCells { display: flex; flex: 1; }
+  &-alldayCell { flex: 1; border-left: 1px solid @cal-border; padding: 4px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+
+  // scrollable body
+  &-body { display: flex; max-height: 70vh; overflow-y: auto; }
+  &-hours { width: @cal-gutter; flex: none; }
+  &-hourlabel {
+    height: @cal-hour; position: relative;
+    span { position: absolute; top: -7px; right: 8px; font-size: 11px; color: @cal-muted; }
+  }
+  &-grid { display: flex; flex: 1; }
+
+  &-col {
+    flex: 1; position: relative; border-left: 1px solid @cal-border; height: @cal-hour * 24;
+    &.is-today { background: var(--primary-color-light, rgba(59, 91, 219, 0.05)); }
+  }
+  &-line { position: absolute; left: 0; right: 0; border-top: 1px solid @cal-border; opacity: .55; }
+
+  &-now { position: absolute; left: 0; right: 0; height: 2px; background: var(--alert-error-color, #e03131); z-index: 4;
+    &::before { content: ''; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--alert-error-color, #e03131); } }
+
+  &-event {
+    position: absolute; overflow: hidden; cursor: pointer; text-align: left;
+    border: 0; border-radius: 6px; padding: 3px 6px; margin: 0 2px;
+    background: ~"color-mix(in srgb, var(--cal-accent, @{cal-accentFallback}) 20%, var(--body-bg, #fff))";
+    border-left: 3px solid var(--cal-accent, @cal-accentFallback);
+    color: var(--text-color, inherit); display: flex; flex-direction: column; gap: 1px; z-index: 2;
+    &:hover { filter: brightness(1.05); z-index: 5; }
+  }
+  &-eventTime { font-size: 10.5px; font-weight: 700; opacity: .8; }
+  &-eventTitle { font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+@media (max-width: 767px) {
+  .CalendarTime-dow { font-size: 9px; }
+  .CalendarTime-dnum { font-size: 14px; }
+  .CalendarTime-eventTime { display: none; }
+}
+
 // ---- List view ----
 .CalendarList { list-style: none; margin: 0; padding: 0; }
 .CalendarList-item, .CalendarWidget-event {

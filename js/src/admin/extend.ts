@@ -1,6 +1,8 @@
 import Extend from 'flarum/common/extenders';
 import app from 'flarum/admin/app';
+import CategoryManager from './components/CategoryManager';
 
+declare const m: any;
 const t = (k: string) => app.translator.trans('ernestdefoe-calendar.admin.' + k);
 
 export default [
@@ -44,5 +46,8 @@ export default [
     .permission(
       () => ({ icon: 'fas fa-calendar-check', label: t('permission_manage'), permission: 'calendar.manage' }),
       'moderate'
-    ),
+    )
+    // Custom component (category CRUD) on the same settings page — the Flarum 2
+    // declarative replacement for app.extensionData.for(...).registerSetting().
+    .customSetting(() => m(CategoryManager), -10),
 ];

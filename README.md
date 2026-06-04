@@ -17,7 +17,9 @@ natively with [Bespoke](https://github.com/ernestdefoe/bespoke) and
 
 ## Features
 
-- 🗓️ **Month grid & upcoming list** views with quick prev / today / next navigation.
+- 🗓️ **Month, Week, Day & list** views with quick prev / today / next navigation.
+  Week/Day are true time grids with hour lines, a live "now" indicator, side-by-side
+  overlapping events, and double-click-to-create at the clicked time slot.
 - 📍 **Location** on every event, rendered as a one-tap **Google Maps** link.
 - 🔁 **Recurring events** (daily / weekly / monthly / yearly) via standard `RRULE`,
   expanded on the fly so each occurrence shows on the right day.
