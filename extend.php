@@ -36,7 +36,10 @@ return [
         ->get('/calendar/categories', 'calendar.categories.list', Controller\ListCategoriesController::class)
         ->post('/calendar/categories', 'calendar.categories.create', Controller\SaveCategoryController::class)
         ->patch('/calendar/categories/{id}', 'calendar.categories.update', Controller\SaveCategoryController::class)
-        ->delete('/calendar/categories/{id}', 'calendar.categories.delete', Controller\DeleteCategoryController::class),
+        ->delete('/calendar/categories/{id}', 'calendar.categories.delete', Controller\DeleteCategoryController::class)
+        // ---- Engagement: activity heatmap / streaks / forum pulse ----
+        ->get('/calendar/activity/{id}', 'calendar.activity.user', Controller\UserActivityController::class)
+        ->get('/calendar/pulse', 'calendar.activity.pulse', Controller\PulseController::class),
 
     // ---- iCal export (served as text/calendar for direct download / subscription) ----
     (new Extend\Routes('forum'))
@@ -49,7 +52,8 @@ return [
         ->serializeToForum('ernestdefoe-calendar.weekStartsOn', 'ernestdefoe-calendar.week_starts_on', fn ($v) => (int) ($v ?? 0))
         ->serializeToForum('ernestdefoe-calendar.showIndexWidget', 'ernestdefoe-calendar.show_index_widget', fn ($v) => (bool) $v)
         ->serializeToForum('ernestdefoe-calendar.indexWidgetCount', 'ernestdefoe-calendar.index_widget_count', fn ($v) => (int) ($v ?: 5))
-        ->serializeToForum('ernestdefoe-calendar.linkDiscussion', 'ernestdefoe-calendar.link_discussion', fn ($v) => (bool) $v),
+        ->serializeToForum('ernestdefoe-calendar.linkDiscussion', 'ernestdefoe-calendar.link_discussion', fn ($v) => (bool) $v)
+        ->serializeToForum('ernestdefoe-calendar.showPulseWidget', 'ernestdefoe-calendar.show_pulse_widget', fn ($v) => $v === null ? true : filter_var($v, FILTER_VALIDATE_BOOLEAN)),
 
     (new Extend\ApiResource(ForumResource::class))
         ->fields(fn () => [

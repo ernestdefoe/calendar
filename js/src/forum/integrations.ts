@@ -1,12 +1,13 @@
 import app from 'flarum/forum/app';
 import UpcomingEvents from './components/UpcomingEvents';
+import PulseWidget from './components/PulseWidget';
 
 declare const m: any;
 
 /**
- * Register the "Upcoming events" widget with sibling extensions when present.
- * Each integration is feature-detected and guarded, so this is a no-op on a
- * stock forum (where the index-sidebar mount in index.ts already covers it).
+ * Register the calendar's placeable widgets ("Upcoming events" + "Forum pulse")
+ * with sibling extensions when present. Each integration is feature-detected and
+ * guarded, so this is a no-op on a stock forum (where index.ts mounts them).
  */
 export function registerIntegrations(): void {
   registerBespoke();
@@ -38,6 +39,22 @@ function registerBespoke(): void {
           }),
       },
     });
+
+    bespoke.widgets.add({
+      type: 'pulse',
+      label: 'widget_pulse',
+      icon: '📈',
+      zones: ['hero', 'above-list', 'sidebar', 'below-list', 'footer'],
+      schema: [
+        { key: 'title', type: 'text', label: 'Title', default: 'Forum pulse' },
+        { key: 'count', type: 'number', label: 'Leaderboard size', default: 5 },
+        { key: 'weeks', type: 'number', label: 'Weeks of activity', default: 14 },
+      ],
+      component: {
+        view: (v: any) =>
+          m(PulseWidget, { title: v.attrs.settings.title, count: v.attrs.settings.count, weeks: v.attrs.settings.weeks }),
+      },
+    });
   } catch (e) {
     console.warn('[calendar] bespoke widget registration failed', e);
   }
@@ -58,6 +75,13 @@ function registerPageBuilder(): void {
       view: (v: any) => {
         const s = v.attrs.settings || {};
         return m(UpcomingEvents, { title: s.title, count: s.count || 5, category: s.category });
+      },
+    });
+
+    pb.registerBlock('pulse', {
+      view: (v: any) => {
+        const s = v.attrs.settings || {};
+        return m(PulseWidget, { title: s.title, count: s.count || 5, weeks: s.weeks });
       },
     });
   } catch (e) {

@@ -63,6 +63,29 @@ ernestdefoe-calendar:
 
     # ---- widget ----
     widget_title: Upcoming events
+    widget_pulse: Forum pulse
+
+    # ---- activity heatmap / streaks ----
+    heat_contributions: contributions
+    heat_current_streak: day streak
+    heat_longest_streak: longest streak
+    heat_active_days: active days
+    heat_less: Less
+    heat_more: More
+    heat_cell: "{count} on {date}"
+    badge_roll: On a roll
+    badge_week: Week warrior
+    badge_month: Unstoppable
+    badge_100: Centurion streak
+    badge_year: Year-round
+    badge_100posts: Wordsmith
+    badge_500posts: Prolific
+    badge_1kposts: Legend
+
+    # ---- forum pulse ----
+    pulse_title: Forum pulse
+    pulse_total: "{count} posts (120d)"
+    pulse_empty: No activity yet.
 
   admin:
     settings_title: Calendar
@@ -74,6 +97,8 @@ ernestdefoe-calendar:
     week_monday: Monday
     show_index_widget: Show an “Upcoming events” widget on the forum index
     index_widget_count: Events to show in the index widget
+    show_pulse_widget: Show a “Forum pulse” widget on the forum index
+    show_pulse_widget_help: An activity heatmap + most-active leaderboard that shows the community is alive. (A contribution graph also appears on every member’s profile.)
     link_discussion: Create a discussion thread for each new event (for comments)
     categories: Event categories
     categories_help: Colour-coded categories let members filter the calendar and give each event a coloured accent. Changes save per row.
@@ -90,3 +115,4 @@ ernestdefoe-calendar:
 ernestdefoe-bespoke:
   forum:
     widget_events: Upcoming events
+    widget_pulse: Forum pulse

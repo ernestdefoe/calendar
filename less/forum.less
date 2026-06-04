@@ -206,3 +206,78 @@
   .CalendarForm-grid { grid-template-columns: 1fr; }
   .CalendarPage-subscribe { margin-left: 0; }
 }
+
+// ============================================================
+//  Engagement: activity heatmap + streaks (profile) & forum pulse (widget)
+//  All colours resolve through Flarum theme vars → correct on default + themes.
+// ============================================================
+@heat-accent: var(--primary-color, #3b5bdb);
+@heat-empty: var(--control-bg, rgba(127, 127, 127, 0.12));
+@heat-border: var(--control-bg, rgba(127, 127, 127, 0.18));
+
+.PostsUserPage-heatmap { margin-bottom: 18px; }
+
+.CalHeat {
+  background: var(--body-bg, #fff);
+  border: 1px solid @heat-border;
+  border-radius: 12px;
+  padding: 18px;
+
+  &--loading { display: flex; flex-direction: column; gap: 10px; }
+  &-bar { height: 40px; border-radius: 8px; background: @heat-empty; animation: cal-pulse 1.2s ease-in-out infinite; }
+
+  &-head { display: flex; gap: 26px; margin-bottom: 16px; flex-wrap: wrap; }
+  &-stat { display: flex; flex-direction: column; }
+  &-statNum { font-size: 22px; font-weight: 800; line-height: 1; }
+  &-statLbl { font-size: 12px; color: var(--muted-color, #8a8a8a); text-transform: uppercase; letter-spacing: .03em; margin-top: 4px; }
+  &-fire { font-size: 16px; }
+
+  &-scroll { overflow-x: auto; padding-bottom: 4px; }
+  &-cal { display: inline-block; }
+  &-months { position: relative; height: 14px; margin-bottom: 3px; min-width: 100%; }
+  &-month { position: absolute; left: ~"calc(var(--col) * 15px)"; font-size: 10px; color: var(--muted-color, #8a8a8a); }
+
+  &-grid { display: flex; gap: 3px; }
+  &-week { display: flex; flex-direction: column; gap: 3px; }
+
+  &-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; flex-wrap: wrap; gap: 10px; }
+  &-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+  &-badge { font-size: 12px; background: @heat-empty; border-radius: 20px; padding: 3px 11px; font-weight: 600; }
+  &-legend { display: flex; align-items: center; gap: 3px; }
+  &-legendLbl { font-size: 11px; color: var(--muted-color, #8a8a8a); margin: 0 4px; }
+}
+
+// shared cell (used by both the heatmap and the pulse mini-grid)
+.CalHeat-cell {
+  width: 12px; height: 12px; border-radius: 3px; display: block; flex: none;
+  background: @heat-empty;
+  &[data-lvl="1"] { background: ~"color-mix(in srgb, @{heat-accent} 30%, transparent)"; }
+  &[data-lvl="2"] { background: ~"color-mix(in srgb, @{heat-accent} 55%, transparent)"; }
+  &[data-lvl="3"] { background: ~"color-mix(in srgb, @{heat-accent} 78%, transparent)"; }
+  &[data-lvl="4"] { background: @heat-accent; }
+  &.is-future { background: transparent; }
+}
+
+// ---- Forum pulse widget ----
+.CalPulse {
+  &-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; gap: 8px; }
+  &-title { margin: 0; font-size: 15px; }
+  &-total { font-size: 11px; color: var(--muted-color, #8a8a8a); flex: none; }
+
+  &-loading { display: flex; flex-direction: column; gap: 8px; }
+  &-skel { height: 38px; border-radius: 8px; background: @heat-empty; animation: cal-pulse 1.2s ease-in-out infinite; }
+
+  &-grid { display: flex; gap: 2px; margin-bottom: 12px; overflow: hidden; }
+  &-col { display: flex; flex-direction: column; gap: 2px; }
+  .CalHeat-cell { width: 9px; height: 9px; border-radius: 2px; }
+
+  &-board { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+  &-leader { display: flex; align-items: center; gap: 8px; }
+  &-rank { font-size: 11px; font-weight: 700; color: var(--muted-color, #8a8a8a); width: 22px; flex: none; }
+  &-user { display: flex; align-items: center; gap: 7px; min-width: 0; flex: 1; color: var(--text-color, inherit); }
+  &-avatar { width: 24px; height: 24px; border-radius: 50%; background-size: cover; background-position: center; flex: none; }
+  &-avatar--text { display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 700; background: @heat-accent; }
+  &-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  &-count { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 700; color: @heat-accent; }
+  &-empty { color: var(--muted-color, #8a8a8a); font-size: 13px; margin: 4px 0; }
+}

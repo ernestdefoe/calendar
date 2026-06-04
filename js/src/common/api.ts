@@ -27,6 +27,31 @@ export interface CalEvent {
 
 export interface CalCategory { id: number; name: string; slug: string; color: string }
 
+export interface UserActivity {
+  userId: number;
+  days: Record<string, number>;
+  streak: { current: number; longest: number };
+  total: number;
+  activeDays: number;
+  max: number;
+}
+
+export interface PulseLeader {
+  userId: number;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  count: number;
+}
+
+export interface ForumPulse {
+  days: Record<string, number>;
+  total: number;
+  max: number;
+  leaders: PulseLeader[];
+  leaderDays: number;
+}
+
 const api = (path: string) => app.forum.attribute('apiUrl') + path;
 export const base = () => app.forum.attribute<string>('baseUrl');
 
@@ -35,6 +60,19 @@ export const abs = (path: string) => base().replace(/\/$/, '') + '/' + path.repl
 export const feedUrl = () => abs('calendar/feed.ics');
 export const mapUrl = (location: string) =>
   'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(location);
+
+export function userActivity(userId: number): Promise<UserActivity> {
+  return app.request<any>({ method: 'GET', url: api('/calendar/activity/' + userId) }).then((r: any) => r.data);
+}
+
+export function forumPulse(opts: { days?: number; leaderDays?: number; limit?: number } = {}): Promise<ForumPulse> {
+  const qs = new URLSearchParams();
+  if (opts.days) qs.set('days', String(opts.days));
+  if (opts.leaderDays) qs.set('leaderDays', String(opts.leaderDays));
+  if (opts.limit) qs.set('limit', String(opts.limit));
+  const s = qs.toString();
+  return app.request<any>({ method: 'GET', url: api('/calendar/pulse' + (s ? '?' + s : '')) }).then((r: any) => r.data);
+}
 
 export function listEvents(from: Date, to: Date, category?: string): Promise<{ data: CalEvent[]; categories: CalCategory[] }> {
   const qs = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() });

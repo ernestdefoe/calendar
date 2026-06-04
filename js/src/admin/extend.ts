@@ -34,6 +34,13 @@ export default [
       default: 5,
     }))
     .setting(() => ({
+      setting: 'ernestdefoe-calendar.show_pulse_widget',
+      type: 'boolean',
+      label: t('show_pulse_widget'),
+      help: t('show_pulse_widget_help'),
+      default: true,
+    }))
+    .setting(() => ({
       setting: 'ernestdefoe-calendar.link_discussion',
       type: 'boolean',
       label: t('link_discussion'),

@@ -1,9 +1,12 @@
 import app from 'flarum/forum/app';
-import { extend } from 'flarum/common/extend';
+import { extend, override } from 'flarum/common/extend';
 import IndexSidebar from 'flarum/forum/components/IndexSidebar';
+import PostsUserPage from 'flarum/forum/components/PostsUserPage';
 import LinkButton from 'flarum/common/components/LinkButton';
 import CalendarPage from './components/CalendarPage';
 import UpcomingEvents from './components/UpcomingEvents';
+import ActivityHeatmap from './components/ActivityHeatmap';
+import PulseWidget from './components/PulseWidget';
 import { registerIntegrations } from './integrations';
 
 declare const m: any;
@@ -32,16 +35,29 @@ app.initializers.add('ernestdefoe/calendar', () => {
     );
   });
 
-  // Stock-theme upcoming-events widget, mounted as its own sidebar block below
-  // the navigation.
+  // Stock-theme widgets, each its own sidebar block below the navigation.
   extend(IndexSidebar.prototype, 'items', function (items: any) {
     if (app.forum.attribute('ernestdefoe-calendar.showIndexWidget')) {
       const count = app.forum.attribute('ernestdefoe-calendar.indexWidgetCount') || 5;
       items.add('calendar-upcoming', m(UpcomingEvents, { count }), -10);
     }
+    if (app.forum.attribute('ernestdefoe-calendar.showPulseWidget')) {
+      items.add('calendar-pulse', m(PulseWidget, { count: 5 }), -12);
+    }
   });
 
-  registerIntegrations();
+  // The marquee feature: a contribution heatmap + streaks at the top of every
+  // member's profile. override() lets us prepend above the activity feed.
+  override(PostsUserPage.prototype, 'content', function (this: any, original: any) {
+    const heatmap = this.user ? m('.PostsUserPage-heatmap', m(ActivityHeatmap, { userId: this.user.id() })) : null;
+    return [heatmap, original()];
+  });
+
+  // Defer so sibling extensions (Bespoke / Page Builder) have run their own
+  // initializers and created app.bespoke / app.pageBuilder before we register our
+  // widgets into them — cross-extension initializer order isn't guaranteed, and a
+  // macrotask runs after Flarum's synchronous boot completes.
+  setTimeout(registerIntegrations, 0);
 });
 
 export { default as UpcomingEvents } from './components/UpcomingEvents';
