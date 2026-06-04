@@ -41,6 +41,18 @@ export default [
       default: true,
     }))
     .setting(() => ({
+      setting: 'ernestdefoe-calendar.show_memories_widget',
+      type: 'boolean',
+      label: t('show_memories_widget'),
+      default: true,
+    }))
+    .setting(() => ({
+      setting: 'ernestdefoe-calendar.show_celebrations_widget',
+      type: 'boolean',
+      label: t('show_celebrations_widget'),
+      default: true,
+    }))
+    .setting(() => ({
       setting: 'ernestdefoe-calendar.link_discussion',
       type: 'boolean',
       label: t('link_discussion'),

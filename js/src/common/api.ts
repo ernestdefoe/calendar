@@ -52,8 +52,35 @@ export interface ForumPulse {
   leaderDays: number;
 }
 
+export interface Memory {
+  id: number;
+  title: string;
+  slug: string;
+  createdAt: string;
+  yearsAgo: number;
+  commentCount: number;
+  participantCount: number;
+}
+
+export interface Celebrant {
+  userId: number;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  type: 'birthday' | 'anniversary';
+  years?: number;
+}
+
 const api = (path: string) => app.forum.attribute('apiUrl') + path;
 export const base = () => app.forum.attribute<string>('baseUrl');
+
+export function onThisDay(limit = 6): Promise<Memory[]> {
+  return app.request<any>({ method: 'GET', url: api('/calendar/onthisday?limit=' + limit) }).then((r: any) => r.data);
+}
+
+export function celebrations(): Promise<Celebrant[]> {
+  return app.request<any>({ method: 'GET', url: api('/calendar/celebrations') }).then((r: any) => r.data);
+}
 
 /** Absolute URL for a server path the serializer handed us (e.g. an .ics path). */
 export const abs = (path: string) => base().replace(/\/$/, '') + '/' + path.replace(/^\//, '');

@@ -3,10 +3,14 @@ import { extend, override } from 'flarum/common/extend';
 import IndexSidebar from 'flarum/forum/components/IndexSidebar';
 import PostsUserPage from 'flarum/forum/components/PostsUserPage';
 import LinkButton from 'flarum/common/components/LinkButton';
+import FieldSet from 'flarum/common/components/FieldSet';
 import CalendarPage from './components/CalendarPage';
 import UpcomingEvents from './components/UpcomingEvents';
 import ActivityHeatmap from './components/ActivityHeatmap';
 import PulseWidget from './components/PulseWidget';
+import OnThisDayWidget from './components/OnThisDayWidget';
+import CelebrationsWidget from './components/CelebrationsWidget';
+import BirthdayField from './components/BirthdayField';
 import { registerIntegrations } from './integrations';
 import { startCountdowns } from './countdowns';
 
@@ -45,7 +49,27 @@ app.initializers.add('ernestdefoe/calendar', () => {
     if (app.forum.attribute('ernestdefoe-calendar.showPulseWidget')) {
       items.add('calendar-pulse', m(PulseWidget, { count: 5 }), -12);
     }
+    if (app.forum.attribute('ernestdefoe-calendar.showCelebrationsWidget')) {
+      items.add('calendar-celebrations', m(CelebrationsWidget), -13);
+    }
+    if (app.forum.attribute('ernestdefoe-calendar.showMemoriesWidget')) {
+      items.add('calendar-memories', m(OnThisDayWidget, { count: 6 }), -14);
+    }
   });
+
+  // Self-service birthday picker in the account settings page (opt-in, MM-DD only).
+  // SettingsPage isn't an exported runtime module, so reach it via the registered
+  // route component; guarded so a core change can never break boot.
+  const SettingsPage = (app.routes.settings as any) && (app.routes.settings as any).component;
+  if (SettingsPage && SettingsPage.prototype) {
+    extend(SettingsPage.prototype, 'settingsItems', function (items: any) {
+      items.add(
+        'calendarBirthday',
+        FieldSet.component({ className: 'Settings-calendarBirthday', label: app.translator.trans('ernestdefoe-calendar.forum.birthday_section') }, [m(BirthdayField)]),
+        5
+      );
+    });
+  }
 
   // The marquee feature: a contribution heatmap + streaks at the top of every
   // member's profile. override() lets us prepend above the activity feed.

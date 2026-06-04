@@ -11,6 +11,8 @@ use Flarum\Api\Context;
 use Flarum\Api\Schema;
 use Flarum\Api\Resource\ForumResource;
 use Flarum\Extension\ExtensionManager;
+use Flarum\User\User;
+use Flarum\Api\Resource\UserResource;
 use ErnestDefoe\Calendar\Api\Controller;
 
 return [
@@ -39,7 +41,10 @@ return [
         ->delete('/calendar/categories/{id}', 'calendar.categories.delete', Controller\DeleteCategoryController::class)
         // ---- Engagement: activity heatmap / streaks / forum pulse ----
         ->get('/calendar/activity/{id}', 'calendar.activity.user', Controller\UserActivityController::class)
-        ->get('/calendar/pulse', 'calendar.activity.pulse', Controller\PulseController::class),
+        ->get('/calendar/pulse', 'calendar.activity.pulse', Controller\PulseController::class)
+        // ---- Engagement: on-this-day memories + member celebrations ----
+        ->get('/calendar/onthisday', 'calendar.onthisday', Controller\OnThisDayController::class)
+        ->get('/calendar/celebrations', 'calendar.celebrations', Controller\CelebrationsController::class),
 
     // ---- iCal export (served as text/calendar for direct download / subscription) ----
     (new Extend\Routes('forum'))
@@ -53,7 +58,9 @@ return [
         ->serializeToForum('ernestdefoe-calendar.showIndexWidget', 'ernestdefoe-calendar.show_index_widget', fn ($v) => (bool) $v)
         ->serializeToForum('ernestdefoe-calendar.indexWidgetCount', 'ernestdefoe-calendar.index_widget_count', fn ($v) => (int) ($v ?: 5))
         ->serializeToForum('ernestdefoe-calendar.linkDiscussion', 'ernestdefoe-calendar.link_discussion', fn ($v) => (bool) $v)
-        ->serializeToForum('ernestdefoe-calendar.showPulseWidget', 'ernestdefoe-calendar.show_pulse_widget', fn ($v) => $v === null ? true : filter_var($v, FILTER_VALIDATE_BOOLEAN)),
+        ->serializeToForum('ernestdefoe-calendar.showPulseWidget', 'ernestdefoe-calendar.show_pulse_widget', fn ($v) => $v === null ? true : filter_var($v, FILTER_VALIDATE_BOOLEAN))
+        ->serializeToForum('ernestdefoe-calendar.showMemoriesWidget', 'ernestdefoe-calendar.show_memories_widget', fn ($v) => $v === null ? true : filter_var($v, FILTER_VALIDATE_BOOLEAN))
+        ->serializeToForum('ernestdefoe-calendar.showCelebrationsWidget', 'ernestdefoe-calendar.show_celebrations_widget', fn ($v) => $v === null ? true : filter_var($v, FILTER_VALIDATE_BOOLEAN)),
 
     (new Extend\ApiResource(ForumResource::class))
         ->fields(fn () => [
@@ -67,6 +74,20 @@ return [
             Schema\Boolean::make('calendarCoverUploads')
                 ->get(fn ($model, Context $context) => resolve(ExtensionManager::class)->isEnabled('fof-upload')
                     && $context->getActor()->hasPermission('fof-upload.upload')),
+        ]),
+
+    // ---- Opt-in birthday (MM-DD only) on the user resource; self-editable. ----
+    (new Extend\ApiResource(UserResource::class))
+        ->fields(fn () => [
+            Schema\Str::make('calendarBirthday')
+                ->nullable()
+                ->writable(fn (User $user, Context $context) => $context->getActor()->id === $user->id
+                    || $context->getActor()->can('editUser', $user))
+                ->get(fn (User $user) => $user->cal_birthday)
+                ->set(function (User $user, ?string $value) {
+                    $value = is_string($value) ? trim($value) : '';
+                    $user->cal_birthday = preg_match('/^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/', $value) ? $value : null;
+                }),
         ]),
 
     // ---- Live countdowns: a [countdown] BBCode usable in any post ----

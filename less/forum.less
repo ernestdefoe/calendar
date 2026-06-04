@@ -309,3 +309,38 @@
     display: inline; padding: 0; margin: 0; background: none; border: 0;
   }
 }
+
+// ============================================================
+//  On This Day (memories) + Celebrations widgets + birthday field
+// ============================================================
+.CalMemories, .CalCeleb {
+  &-head { margin-bottom: 8px; }
+  &-title { margin: 0; font-size: 15px; }
+  &-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  &-empty { color: @cal-muted; font-size: 13px; margin: 4px 0; }
+  &-loading { display: flex; flex-direction: column; gap: 8px; }
+  &-skel { height: 34px; border-radius: 8px; background: var(--control-bg, rgba(127, 127, 127, 0.12)); animation: cal-pulse 1.2s ease-in-out infinite; }
+}
+
+.CalMemories {
+  &-item { display: flex; flex-direction: column; gap: 1px; }
+  &-link { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &-meta { font-size: 12px; color: @cal-muted; }
+  &-years { font-weight: 700; color: var(--primary-color, #3b5bdb); }
+}
+
+.CalCeleb {
+  &-item { display: flex; align-items: center; gap: 8px; }
+  &-emoji { font-size: 16px; flex: none; }
+  &-user { display: flex; align-items: center; gap: 7px; min-width: 0; color: var(--text-color, inherit); }
+  &-avatar { width: 24px; height: 24px; border-radius: 50%; background-size: cover; background-position: center; flex: none; }
+  &-avatar--text { display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 700; background: var(--primary-color, #3b5bdb); }
+  &-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &-note { margin-left: auto; font-size: 12px; color: @cal-muted; flex: none; }
+}
+
+.CalBirthday {
+  &-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+  &-month { min-width: 140px; flex: 0 1 160px; }
+  &-day { width: auto; flex: 0 0 90px; }
+}

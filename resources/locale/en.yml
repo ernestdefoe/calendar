@@ -96,6 +96,27 @@ ernestdefoe-calendar:
     cd_here: is here!
     cd_live: Happening now 🎉
 
+    # ---- on this day / memories ----
+    memories_title: On this day
+    memories_empty: No memories from today’s date yet — make some!
+    memories_years_ago: "{years}y ago"
+    memories_replies: "{count} replies"
+    widget_memories: On this day
+
+    # ---- member celebrations ----
+    celebrations_title: Today’s celebrations
+    celebrations_birthday: Birthday 🎂
+    celebrations_anniversary: "{years}y on the forum"
+    widget_celebrations: Celebrations
+
+    # ---- birthday (account settings) ----
+    birthday_section: Birthday
+    birthday_help: Add your birthday (month & day only — never the year) to be celebrated by the community. Leave blank to opt out.
+    birthday_month: Month
+    birthday_day: Day
+    birthday_save: Save
+    birthday_saved: Birthday saved.
+
   admin:
     settings_title: Calendar
     default_view: Default calendar view
@@ -125,3 +146,5 @@ ernestdefoe-bespoke:
   forum:
     widget_events: Upcoming events
     widget_pulse: Forum pulse
+    widget_memories: On this day
+    widget_celebrations: Celebrations

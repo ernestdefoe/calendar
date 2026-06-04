@@ -1,6 +1,8 @@
 import app from 'flarum/forum/app';
 import UpcomingEvents from './components/UpcomingEvents';
 import PulseWidget from './components/PulseWidget';
+import OnThisDayWidget from './components/OnThisDayWidget';
+import CelebrationsWidget from './components/CelebrationsWidget';
 
 declare const m: any;
 
@@ -55,6 +57,27 @@ function registerBespoke(): void {
           m(PulseWidget, { title: v.attrs.settings.title, count: v.attrs.settings.count, weeks: v.attrs.settings.weeks }),
       },
     });
+
+    bespoke.widgets.add({
+      type: 'memories',
+      label: 'widget_memories',
+      icon: '🕰️',
+      zones: ['hero', 'above-list', 'sidebar', 'below-list', 'footer'],
+      schema: [
+        { key: 'title', type: 'text', label: 'Title', default: 'On this day' },
+        { key: 'count', type: 'number', label: 'How many', default: 6 },
+      ],
+      component: { view: (v: any) => m(OnThisDayWidget, { title: v.attrs.settings.title, count: v.attrs.settings.count }) },
+    });
+
+    bespoke.widgets.add({
+      type: 'celebrations',
+      label: 'widget_celebrations',
+      icon: '🎉',
+      zones: ['hero', 'above-list', 'sidebar', 'below-list', 'footer'],
+      schema: [{ key: 'title', type: 'text', label: 'Title', default: 'Celebrations' }],
+      component: { view: (v: any) => m(CelebrationsWidget, { title: v.attrs.settings.title }) },
+    });
   } catch (e) {
     console.warn('[calendar] bespoke widget registration failed', e);
   }
@@ -83,6 +106,14 @@ function registerPageBuilder(): void {
         const s = v.attrs.settings || {};
         return m(PulseWidget, { title: s.title, count: s.count || 5, weeks: s.weeks });
       },
+    });
+
+    pb.registerBlock('memories', {
+      view: (v: any) => { const s = v.attrs.settings || {}; return m(OnThisDayWidget, { title: s.title, count: s.count || 6 }); },
+    });
+
+    pb.registerBlock('celebrations', {
+      view: (v: any) => { const s = v.attrs.settings || {}; return m(CelebrationsWidget, { title: s.title }); },
     });
   } catch (e) {
     console.warn('[calendar] page-builder block registration failed', e);
