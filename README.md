@@ -4,18 +4,38 @@
 [![Latest version](https://img.shields.io/github/v/tag/ernestdefoe/calendar?label=release)](https://github.com/ernestdefoe/calendar/releases)
 [![Flarum](https://img.shields.io/badge/Flarum-%5E2.0-orange.svg)](https://flarum.org)
 
-A full-featured, **free** calendar & events extension for **Flarum 2**. Month and
-list views, RSVPs, colour-coded categories, recurring events, cover images, a
-proper **iCal feed**, one-click **Google Calendar** export, and a drop-anywhere
-**Upcoming Events** widget that looks right on the default theme — and integrates
-natively with [Bespoke](https://github.com/ernestdefoe/bespoke) and
+A full-featured, **free** calendar & events extension for **Flarum 2** — and an
+**engagement engine** that makes your whole community feel alive. Events (month/
+week/day/list, RSVPs, recurrence, iCal + Google Calendar) **plus** a GitHub-style
+activity heatmap with streaks, a forum-pulse leaderboard, live countdowns in any
+post, "on this day" memories, and member birthday/anniversary celebrations.
+
+Everything works on the **default theme** and integrates natively with
+[Bespoke](https://github.com/ernestdefoe/bespoke) and
 [Page Builder](https://github.com/ernestdefoe/page-builder).
 
 > Built to feel premium. Priced at free.
 
 ---
 
-## Features
+## ✨ Engagement engine (the reason to install even if you don't need a calendar)
+
+- 🔥 **Activity heatmap + streaks** — every member profile gets a GitHub-style
+  year-long contribution graph with current/longest **streaks**, totals, and
+  earned **achievement badges**. The single best driver of daily return visits.
+- 📈 **Forum Pulse** — a community-wide activity heatmap + "most active"
+  leaderboard widget that shows, at a glance, that the place is buzzing.
+- ⏳ **Live countdowns** — drop `[countdown=2026-12-31T23:59:59]New Year[/countdown]`
+  into *any* post for a live ticking timer; upcoming events get one automatically.
+- 🕰️ **On this day** — resurfaces the most-discussed threads from today's date in
+  years past, reviving old conversations.
+- 🎂 **Member celebrations** — opt-in **birthdays** (month/day only — never a year)
+  and join-**anniversaries**, shown in a "today's celebrations" widget.
+
+Each appears on the default theme **and** as a Bespoke widget / Page Builder block,
+with admin toggles for the index widgets.
+
+## Calendar & events features
 
 - 🗓️ **Month, Week, Day & list** views with quick prev / today / next navigation.
   Week/Day are true time grids with hour lines, a live "now" indicator, side-by-side
