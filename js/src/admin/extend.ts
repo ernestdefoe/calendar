@@ -52,12 +52,6 @@ export default [
       label: t('show_celebrations_widget'),
       default: true,
     }))
-    .setting(() => ({
-      setting: 'ernestdefoe-calendar.link_discussion',
-      type: 'boolean',
-      label: t('link_discussion'),
-      default: true,
-    }))
     .permission(
       () => ({ icon: 'fas fa-calendar-plus', label: t('permission_create'), permission: 'calendar.create' }),
       'start'

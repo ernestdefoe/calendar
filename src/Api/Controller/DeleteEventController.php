@@ -17,6 +17,7 @@ class DeleteEventController implements RequestHandlerInterface
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $actor = RequestUtil::getActor($request);
+        $actor->assertRegistered(); // guests → 401, not a 403 from the manage check
         $id = (int) Arr::get($request->getAttributes(), 'routeParameters.id');
 
         $event = Event::query()->findOrFail($id);

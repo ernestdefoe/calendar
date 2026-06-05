@@ -87,17 +87,19 @@ class Event extends AbstractModel
      */
     public function scopeInWindow(Builder $query, Carbon $from, Carbon $to): Builder
     {
-        return $query->where(function (Builder $q) use ($from, $to) {
-            // one-off (or series anchor) that starts before the window ends…
-            $q->where('start_at', '<=', $to)
-                // …and either ends after the window starts, is open-ended, or recurs.
-                ->where(function (Builder $q2) use ($from) {
-                    $q2->whereNull('end_at')
-                        ->orWhere('end_at', '>=', $from)
-                        ->orWhereNotNull('rrule');
-                });
-        })->orWhere(function (Builder $q) {
-            $q->whereNotNull('rrule'); // recurring series can produce occurrences any time
-        });
+        // A series anchor that starts after the window end can't produce any
+        // occurrence inside [$from, $to], so we only need rows whose start_at is
+        // on/before $to. The inner orWhereNotNull('rrule') already pulls in
+        // recurring series that started before the window (their occurrences are
+        // expanded in the recurrence layer) — so the old standalone
+        // `orWhere(whereNotNull('rrule'))` was a strict superset that loaded
+        // EVERY recurring event ever created on every window query. Dropped.
+        return $query->where('start_at', '<=', $to)
+            // …and either ends after the window starts, is open-ended, or recurs.
+            ->where(function (Builder $q2) use ($from) {
+                $q2->whereNull('end_at')
+                    ->orWhere('end_at', '>=', $from)
+                    ->orWhereNotNull('rrule');
+            });
     }
 }

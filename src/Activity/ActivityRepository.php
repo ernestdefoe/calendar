@@ -3,7 +3,7 @@
 namespace ErnestDefoe\Calendar\Activity;
 
 use Carbon\Carbon;
-use Illuminate\Database\ConnectionInterface;
+use Flarum\Post\Post;
 
 /**
  * Aggregates forum activity into the day-bucketed shapes the heatmap, streaks,
@@ -16,8 +16,6 @@ use Illuminate\Database\ConnectionInterface;
  */
 class ActivityRepository
 {
-    public function __construct(protected ConnectionInterface $db) {}
-
     /** Daily comment counts for one user over the last $days days, keyed 'Y-m-d'. */
     public function userDaily(int $userId, int $days = 365): array
     {
@@ -35,7 +33,7 @@ class ActivityRepository
     {
         $from = Carbon::now()->subDays($days - 1)->startOfDay();
 
-        return $this->db->table('posts')
+        return Post::query()
             ->selectRaw('user_id, COUNT(*) as c')
             ->where('type', 'comment')
             ->whereNotNull('user_id')
@@ -95,7 +93,7 @@ class ActivityRepository
     {
         $from = Carbon::now()->subDays($days - 1)->startOfDay();
 
-        $q = $this->db->table('posts')
+        $q = Post::query()
             ->selectRaw('DATE(created_at) as d, COUNT(*) as c')
             ->where('type', 'comment')
             ->where('is_private', false)

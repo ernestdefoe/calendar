@@ -7,5 +7,4 @@ return Migration::addSettings([
     'ernestdefoe-calendar.week_starts_on'     => '0',      // 0 = Sunday, 1 = Monday
     'ernestdefoe-calendar.show_index_widget'  => true,     // mount Upcoming widget on the index (works on any theme)
     'ernestdefoe-calendar.index_widget_count' => '5',
-    'ernestdefoe-calendar.link_discussion'    => true,     // auto-create a discussion thread per event
 ]);

@@ -154,20 +154,28 @@ export default class EventFormModal extends Modal<FormAttrs> {
     const body = new FormData();
     body.append('files[]', file);
 
-    fetch(app.forum.attribute('apiUrl') + '/fof/upload', {
-      method: 'POST',
-      body,
-      credentials: 'include',
-      headers: { 'X-CSRF-Token': (app.session as any).csrfToken },
-    })
-      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-      .then((res: any) => {
-        const f = res?.data?.[0]?.attributes || {};
-        const url = f.url || f.relativeUrl || f.uploadUrl;
-        if (url) this.data.coverUrl = url;
-        else app.alerts.show({ type: 'error' }, t('cover_error'));
+    // Use Flarum's app.request rather than a raw fetch: it attaches the CSRF
+    // token and sends cookies for us, and Mithril passes a FormData body through
+    // untouched (no JSON encoding, browser sets the multipart boundary). We
+    // suppress the generic request-error alert (errorHandler) and surface our own
+    // cover-specific one instead; the two-arg then() keeps the cleanup running on
+    // both success and failure.
+    app
+      .request<any>({
+        method: 'POST',
+        url: app.forum.attribute('apiUrl') + '/fof/upload',
+        body,
+        errorHandler: () => {},
       })
-      .catch(() => app.alerts.show({ type: 'error' }, t('cover_error')))
+      .then(
+        (res: any) => {
+          const f = res?.data?.[0]?.attributes || {};
+          const url = f.url || f.relativeUrl || f.uploadUrl;
+          if (url) this.data.coverUrl = url;
+          else app.alerts.show({ type: 'error' }, t('cover_error'));
+        },
+        () => app.alerts.show({ type: 'error' }, t('cover_error'))
+      )
       .then(() => { this.uploading = false; m.redraw(); });
   }
 

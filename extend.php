@@ -15,6 +15,17 @@ use Flarum\User\User;
 use Flarum\Api\Resource\UserResource;
 use ErnestDefoe\Calendar\Api\Controller;
 
+// Whether fof-upload is available is a boot-time fact (Flarum compiles the asset
+// manifest at boot, not per request), so resolve it once here instead of calling
+// the container via resolve() on every forum-payload serialization. The actor's
+// upload permission is still evaluated per request in the field below.
+$coverUploadsAvailable = false;
+try {
+    $coverUploadsAvailable = resolve(ExtensionManager::class)->isEnabled('fof-upload');
+} catch (\Throwable $e) {
+    // extension state not resolvable this early — default to no upload UI
+}
+
 $extenders = [
     (new Extend\Frontend('forum'))
         ->js(__DIR__ . '/js/dist/forum.js')
@@ -57,7 +68,6 @@ $extenders = [
         ->serializeToForum('ernestdefoe-calendar.weekStartsOn', 'ernestdefoe-calendar.week_starts_on', fn ($v) => (int) ($v ?? 0))
         ->serializeToForum('ernestdefoe-calendar.showIndexWidget', 'ernestdefoe-calendar.show_index_widget', fn ($v) => (bool) $v)
         ->serializeToForum('ernestdefoe-calendar.indexWidgetCount', 'ernestdefoe-calendar.index_widget_count', fn ($v) => (int) ($v ?: 5))
-        ->serializeToForum('ernestdefoe-calendar.linkDiscussion', 'ernestdefoe-calendar.link_discussion', fn ($v) => (bool) $v)
         ->serializeToForum('ernestdefoe-calendar.showPulseWidget', 'ernestdefoe-calendar.show_pulse_widget', fn ($v) => $v === null ? true : filter_var($v, FILTER_VALIDATE_BOOLEAN))
         ->serializeToForum('ernestdefoe-calendar.showMemoriesWidget', 'ernestdefoe-calendar.show_memories_widget', fn ($v) => $v === null ? true : filter_var($v, FILTER_VALIDATE_BOOLEAN))
         ->serializeToForum('ernestdefoe-calendar.showCelebrationsWidget', 'ernestdefoe-calendar.show_celebrations_widget', fn ($v) => $v === null ? true : filter_var($v, FILTER_VALIDATE_BOOLEAN)),
@@ -72,7 +82,7 @@ $extenders = [
             // so the event form can offer a real file picker for cover images
             // (it always falls back to a plain URL field otherwise).
             Schema\Boolean::make('calendarCoverUploads')
-                ->get(fn ($model, Context $context) => resolve(ExtensionManager::class)->isEnabled('fof-upload')
+                ->get(fn ($model, Context $context) => $coverUploadsAvailable
                     && $context->getActor()->hasPermission('fof-upload.upload')),
         ]),
 
