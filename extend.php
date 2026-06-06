@@ -14,17 +14,7 @@ use Flarum\Extension\ExtensionManager;
 use Flarum\User\User;
 use Flarum\Api\Resource\UserResource;
 use ErnestDefoe\Calendar\Api\Controller;
-
-// Whether fof-upload is available is a boot-time fact (Flarum compiles the asset
-// manifest at boot, not per request), so resolve it once here instead of calling
-// the container via resolve() on every forum-payload serialization. The actor's
-// upload permission is still evaluated per request in the field below.
-$coverUploadsAvailable = false;
-try {
-    $coverUploadsAvailable = resolve(ExtensionManager::class)->isEnabled('fof-upload');
-} catch (\Throwable $e) {
-    // extension state not resolvable this early — default to no upload UI
-}
+use Psr\Log\LoggerInterface;
 
 $extenders = [
     (new Extend\Frontend('forum'))
@@ -82,8 +72,23 @@ $extenders = [
             // so the event form can offer a real file picker for cover images
             // (it always falls back to a plain URL field otherwise).
             Schema\Boolean::make('calendarCoverUploads')
-                ->get(fn ($model, Context $context) => $coverUploadsAvailable
-                    && $context->getActor()->hasPermission('fof-upload.upload')),
+                ->get(function ($model, Context $context) {
+                    // Resolved lazily at request time (never at file-parse time),
+                    // memoized per process, and logged rather than silently swallowed.
+                    static $available = null;
+                    if ($available === null) {
+                        try {
+                            $available = resolve(ExtensionManager::class)->isEnabled('fof-upload');
+                        } catch (\Throwable $e) {
+                            try {
+                                resolve(LoggerInterface::class)->debug('[calendar] fof-upload detection failed: ' . $e->getMessage());
+                            } catch (\Throwable $ignored) {
+                            }
+                            $available = false;
+                        }
+                    }
+                    return $available && $context->getActor()->hasPermission('fof-upload.upload');
+                }),
         ]),
 
     // ---- Opt-in birthday (MM-DD only) on the user resource; self-editable. ----

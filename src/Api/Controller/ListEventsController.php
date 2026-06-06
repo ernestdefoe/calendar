@@ -45,7 +45,11 @@ class ListEventsController implements RequestHandlerInterface
             $query->whereHas('category', fn ($q) => $q->where('slug', $cat)->orWhere('id', (int) $cat));
         }
 
-        $events = $query->orderBy('start_at')->limit(800)->get();
+        $events = $query->orderBy('start_at')->limit(400)->get();
+
+        // Hard ceiling on expanded occurrences so a few dense recurring series
+        // can't blow up memory/CPU (e.g. 400 daily events over a 420-day window).
+        $maxOccurrences = 3000;
 
         $ids = $events->pluck('id')->all();
         $counts = EventRsvp::query()->whereIn('event_id', $ids)
@@ -57,10 +61,12 @@ class ListEventsController implements RequestHandlerInterface
 
         $data = [];
         foreach ($events as $event) {
+            if (count($data) >= $maxOccurrences) break;
             $rsvp = self::rsvpFor($event->id, $counts, $mine);
 
             if ($event->isRecurring()) {
                 foreach (RecurrenceExpander::occurrences($event->rrule, $event->start_at, $from, $to) as $occ) {
+                    if (count($data) >= $maxOccurrences) break;
                     $data[] = EventSerializer::serialize($event, $actor, $occ, $rsvp);
                 }
             } else {

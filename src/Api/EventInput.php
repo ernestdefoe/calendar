@@ -14,8 +14,6 @@ use Illuminate\Support\Str;
  */
 class EventInput
 {
-    private const VALID_TZ = true;
-
     public static function apply(Event $event, array $attrs, bool $creating): void
     {
         $errors = [];

@@ -5,6 +5,7 @@ namespace ErnestDefoe\Calendar\Api\Controller;
 use ErnestDefoe\Calendar\EventCategory;
 use Flarum\Foundation\ValidationException;
 use Flarum\Http\RequestUtil;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Laminas\Diactoros\Response\JsonResponse;
@@ -47,7 +48,18 @@ class SaveCategoryController implements RequestHandlerInterface
             $category->slug = self::uniqueSlug($category->name, $category->id);
         }
 
-        $category->save();
+        // uniqueSlug is check-then-insert; under concurrency two requests can
+        // collide on the unique index. Retry with a fresh suffix instead of 500.
+        $baseSlug = $category->slug;
+        for ($attempt = 0; ; $attempt++) {
+            try {
+                $category->save();
+                break;
+            } catch (UniqueConstraintViolationException $e) {
+                if ($attempt >= 3) throw $e;
+                $category->slug = $baseSlug . '-' . Str::lower(Str::random(5));
+            }
+        }
 
         return new JsonResponse(['data' => [
             'id'    => (int) $category->id,
