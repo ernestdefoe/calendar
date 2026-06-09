@@ -89,11 +89,21 @@ class EventInput
     {
         $v = trim((string) $v);
         if ($v === '') return null;
-        // Accept absolute URLs, plus root-relative paths (e.g. FoF Upload's local
-        // file URLs) — but never protocol-relative "//host" which could point off-site.
-        $ok = filter_var($v, FILTER_VALIDATE_URL)
-            || (str_starts_with($v, '/') && !str_starts_with($v, '//'));
-        return $ok ? mb_substr($v, 0, 600) : null;
+        // Root-relative paths (e.g. FoF Upload's local file URLs) are allowed, but
+        // never protocol-relative "//host" which could point off-site.
+        if (str_starts_with($v, '/') && !str_starts_with($v, '//')) {
+            return mb_substr($v, 0, 600);
+        }
+        // Absolute URLs must be valid AND http/https. filter_var(FILTER_VALIDATE_URL)
+        // alone accepts javascript:/data:/vbscript: schemes, which become stored XSS
+        // when rendered as an <a href>. Allowlist the scheme.
+        if (filter_var($v, FILTER_VALIDATE_URL)) {
+            $scheme = strtolower((string) parse_url($v, PHP_URL_SCHEME));
+            if (in_array($scheme, ['http', 'https'], true)) {
+                return mb_substr($v, 0, 600);
+            }
+        }
+        return null;
     }
 
     /** Keep only a safe RRULE-ish charset; the expander/iCal tolerate the rest. */

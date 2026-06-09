@@ -46,7 +46,9 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
         ev.location
           ? m('.CalendarDetail-row', [m('i.icon.fas.fa-location-dot'), m('a', { href: mapUrl(ev.location), target: '_blank', rel: 'noopener' }, ev.location)])
           : null,
-        ev.url ? m('.CalendarDetail-row', [m('i.icon.fas.fa-link'), m('a', { href: ev.url, target: '_blank', rel: 'noopener' }, ev.url)]) : null,
+        ev.url && (/^https?:\/\//i.test(ev.url) || (ev.url.startsWith('/') && !ev.url.startsWith('//')))
+          ? m('.CalendarDetail-row', [m('i.icon.fas.fa-link'), m('a', { href: ev.url, target: '_blank', rel: 'noopener noreferrer' }, ev.url)])
+          : null,
         ev.author ? row('fas fa-user', t('organizer') + ' ' + ev.author.displayName) : null,
       ]),
 

@@ -63,33 +63,32 @@ $extenders = [
         ->serializeToForum('ernestdefoe-calendar.showCelebrationsWidget', 'ernestdefoe-calendar.show_celebrations_widget', fn ($v) => $v === null ? true : filter_var($v, FILTER_VALIDATE_BOOLEAN)),
 
     (new Extend\ApiResource(ForumResource::class))
-        ->fields(fn () => [
-            Schema\Boolean::make('canCreateEvent')
-                ->get(fn ($model, Context $context) => $context->getActor()->can('calendar.create')),
-            Schema\Boolean::make('canManageCalendar')
-                ->get(fn ($model, Context $context) => $context->getActor()->can('calendar.manage')),
-            // True when FoF Upload is installed + enabled AND the actor may upload,
-            // so the event form can offer a real file picker for cover images
-            // (it always falls back to a plain URL field otherwise).
-            Schema\Boolean::make('calendarCoverUploads')
-                ->get(function ($model, Context $context) {
-                    // Resolved lazily at request time (never at file-parse time),
-                    // memoized per process, and logged rather than silently swallowed.
-                    static $available = null;
-                    if ($available === null) {
-                        try {
-                            $available = resolve(ExtensionManager::class)->isEnabled('fof-upload');
-                        } catch (\Throwable $e) {
-                            try {
-                                resolve(LoggerInterface::class)->debug('[calendar] fof-upload detection failed: ' . $e->getMessage());
-                            } catch (\Throwable $ignored) {
-                            }
-                            $available = false;
-                        }
-                    }
-                    return $available && $context->getActor()->hasPermission('fof-upload.upload');
-                }),
-        ]),
+        ->fields(function () {
+            // Resolve fof-upload availability ONCE here, in the fields builder
+            // (request-time, not file-parse time) — keeps resolve() out of the
+            // per-field ->get() closure while staying a process-cheap single call.
+            $coverUploadsEnabled = false;
+            try {
+                $coverUploadsEnabled = resolve(ExtensionManager::class)->isEnabled('fof-upload');
+            } catch (\Throwable $e) {
+                try {
+                    resolve(LoggerInterface::class)->debug('[calendar] fof-upload detection failed: ' . $e->getMessage());
+                } catch (\Throwable $ignored) {
+                }
+            }
+
+            return [
+                Schema\Boolean::make('canCreateEvent')
+                    ->get(fn ($model, Context $context) => $context->getActor()->can('calendar.create')),
+                Schema\Boolean::make('canManageCalendar')
+                    ->get(fn ($model, Context $context) => $context->getActor()->can('calendar.manage')),
+                // True when FoF Upload is installed + enabled AND the actor may upload,
+                // so the event form can offer a real file picker for cover images
+                // (it always falls back to a plain URL field otherwise).
+                Schema\Boolean::make('calendarCoverUploads')
+                    ->get(fn ($model, Context $context) => $coverUploadsEnabled && $context->getActor()->hasPermission('fof-upload.upload')),
+            ];
+        }),
 
     // ---- Opt-in birthday (MM-DD only) on the user resource; self-editable. ----
     (new Extend\ApiResource(UserResource::class))

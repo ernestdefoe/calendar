@@ -25,7 +25,12 @@ class RsvpController implements RequestHandlerInterface
         $actor->assertRegistered();
 
         $id = (int) Arr::get($request->getAttributes(), 'routeParameters.id');
-        $event = Event::query()->findOrFail($id);
+        // Only published events accept RSVPs — except the event's own author, who
+        // may RSVP to their draft. Stops a registered user who guesses/brute-forces
+        // a draft's integer ID from polluting its RSVP counts before publication.
+        $event = Event::query()
+            ->where(fn ($q) => $q->where('is_published', true)->orWhere('user_id', $actor->id))
+            ->findOrFail($id);
 
         $status = (string) Arr::get((array) $request->getParsedBody(), 'data.status', '');
 

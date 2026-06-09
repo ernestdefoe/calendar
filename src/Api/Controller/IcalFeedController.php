@@ -27,7 +27,11 @@ class IcalFeedController implements RequestHandlerInterface
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
+        // Eager-load category + user so per-event serialisation below doesn't
+        // lazy-load them one row at a time (N+1). The 2000-row ceiling bounds
+        // peak memory for forums with long event histories / many recurrences.
         $events = Event::query()
+            ->with(['category', 'user'])
             ->where('is_published', true)
             ->where(function ($q) {
                 $q->whereNotNull('rrule')->orWhere('start_at', '>=', Carbon::now()->subMonth());
