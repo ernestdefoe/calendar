@@ -19,10 +19,24 @@ export interface CalEvent {
   category?: { id: number; name: string; color: string } | null;
   author?: { id: number; username: string; displayName: string; avatarUrl: string } | null;
   discussionId?: number | null;
-  rsvp: { going: number; interested: number; mine: string | null };
+  rsvp: { going: number; interested: number; mine: string | null; attendees?: RsvpAttendees };
   canEdit: boolean;
   icalUrl: string;
   googleUrl: string;
+}
+
+export interface RsvpAttendee {
+  id: number;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  /** Main WoW character from ernestdefoe/armory, when installed. */
+  character?: { name: string; class: string | null; spec: string | null; itemLevel: number | null; level: number | null } | null;
+}
+
+export interface RsvpAttendees {
+  going: RsvpAttendee[];
+  interested: RsvpAttendee[];
 }
 
 export interface CalCategory { id: number; name: string; slug: string; color: string }

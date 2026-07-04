@@ -40,6 +40,7 @@ class ShowEventController implements RequestHandlerInterface
             'interested' => (int) ($rows[EventRsvp::INTERESTED] ?? 0),
             'mine'       => $actor->isGuest() ? null
                 : EventRsvp::query()->where('event_id', $id)->where('user_id', $actor->id)->value('status'),
+            'attendees'  => \ErnestDefoe\Calendar\Attendees::build($id),
         ];
 
         return new JsonResponse(['data' => EventSerializer::serialize($event, $actor, null, $rsvp)]);

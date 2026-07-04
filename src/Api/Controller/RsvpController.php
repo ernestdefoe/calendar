@@ -57,6 +57,7 @@ class RsvpController implements RequestHandlerInterface
             'going'      => (int) ($rows[EventRsvp::GOING] ?? 0),
             'interested' => (int) ($rows[EventRsvp::INTERESTED] ?? 0),
             'mine'       => $mine,
+            'attendees'  => \ErnestDefoe\Calendar\Attendees::build((int) $event->id),
         ]]);
     }
 }

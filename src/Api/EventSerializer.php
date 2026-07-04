@@ -67,6 +67,7 @@ class EventSerializer
                 'going'      => (int) ($rsvp['going'] ?? 0),
                 'interested' => (int) ($rsvp['interested'] ?? 0),
                 'mine'       => $rsvp['mine'] ?? null,
+                'attendees'  => $rsvp['attendees'] ?? null,
             ],
             'canEdit'       => self::canEdit($event, $actor),
             'icalUrl'       => 'calendar/events/' . $event->id . '/ical', // path; client prefixes baseUrl

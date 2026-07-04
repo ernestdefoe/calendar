@@ -2,8 +2,17 @@ import app from 'flarum/forum/app';
 import Modal, { IInternalModalAttrs } from 'flarum/common/components/Modal';
 import Button from 'flarum/common/components/Button';
 import EventFormModal from './EventFormModal';
-import { rsvp, deleteEvent, abs, mapUrl, type CalEvent } from '../../common/api';
+import { rsvp, deleteEvent, showEvent, abs, mapUrl, type CalEvent, type RsvpAttendee } from '../../common/api';
 import { formatRange } from '../../common/dates';
+
+// Official WoW class colors — used to tint attendee character names when the
+// armory extension supplies them. Static reference data; harmless elsewhere.
+const CLASS_COLORS: Record<string, string> = {
+  'Death Knight': '#C41E3A', 'Demon Hunter': '#A330C9', Druid: '#FF7C0A',
+  Evoker: '#33937F', Hunter: '#AAD372', Mage: '#3FC7EB', Monk: '#00FF98',
+  Paladin: '#F48CBA', Priest: '#FFFFFF', Rogue: '#FFF468', Shaman: '#0070DD',
+  Warlock: '#8788EE', Warrior: '#C69B6D',
+};
 
 declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
@@ -21,6 +30,15 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
   oninit(vnode: any) {
     super.oninit(vnode);
     this.event = this.attrs.event;
+
+    // The grid passes a list-endpoint event, which omits the attendee roster.
+    // Refresh just the rsvp block from the show endpoint (keeping the rest of
+    // the object intact so recurring occurrences keep their expanded dates).
+    if (this.event.id) {
+      showEvent(this.event.id).then((full) => {
+        if (full && full.id === this.event.id && full.rsvp) { this.event.rsvp = full.rsvp; m.redraw(); }
+      }).catch(() => {});
+    }
   }
 
   className() { return 'CalendarEventModal CalendarEventDetail Modal--medium'; }
@@ -60,6 +78,10 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
         rsvpButton(this, 'interested', 'far fa-star', t('rsvp_interested'), ev.rsvp.interested),
       ]),
 
+      // Who's coming — with main-character class/spec/ilvl when armory is installed.
+      attendeeGroup(t('attendees_going'), ev.rsvp.attendees?.going),
+      attendeeGroup(t('attendees_interested'), ev.rsvp.attendees?.interested),
+
       // Export + links
       m('.CalendarDetail-actions', [
         m('a.Button.Button--icon', { href: ev.googleUrl, target: '_blank', rel: 'noopener' }, [m('i.Button-icon.fab.fa-google'), m('span.Button-label', t('add_to_google'))]),
@@ -90,6 +112,32 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
     this.busy = true;
     deleteEvent(this.event.id).then(() => { this.attrs.onchange?.(); app.modal.close(); }).catch(() => { this.busy = false; m.redraw(); });
   }
+}
+
+function attendeeGroup(label: any, attendees?: RsvpAttendee[]) {
+  if (!attendees || !attendees.length) return null;
+  return m('.CalendarAttendees', [
+    m('.CalendarAttendees-label', label),
+    m('.CalendarAttendees-list', attendees.map((a) => {
+      const c = a.character;
+      const color = c?.class ? CLASS_COLORS[c.class] : undefined;
+      return m('.CalendarAttendee', { title: a.displayName }, [
+        a.avatarUrl
+          ? m('img.CalendarAttendee-avatar', { src: a.avatarUrl, alt: '', loading: 'lazy' })
+          : m('span.CalendarAttendee-avatar.CalendarAttendee-avatar--letter', a.displayName.charAt(0).toUpperCase()),
+        m('.CalendarAttendee-names', [
+          m('.CalendarAttendee-user', a.displayName),
+          c
+            ? m('.CalendarAttendee-char', { style: color ? { color } : undefined }, [
+                c.name,
+                c.spec ? ' · ' + c.spec : '',
+                c.itemLevel ? m('span.CalendarAttendee-ilvl', ' ' + c.itemLevel) : null,
+              ])
+            : null,
+        ]),
+      ]);
+    })),
+  ]);
 }
 
 function rsvpButton(modal: EventDetailModal, status: string, icon: string, label: string, count: number) {

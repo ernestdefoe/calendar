@@ -179,6 +179,34 @@
   &-count { margin-left: 6px; opacity: .75; font-variant-numeric: tabular-nums; }
 }
 
+// ---- Attendee lists (with armory character info when available) ----
+.CalendarAttendees {
+  margin-top: 14px;
+
+  &-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--muted-color, #888); margin-bottom: 7px;
+  }
+  &-list { display: flex; flex-wrap: wrap; gap: 8px; }
+}
+.CalendarAttendee {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid @cal-border; border-radius: 10px; padding: 5px 10px 5px 6px;
+  max-width: 100%;
+
+  &-avatar {
+    width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex: 0 0 auto;
+    &--letter {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--primary-color, #3b5bdb); color: #fff; font-size: 12px; font-weight: 700;
+    }
+  }
+  &-names { min-width: 0; line-height: 1.25; }
+  &-user { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  &-char { font-size: 11.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  &-ilvl { opacity: .8; font-variant-numeric: tabular-nums; }
+}
+
 // ---- Event create / edit form ----
 .CalendarForm {
   &-form { display: flex; flex-direction: column; gap: 18px; }
