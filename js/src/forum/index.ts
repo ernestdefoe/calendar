@@ -12,9 +12,11 @@ import OnThisDayWidget from './components/OnThisDayWidget';
 import CelebrationsWidget from './components/CelebrationsWidget';
 import BirthdayField from './components/BirthdayField';
 import { registerIntegrations } from './integrations';
+import registerFofWidget from '../common/registerFofWidget';
 import { startCountdowns } from './countdowns';
 
 declare const m: any;
+declare const flarum: any;
 
 /**
  * Forum entry point.
@@ -28,8 +30,10 @@ app.initializers.add('ernestdefoe/calendar', () => {
 
   // Nav link sits with "All Discussions" in the sidebar navigation (Flarum 2
   // exposes these via navItems, not items — items is the New Discussion button +
-  // the nav dropdown itself).
+  // the nav dropdown itself). Admins can hide it — the widgets link to /calendar
+  // too, so some forums prefer an uncluttered nav.
   extend(IndexSidebar.prototype, 'navItems', function (items: any) {
+    if (app.forum.attribute('ernestdefoe-calendar.hideNavLink')) return;
     items.add(
       'calendar',
       LinkButton.component(
@@ -40,9 +44,14 @@ app.initializers.add('ernestdefoe/calendar', () => {
     );
   });
 
+  // With fof/forum-widgets-core enabled, Upcoming Events becomes a managed
+  // widget (registered below) — the admin controls its placement there, so the
+  // hardcoded sidebar mount steps aside to avoid showing the list twice.
+  const hasWidgetCore = typeof flarum !== 'undefined' && flarum?.extensions && 'fof-forum-widgets-core' in flarum.extensions;
+
   // Stock-theme widgets, each its own sidebar block below the navigation.
   extend(IndexSidebar.prototype, 'items', function (items: any) {
-    if (app.forum.attribute('ernestdefoe-calendar.showIndexWidget')) {
+    if (!hasWidgetCore && app.forum.attribute('ernestdefoe-calendar.showIndexWidget')) {
       const count = app.forum.attribute('ernestdefoe-calendar.indexWidgetCount') || 5;
       items.add('calendar-upcoming', m(UpcomingEvents, { count }), -10);
     }
@@ -77,6 +86,12 @@ app.initializers.add('ernestdefoe/calendar', () => {
     const heatmap = this.user ? m('.PostsUserPage-heatmap', m(ActivityHeatmap, { userId: this.user.id() })) : null;
     return [heatmap, original()];
   });
+
+  // fof/forum-widgets-core (optional): register Upcoming Events as a managed
+  // widget. Its modules live in the main bundle, so this is safe at init time.
+  registerFofWidget(app, () =>
+    m(UpcomingEvents, { count: app.forum.attribute('ernestdefoe-calendar.indexWidgetCount') || 5 })
+  );
 
   // Defer so sibling extensions (Bespoke / Page Builder) have run their own
   // initializers and created app.bespoke / app.pageBuilder before we register our

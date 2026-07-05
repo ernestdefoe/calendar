@@ -19,6 +19,9 @@
     "php": "^8.3",
     "flarum/core": "^2.0"
   },
+  "suggest": {
+    "fof/forum-widgets-core": "Manage the Upcoming Events widget's placement with the FoF widget manager (^2.0)."
+  },
   "autoload": {
     "psr-4": {
       "ErnestDefoe\\Calendar\\": "src/"

@@ -22,6 +22,13 @@ export default [
       default: '0',
     }))
     .setting(() => ({
+      setting: 'ernestdefoe-calendar.hide_nav_link',
+      type: 'boolean',
+      label: t('hide_nav_link'),
+      help: t('hide_nav_link_help'),
+      default: false,
+    }))
+    .setting(() => ({
       setting: 'ernestdefoe-calendar.show_index_widget',
       type: 'boolean',
       label: t('show_index_widget'),

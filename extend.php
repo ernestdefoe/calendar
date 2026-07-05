@@ -54,6 +54,7 @@ $extenders = [
 
     // ---- Expose settings + the create permission to the forum payload ----
     (new Extend\Settings())
+        ->serializeToForum('ernestdefoe-calendar.hideNavLink', 'ernestdefoe-calendar.hide_nav_link', fn ($v) => filter_var($v, FILTER_VALIDATE_BOOLEAN))
         ->serializeToForum('ernestdefoe-calendar.defaultView', 'ernestdefoe-calendar.default_view', fn ($v) => $v ?: 'month')
         ->serializeToForum('ernestdefoe-calendar.weekStartsOn', 'ernestdefoe-calendar.week_starts_on', fn ($v) => (int) ($v ?? 0))
         ->serializeToForum('ernestdefoe-calendar.showIndexWidget', 'ernestdefoe-calendar.show_index_widget', fn ($v) => (bool) $v)
