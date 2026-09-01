@@ -23,7 +23,13 @@ export default class EventFormModal extends Modal<FormAttrs> {
     super.oninit(vnode);
     const ev: CalEvent | undefined = this.attrs.event;
     // Default start: a clicked day/slot if provided, else the next whole hour.
-    const now = this.attrs.day ? new Date(this.attrs.day) : new Date();
+    /*
+     * 🚨 A bare 'YYYY-MM-DD' string is parsed as UTC midnight by the spec, which
+     * is the PREVIOUS day for anybody west of UTC. The month grid passes a real
+     * Date so this is safe today, but a caller passing a date string would seed
+     * the form a day out with nothing to show for it.
+     */
+    const now = this.attrs.day ? asLocalDate(this.attrs.day) : new Date();
     if (!this.attrs.day) { now.setMinutes(0, 0, 0); now.setHours(now.getHours() + 1); }
     const later = new Date(now.getTime() + 60 * 60 * 1000);
 
@@ -218,8 +224,37 @@ function freqOf(rrule?: string | null): string {
   const m2 = /FREQ=([A-Z]+)/.exec(rrule || '');
   return m2 ? m2[1] : '';
 }
-/** A datetime-local / date string is local wall time → ISO (UTC). */
+/** A Date is used as-is; a 'YYYY-MM-DD' string is read as a LOCAL date. */
+function asLocalDate(value: any): Date {
+  if (value instanceof Date) return new Date(value.getTime());
+
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value));
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+
+  return new Date(value);
+}
+
+/**
+ * A datetime-local string is local wall time → ISO (UTC).
+ *
+ * 🚨 An all-day event is a DATE, not an instant, and must never be run through
+ * the reader's offset. It used to be: the oninput handlers append 'T00:00', and
+ * `new Date('2026-12-29T00:00')` is parsed as LOCAL midnight while
+ * `new Date('2026-12-29')` is parsed as UTC midnight — a difference the
+ * ECMAScript spec requires. So a start that had been seeded from a clicked day
+ * and an end the user had retyped were converted by two different rules, and
+ * east of UTC the end landed an hour BEFORE the start. The server then refused
+ * it with "The end must be after the start" on two dates that were the same
+ * day, which is exactly what it looked like: nonsense.
+ *
+ * Pinning the date part to UTC midnight makes both ends of an all-day event
+ * the same kind of value, and stops an all-day event drifting a day for
+ * readers in another timezone.
+ */
 function localToIso(val: string, allDay: boolean): string {
-  const v = allDay && val.length === 10 ? val + 'T00:00' : val;
-  return new Date(v).toISOString();
+  if (allDay) {
+    return new Date(val.slice(0, 10) + 'T00:00:00Z').toISOString();
+  }
+
+  return new Date(val).toISOString();
 }
