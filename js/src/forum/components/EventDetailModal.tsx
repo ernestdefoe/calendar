@@ -42,7 +42,20 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
   }
 
   className() { return 'CalendarEventModal CalendarEventDetail Modal--medium'; }
-  title() { return this.event.title; }
+  /**
+   * The category pill sits above the title, in the modal header, the way a tag
+   * is shown everywhere else in Flarum. Suggested by ClaudiusH with a mockup;
+   * it used to be the first thing in the body, floating above the countdown
+   * with nothing tying it to the event's name.
+   */
+  title() {
+    const cat = this.event.category;
+
+    return [
+      cat ? m('span.CalendarBadge', { style: { background: cat.color } }, cat.name) : null,
+      this.event.title,
+    ];
+  }
 
   content() {
     const ev = this.event;
@@ -50,8 +63,6 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
 
     return m('.Modal-body.CalendarDetail', [
       ev.coverUrl ? m('.CalendarDetail-cover', { style: { backgroundImage: `url("${ev.coverUrl.replace(/"/g, '%22')}")` } }) : null,
-
-      ev.category ? m('span.CalendarBadge', { style: { background: ev.category.color } }, ev.category.name) : null,
 
       // Live countdown for events that haven't started yet (the global ticker in
       // countdowns.ts animates any .CalCountdown[data-deadline] it finds).

@@ -84,7 +84,23 @@ export default class EventFormModal extends Modal<FormAttrs> {
       m('.CalendarForm-section', [
         m('.CalendarForm-sectionTitle', [m('i.icon.fas.fa-clock'), ' ', t('section_when')]),
         m('label.CalendarForm-toggle', [
-          m('input', { type: 'checkbox', checked: d.allDay, onchange: (e: any) => (d.allDay = e.target.checked) }),
+          m('input', {
+            type: 'checkbox',
+            checked: d.allDay,
+            // 🚨 Switching All-day on must clear the time from the STORED value,
+            // not just from what the inputs display. It used to set the flag
+            // alone: the fields showed a bare date while d.start still held
+            // '…T12:00' and d.end '…T10:00', so an end that looked equal to the
+            // start was still an hour earlier underneath. Reported by ClaudiusH
+            // as "on the UI the timestamp is removed, but internally still kept".
+            onchange: (e: any) => {
+              d.allDay = e.target.checked;
+              if (d.allDay) {
+                d.start = d.start.slice(0, 10) + 'T00:00';
+                d.end = d.end ? d.end.slice(0, 10) + 'T00:00' : '';
+              }
+            },
+          }),
           m('span.CalendarForm-toggleTrack'),
           m('span.CalendarForm-toggleLabel', t('field_all_day')),
         ]),

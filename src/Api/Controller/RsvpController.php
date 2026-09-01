@@ -40,7 +40,12 @@ class RsvpController implements RequestHandlerInterface
             $existing?->delete();
             $mine = null;
         } elseif (in_array($status, [EventRsvp::GOING, EventRsvp::INTERESTED], true)) {
-            $rsvp = $existing ?: new EventRsvp(['event_id' => $event->id, 'user_id' => $actor->id]);
+            // 🚨 Never construct with an attribute array. Flarum's AbstractModel
+            // guards every attribute (core no longer unguards globally), so this
+            // threw MassAssignmentException — a 500 on every first RSVP. The two
+            // lines below already set both ids, so the array was redundant as
+            // well as fatal.
+            $rsvp = $existing ?: new EventRsvp();
             $rsvp->event_id = $event->id;
             $rsvp->user_id = $actor->id;
             $rsvp->status = $status;

@@ -160,6 +160,13 @@
 
 // ---- Event detail modal ----
 .CalendarBadge { display: inline-block; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 20px; }
+
+// The category pill sits above the title in the modal header, the way a tag is
+// shown everywhere else in Flarum. Suggested by ClaudiusH, with a mockup.
+.CalendarEventDetail .Modal-title .CalendarBadge {
+  display: block; width: fit-content; margin: 0 auto 8px;
+  font-size: 12px; padding: 3px 12px;
+}
 .CalendarDetail {
   &-cover { height: 160px; border-radius: 10px; background-size: cover; background-position: center; margin-bottom: 14px; }
   &-meta { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
@@ -167,7 +174,12 @@
   &-desc { margin: 14px 0; line-height: 1.6; }
   &-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
   &-manage { display: flex; gap: 8px; margin-top: 12px; border-top: 1px solid @cal-border; padding-top: 12px; }
-  &-delete { color: var(--alert-error-color, #c0392b) !important; }
+  // 🚨 --error-color, NOT --alert-error-color. The latter is the foreground
+  // that sits ON an error background and is #fff in BOTH schemes, so this
+  // rendered "Delete event" in bright white — louder than everything around it,
+  // which is what ClaudiusH photographed. --error-color is #d83e3e and reads
+  // correctly light and dark.
+  &-delete { color: var(--error-color, #d83e3e) !important; }
 }
 .CalendarRsvp {
   display: flex; gap: 8px; margin-top: 16px;
@@ -252,8 +264,21 @@
 
 .CalendarForm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
+// 🚨 width + align-self are load-bearing. Flarum 2's `.Form-group` is
+// `display: flex; flex-direction: column; align-items: flex-start`, so a child
+// that declares no width shrinks to fit its in-flow content — and this box's
+// only child is absolutely positioned, so it has none. It collapsed to 2px (the
+// borders), which made the image invisible and put the remove button, at
+// `right: 8px` of a 2px box, at `left: -44px` — 26px OUTSIDE the modal.
+// Measured in a real Flarum 2 page: 2px before, 566px after. Reported by
+// ClaudiusH as "shifted left off the modal".
+//
+// The background colour is a second guard: without it a cover whose URL 404s
+// renders as nothing at all rather than as an empty frame.
 .CalendarForm-cover {
   position: relative; height: 130px; border-radius: 10px; margin-bottom: 8px;
+  width: 100%; align-self: stretch; box-sizing: border-box;
+  background-color: @cal-border;
   background-size: cover; background-position: center;
   border: 1px solid @cal-border;
 }
