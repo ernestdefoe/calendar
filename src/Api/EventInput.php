@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use ErnestDefoe\Calendar\Event;
 use Flarum\Foundation\ValidationException;
 use Illuminate\Support\Str;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Validates and applies incoming event attributes onto an Event model. Datetimes
@@ -21,7 +22,7 @@ class EventInput
         if (array_key_exists('title', $attrs) || $creating) {
             $title = trim((string) ($attrs['title'] ?? ''));
             if ($title === '') {
-                $errors['title'] = 'The title is required.';
+                $errors['title'] = self::t('title_required');
             } else {
                 $event->title = mb_substr($title, 0, 255);
             }
@@ -30,7 +31,7 @@ class EventInput
         if (array_key_exists('start', $attrs) || $creating) {
             $start = self::parseDate($attrs['start'] ?? null);
             if (! $start) {
-                $errors['start'] = 'A valid start date/time is required.';
+                $errors['start'] = self::t('start_required');
             } else {
                 $event->start_at = $start;
             }
@@ -40,7 +41,7 @@ class EventInput
             $end = self::parseDate($attrs['end']);
             $event->end_at = $end; // null clears it
             if ($end && isset($event->start_at) && $end->lt($event->start_at)) {
-                $errors['end'] = 'The end must be after the start.';
+                $errors['end'] = self::t('end_before_start');
             }
         }
 
@@ -63,6 +64,30 @@ class EventInput
             $event->slug = self::uniqueSlug($event->title, $event->id);
         }
     }
+
+    /**
+     * Validation messages reach the member, so they are translated rather than
+     * hardcoded English. Resolved lazily: this class is also called from console
+     * context, where the translator may not be bound.
+     */
+    private static function t(string $key): string
+    {
+        $full = 'ernestdefoe-calendar.api.' . $key;
+        try {
+            $translated = resolve(TranslatorInterface::class)->trans($full);
+        } catch (\Throwable $e) {
+            return $full;
+        }
+        // Symfony returns the key itself when nothing is registered; the raw key
+        // is not a sentence, so fall back to something a human can read.
+        return $translated === $full ? self::FALLBACK[$key] ?? $full : $translated;
+    }
+
+    private const FALLBACK = [
+        'title_required'    => 'The title is required.',
+        'start_required'    => 'A valid start date/time is required.',
+        'end_before_start'  => 'The end must be after the start.',
+    ];
 
     private static function parseDate($value): ?Carbon
     {

@@ -12,6 +12,7 @@ use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * POST /api/calendar/categories            create
@@ -20,6 +21,10 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 class SaveCategoryController implements RequestHandlerInterface
 {
+    public function __construct(private TranslatorInterface $translator)
+    {
+    }
+
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         RequestUtil::getActor($request)->assertAdmin();
@@ -32,7 +37,7 @@ class SaveCategoryController implements RequestHandlerInterface
         if (array_key_exists('name', $attrs) || ! $id) {
             $name = trim((string) ($attrs['name'] ?? ''));
             if ($name === '') {
-                throw new ValidationException(['name' => 'The category name is required.']);
+                throw new ValidationException(['name' => $this->translator->trans('ernestdefoe-calendar.api.category_name_required')]);
             }
             $category->name = mb_substr($name, 0, 100);
         }

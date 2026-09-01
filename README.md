@@ -118,6 +118,64 @@ Paste that URL into Google Calendar (*Other calendars → From URL*), Apple
 Calendar (*File → New Calendar Subscription*), or Outlook to keep events in sync.
 Each event also has its own `.ics` download and an "Add to Google Calendar" link.
 
+## Creating events from outside Flarum (REST API)
+
+Every screen in the calendar is built on public HTTP endpoints under `/api`, so
+anything that can talk to your forum can create events — a cron job, a Discord
+bot, a game server, another site. There is no separate integration to install.
+
+Authenticate the way you would with any Flarum endpoint: a
+[master API key](https://docs.flarum.org/extend/api/) sent as
+`Authorization: Token <key>; userId=<id>`. The acting user needs the
+**Create calendar events** permission.
+
+```bash
+curl -X POST https://your-forum.example/api/calendar/events \
+  -H 'Authorization: Token YOUR_API_KEY; userId=1' \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "data": {
+          "attributes": {
+            "title":    "Raid night",
+            "start":    "2026-10-04T19:00:00Z",
+            "end":      "2026-10-04T22:00:00Z",
+            "allDay":   false,
+            "timezone": "Europe/Berlin",
+            "location": "Discord",
+            "description": "Bring consumables."
+          }
+        }
+      }'
+```
+
+`start` and `end` are ISO-8601 and are **stored in UTC** — send an offset (or a
+trailing `Z`) rather than a bare local time, or the server has to guess. For an
+**all-day** event send `allDay: true` with the date's UTC midnight
+(`2026-10-04T00:00:00Z`); that is what keeps a birthday on the 4th for a reader in
+Auckland as well as in Los Angeles. `timezone` is the *display* timezone and does
+not change what is stored.
+
+The rest of the surface:
+
+| Method   | Route                             | Purpose                          |
+| -------- | --------------------------------- | -------------------------------- |
+| `GET`    | `/api/calendar/events`            | List (accepts `from` / `to`)     |
+| `GET`    | `/api/calendar/events/{id}`       | One event                        |
+| `POST`   | `/api/calendar/events`            | Create                           |
+| `PATCH`  | `/api/calendar/events/{id}`       | Update                           |
+| `DELETE` | `/api/calendar/events/{id}`       | Delete                           |
+| `POST`   | `/api/calendar/events/{id}/rsvp`  | Set the actor's RSVP             |
+| `GET`    | `/api/calendar/categories`        | List categories                  |
+
+Requests take the JSON:API envelope (`{"data": {"attributes": {…}}}`); responses
+come back as `{"data": {…}}` with the event flattened into one object — id, slug,
+resolved category, author, RSVP counts and the export links — rather than as
+JSON:API `included` relationships you have to stitch together.
+
+A rejected save is a `422` carrying `errors[]` with a `source.pointer` per field,
+the same shape Flarum uses everywhere else, so existing error handling works
+unchanged.
+
 ## How events are modelled
 
 Events are their own records (title, time, location, recurrence, etc.). When
