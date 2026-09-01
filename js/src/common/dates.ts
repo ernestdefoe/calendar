@@ -17,7 +17,7 @@ import app from 'flarum/common/app';
  * Falls back to `undefined` (the old behaviour) if the locale cannot be read,
  * so this can never be worse than it was.
  */
-function loc(): string | undefined {
+export function loc(): string | undefined {
   try {
     const l = (app as any)?.data?.locale || (app as any)?.translator?.locale;
 

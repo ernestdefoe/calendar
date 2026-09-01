@@ -1,6 +1,6 @@
 import app from 'flarum/forum/app';
 import Component from 'flarum/common/Component';
-import { formatRange } from '../../common/dates';
+import { formatRange, loc } from '../../common/dates';
 import { type CalEvent } from '../../common/api';
 
 declare const m: any;
@@ -21,7 +21,7 @@ export default class EventListView extends Component {
 
     return m('ul.CalendarList', upcoming.map((ev) => m('li.CalendarList-item', { onclick: () => onEvent(ev) }, [
       m('.CalendarList-date', { style: ev.category ? { '--cal-accent': ev.category.color } : undefined }, [
-        m('span.CalendarList-mon', new Date(ev.start).toLocaleDateString(undefined, { month: 'short' })),
+        m('span.CalendarList-mon', new Date(ev.start).toLocaleDateString(loc(), { month: 'short' })),
         m('span.CalendarList-day', new Date(ev.start).getDate()),
       ]),
       m('.CalendarList-body', [

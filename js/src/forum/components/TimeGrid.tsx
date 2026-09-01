@@ -1,6 +1,6 @@
 import app from 'flarum/forum/app';
 import Component from 'flarum/common/Component';
-import { isToday, hourLabel, layoutDay, startOfDay, shortTime, eventOnDay } from '../../common/dates';
+import { isToday, hourLabel, layoutDay, startOfDay, shortTime, eventOnDay, loc } from '../../common/dates';
 import { type CalEvent } from '../../common/api';
 
 declare const m: any;
@@ -27,7 +27,7 @@ export default class TimeGrid extends Component {
       m('.CalendarTime-head', [
         m('.CalendarTime-gutter'),
         m('.CalendarTime-heads', days.map((d) => m('.CalendarTime-dayhead' + (isToday(d) ? '.is-today' : ''), [
-          m('span.CalendarTime-dow', d.toLocaleDateString(undefined, { weekday: 'short' })),
+          m('span.CalendarTime-dow', d.toLocaleDateString(loc(), { weekday: 'short' })),
           m('span.CalendarTime-dnum', d.getDate()),
         ]))),
       ]),

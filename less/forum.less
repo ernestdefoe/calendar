@@ -19,6 +19,15 @@
 
   &-tools {
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px;
+
+    /*
+     * 🚨 Flarum core sets `line-height: 1` on a select, which makes the line
+     * box exactly the font's em — leaving nowhere for the parts of letters that
+     * sit BELOW the baseline. "Category" lost the tails of its g and y.
+     * Reported by ClaudiusH. A little over 1 gives descenders their room back
+     * without changing the control's height, which is set by its padding.
+     */
+    .Select select { line-height: 1.4; }
   }
   &-views { display: inline-flex; border: 1px solid @cal-border; border-radius: 8px; overflow: hidden; }
   &-view {
@@ -37,20 +46,30 @@
   border: 1px solid @cal-border; border-radius: 12px; overflow: hidden; background: @cal-surface;
 
   &-weekdays {
-    display: grid; grid-template-columns: repeat(7, 1fr);
+    display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
     background: var(--control-bg, rgba(127, 127, 127, 0.06));
     span { padding: 9px 10px; font-size: 12px; font-weight: 700; color: @cal-muted; text-transform: uppercase; letter-spacing: .04em; }
   }
-  &-days { display: grid; grid-template-columns: repeat(7, 1fr); }
+  /*
+   * 🚨 minmax(0, 1fr), not 1fr. A grid track's default minimum is its
+   * content's min-content width, so a cell holding a long event title grew
+   * past its share while the weekday header above — which has nothing long in
+   * it — kept seven equal columns. The two drifted apart and the headers
+   * stopped lining up with the days. Reported by ClaudiusH.
+   *
+   * The header is given the same treatment so the two grids cannot diverge
+   * again from the other direction.
+   */
+  &-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
   &-cell {
-    min-height: 104px; padding: 6px; border-top: 1px solid @cal-border; border-left: 1px solid @cal-border;
+    min-height: 104px; min-width: 0; padding: 6px; border-top: 1px solid @cal-border; border-left: 1px solid @cal-border;
     display: flex; flex-direction: column; gap: 4px;
     &:nth-child(7n + 1) { border-left: 0; }
     &.is-out { opacity: .45; }
     &.is-today { background: var(--primary-color-light, rgba(59, 91, 219, 0.08)); }
   }
   &-num { font-size: 12.5px; font-weight: 600; color: @cal-muted; align-self: flex-end; }
-  &-events { display: flex; flex-direction: column; gap: 3px; }
+  &-events { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 }
 
 .CalendarChip {
@@ -163,7 +182,14 @@
 
 // The category pill sits above the title in the modal header, the way a tag is
 // shown everywhere else in Flarum. Suggested by ClaudiusH, with a mockup.
-.CalendarEventDetail .Modal-title .CalendarBadge {
+/*
+ * 🚨 `.Modal-header h3`, NOT `.Modal-title`. Flarum 2 renders the modal title
+ * as `<h3 class="App-titleControl App-titleControl--text">` inside
+ * `.Modal-header` — there is no `.Modal-title` class at all, so the previous
+ * selector matched nothing and the badge stayed inline against the title with
+ * no gap. Reported by ClaudiusH after it was supposedly fixed in 2.2.2.
+ */
+.CalendarEventDetail .Modal-header h3 .CalendarBadge {
   display: block; width: fit-content; margin: 0 auto 8px;
   font-size: 12px; padding: 3px 12px;
 }
@@ -385,7 +411,25 @@
   background: ~"color-mix(in srgb, var(--primary-color, #3b5bdb) 10%, var(--body-bg, #fff))";
   border: 1px solid @cal-border; vertical-align: middle;
 
-  &--event { display: flex; width: 100%; }
+  /*
+   * 🚨 min-height, because the clock is filled in by the ticker AFTER the modal
+   * has painted. Without it the box opens caption-height and then grows as the
+   * digits arrive, shoving everything below it down the page — a visible jolt
+   * every time an upcoming event is opened. 95px is the settled height, so the
+   * box is the right size before it has anything to say. ClaudiusH suggested
+   * the value and it measures correctly: 24 padding + caption + gap + digits.
+   */
+  &--event {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    /*
+     * The measured height of the filled clock, so the box is exactly the size
+     * it will end up being and nothing moves when the digits arrive. Kept in
+     * step with the placeholder rule below, which is the other half of the fix.
+     */
+    min-height: 98px;
+  }
 
   &-caption { font-size: 12.5px; font-weight: 700; color: @cal-muted; text-transform: uppercase; letter-spacing: .04em; }
   &-clock { display: inline-flex; gap: 14px; }
@@ -399,9 +443,28 @@
   &-done { font-size: 15px; font-weight: 700; color: var(--primary-color, #3b5bdb); }
 
   &[data-state="invalid"] { display: none; }   // bad date → render nothing
-  &:not([data-init]) { // pre-init placeholder: show the label text inline, no box flash
+  /*
+   * Pre-init placeholder: an inline label with no box, so a `[countdown=…]` in
+   * a post does not flash an empty panel before the ticker reaches it.
+   *
+   * 🚨 Excludes the event countdown, and that exclusion is the whole fix for
+   * the layout shift. In the detail modal this element is a BLOCK that reserves
+   * its height — but `display: inline` was winning until the ticker ran, and
+   * min-height does not apply to an inline box. So the modal opened with the
+   * countdown collapsed to a line of text and then shoved everything below it
+   * down the moment the digits arrived. Reported by ClaudiusH as a vertical
+   * jolt on every upcoming event.
+   */
+  &:not([data-init]):not(&--event) {
     display: inline; padding: 0; margin: 0; background: none; border: 0;
   }
+
+  /*
+   * The event countdown holds its space from the first frame instead: the
+   * caption is visible immediately and the digits fill in underneath it,
+   * without moving anything.
+   */
+  &--event:not([data-init]) { visibility: visible; }
 }
 
 // ============================================================

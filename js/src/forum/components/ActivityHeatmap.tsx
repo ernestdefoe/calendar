@@ -1,6 +1,7 @@
 import app from 'flarum/forum/app';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import { userActivity, type UserActivity } from '../../common/api';
+import { loc } from '../../common/dates';
 
 declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
@@ -59,7 +60,7 @@ function buildWeeks(days: Record<string, number>, weekStart: number, max: number
     }
     // Month label appears above the first week of each new month.
     if (weekMonth >= 0 && weekMonth !== lastMonth) {
-      months.push({ idx: weeks.length, label: new Date(2000, weekMonth, 1).toLocaleDateString(undefined, { month: 'short' }) });
+      months.push({ idx: weeks.length, label: new Date(2000, weekMonth, 1).toLocaleDateString(loc(), { month: 'short' }) });
       lastMonth = weekMonth;
     }
     weeks.push(week);

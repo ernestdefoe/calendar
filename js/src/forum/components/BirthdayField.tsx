@@ -1,5 +1,6 @@
 import app from 'flarum/forum/app';
 import Button from 'flarum/common/components/Button';
+import { loc } from '../../common/dates';
 
 declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
@@ -23,7 +24,7 @@ const BirthdayField = {
   view(this: any) {
     const months = Array.from({ length: 12 }, (_, i) => ({
       v: pad(i + 1),
-      label: new Date(2000, i, 1).toLocaleDateString(undefined, { month: 'long' }),
+      label: new Date(2000, i, 1).toLocaleDateString(loc(), { month: 'long' }),
     }));
     const days = Array.from({ length: 31 }, (_, i) => pad(i + 1));
     const dirty = this.mm + '-' + this.dd !== String((app.session.user?.attribute('calendarBirthday')) || '-');
