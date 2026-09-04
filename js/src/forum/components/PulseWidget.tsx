@@ -1,5 +1,5 @@
 import app from 'flarum/forum/app';
-import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
+import { CalWidgetSkeleton, measure } from './CalSkeleton';
 import { forumPulse, type ForumPulse, type PulseLeader } from '../../common/api';
 
 declare const m: any;
@@ -57,14 +57,14 @@ const PulseWidget = {
     const d: ForumPulse | null = this.data;
     const weeks = Math.max(6, Math.min(20, Number(a.weeks) || 14));
 
-    return m('.CalPulse', [
+    return m('.CalPulse', measure('CalPulse'), [
       m('.CalPulse-head', [
         m('h4.CalPulse-title', title),
         d ? m('span.CalPulse-total', t('pulse_total', { count: d.total })) : null,
       ]),
 
       !d
-        ? m('.CalPulse-loading', m(LoadingIndicator))
+        ? m(CalWidgetSkeleton, { block: 'CalPulse', bar: 'CalPulse-skel', rows: 4, fallback: 176 })
         : [
             m('.CalPulse-grid', miniGrid(d.days, d.max, weeks).map((col: any) =>
               m('.CalPulse-col', col.map((cell: any) =>

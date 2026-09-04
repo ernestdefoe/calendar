@@ -1,5 +1,5 @@
 import app from 'flarum/forum/app';
-import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
+import { CalWidgetSkeleton, measure } from './CalSkeleton';
 import { userActivity, type UserActivity } from '../../common/api';
 import { loc } from '../../common/dates';
 
@@ -100,14 +100,14 @@ const ActivityHeatmap = {
     const d: UserActivity | null = this.data;
 
     if (!d) {
-      return m('.CalHeat.CalHeat--loading', m(LoadingIndicator));
+      return m(CalWidgetSkeleton, { block: 'CalHeat', bar: 'CalHeat-bar', rows: 2, fallback: 140 });
     }
 
     const weekStart = (app.forum.attribute('ernestdefoe-calendar.weekStartsOn') as number) || 0;
     const { weeks, months } = buildWeeks(d.days, weekStart, d.max);
     const badges = earnedBadges(d);
 
-    return m('.CalHeat', [
+    return m('.CalHeat', measure('CalHeat'), [
       m('.CalHeat-head', [
         stat(d.total, t('heat_contributions')),
         stat([d.streak.current, m('span.CalHeat-fire', ' 🔥')], t('heat_current_streak')),

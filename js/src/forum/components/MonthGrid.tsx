@@ -1,6 +1,7 @@
 import Component from 'flarum/common/Component';
 import { monthMatrix, weekdayNames, eventOnDay, isToday, shortTime } from '../../common/dates';
 import { type CalEvent } from '../../common/api';
+import { measure } from './CalSkeleton';
 
 declare const m: any;
 
@@ -22,7 +23,7 @@ export default class MonthGrid extends Component {
   view() {
     const a = this.attrs as MonthGridAttrs;
     const cells = monthMatrix(a.year, a.month, a.weekStart);
-    return m('.CalendarGrid', [
+    return m('.CalendarGrid', measure('grid'), [
       m('.CalendarGrid-weekdays', weekdayNames(a.weekStart).map((d: string) => m('span', d))),
       m('.CalendarGrid-days', cells.map((day: Date) => this.dayCell(day))),
     ]);

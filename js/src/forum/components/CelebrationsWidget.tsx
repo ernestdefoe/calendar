@@ -1,5 +1,5 @@
 import app from 'flarum/forum/app';
-import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
+import { CalWidgetSkeleton, measure } from './CalSkeleton';
 import { celebrations, type Celebrant } from '../../common/api';
 
 declare const m: any;
@@ -26,10 +26,10 @@ const CelebrationsWidget = {
     // Hide the widget entirely when there's nothing to celebrate (no empty box).
     if (people && people.length === 0) return null;
 
-    return m('.CalCeleb', [
+    return m('.CalCeleb', measure('CalCeleb'), [
       m('.CalCeleb-head', [m('h4.CalCeleb-title', ['🎉 ', title])]),
       people === null
-        ? m('.CalCeleb-loading', m(LoadingIndicator))
+        ? m(CalWidgetSkeleton, { block: 'CalCeleb', bar: 'CalCeleb-skel', rows: 3, fallback: 118 })
         : m('ul.CalCeleb-list', people.map((p) => row(p))),
     ]);
   },

@@ -1,7 +1,7 @@
 import app from 'flarum/forum/app';
 import Page from 'flarum/common/components/Page';
 import Button from 'flarum/common/components/Button';
-import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
+import CalSkeleton, { measure } from './CalSkeleton';
 import EventFormModal from './EventFormModal';
 import EventDetailModal from './EventDetailModal';
 import MonthGrid from './MonthGrid';
@@ -88,7 +88,7 @@ export default class CalendarPage extends Page {
     return m('.CalendarPage', m('.container', [
       this.header(),
       this.loading
-        ? m('.CalendarPage-loading', m(LoadingIndicator, { size: 'large' }))
+        ? m(CalSkeleton)
         : this.body(),
     ]));
   }

@@ -501,3 +501,10 @@
   &-month { min-width: 140px; flex: 0 1 160px; }
   &-day { width: auto; flex: 0 0 90px; }
 }
+
+/* The month-grid skeleton is the grid's own box at its remembered height, with
+ * nothing in it — the border and surface come from .CalendarGrid itself, so it
+ * cannot drift from the real thing. */
+.CalendarGrid.CalSkeleton {
+  animation: cal-pulse 1.2s ease-in-out infinite;
+}
