@@ -232,12 +232,16 @@
   border: 1px solid @cal-border; border-radius: 10px; padding: 5px 10px 5px 6px;
   max-width: 100%;
 
+  // The letter sits underneath and the avatar is laid over it, so a missing or
+  // broken avatar degrades to the initial rather than to a broken-image glyph.
   &-avatar {
-    width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex: 0 0 auto;
-    &--letter {
-      display: inline-flex; align-items: center; justify-content: center;
-      background: var(--primary-color, #3b5bdb); color: #fff; font-size: 12px; font-weight: 700;
-    }
+    position: relative; width: 26px; height: 26px; border-radius: 50%; flex: 0 0 auto; overflow: hidden;
+    display: inline-flex; align-items: center; justify-content: center;
+    background-color: var(--primary-color, #3b5bdb); color: #fff; font-size: 12px; font-weight: 700;
+  }
+  &-avatarImg {
+    position: absolute; inset: 0; border-radius: inherit;
+    background-size: cover; background-position: center;
   }
   &-names { min-width: 0; line-height: 1.25; }
   &-user { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

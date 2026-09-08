@@ -2,6 +2,7 @@
 
 namespace ErnestDefoe\Calendar;
 
+use Flarum\User\User;
 use Illuminate\Database\ConnectionInterface;
 
 /**
@@ -20,31 +21,40 @@ class Attendees
         /** @var ConnectionInterface $db */
         $db = resolve(ConnectionInterface::class);
 
-        // display_name isn't a core column (it's driver-computed); nickname is
-        // only present when fof/nicknames is installed.
-        $cols = ['r.status', 'u.id', 'u.username', 'u.avatar_url'];
-        if ($db->getSchemaBuilder()->hasColumn('users', 'nickname')) {
-            $cols[] = 'u.nickname';
-        }
-
-        $rows = $db->table('calendar_event_rsvps as r')
-            ->join('users as u', 'u.id', '=', 'r.user_id')
-            ->where('r.event_id', $eventId)
-            ->orderBy('r.created_at')
+        $rsvps = $db->table('calendar_event_rsvps')
+            ->where('event_id', $eventId)
+            ->orderBy('created_at')
             ->limit(self::LIMIT)
-            ->get($cols);
+            ->get(['user_id', 'status']);
 
-        $characters = self::armoryCharacters($db, $rows->pluck('id')->all());
+        $userIds = $rsvps->pluck('user_id')->all();
+
+        // 🚨 The users have to come back as MODELS, not as joined columns. Both
+        // fields we want are driver-computed accessors: users.avatar_url stores a
+        // bare filename ("MkvOdb….webp") that only User::getAvatarUrlAttribute()
+        // turns into a URL — and which the avatar driver also fills in for members
+        // who never uploaded one — while display_name is not a column at all.
+        // Reading the raw columns shipped filenames to the browser as <img src>,
+        // so every attendee rendered as a broken image.
+        $users = User::query()->whereIn('id', $userIds)->get()->keyBy('id');
+
+        $characters = self::armoryCharacters($db, $userIds);
 
         $out = ['going' => [], 'interested' => []];
-        foreach ($rows as $row) {
+        foreach ($rsvps as $row) {
+            $user = $users->get($row->user_id);
+
+            if (! $user) {
+                continue; // the member was deleted between the RSVP and now
+            }
+
             $bucket = $row->status === 'interested' ? 'interested' : 'going';
             $out[$bucket][] = [
-                'id' => (int) $row->id,
-                'username' => (string) $row->username,
-                'displayName' => (string) (($row->nickname ?? null) ?: $row->username),
-                'avatarUrl' => $row->avatar_url ? (string) $row->avatar_url : null,
-                'character' => $characters[$row->id] ?? null,
+                'id' => (int) $user->id,
+                'username' => (string) $user->username,
+                'displayName' => (string) $user->display_name,
+                'avatarUrl' => $user->avatar_url,
+                'character' => $characters[$user->id] ?? null,
             ];
         }
 

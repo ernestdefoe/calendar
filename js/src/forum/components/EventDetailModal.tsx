@@ -133,9 +133,16 @@ function attendeeGroup(label: any, attendees?: RsvpAttendee[]) {
       const c = a.character;
       const color = c?.class ? CLASS_COLORS[c.class] : undefined;
       return m('.CalendarAttendee', { title: a.displayName }, [
-        a.avatarUrl
-          ? m('img.CalendarAttendee-avatar', { src: a.avatarUrl, alt: '', loading: 'lazy' })
-          : m('span.CalendarAttendee-avatar.CalendarAttendee-avatar--letter', a.displayName.charAt(0).toUpperCase()),
+        // The initial is always rendered, with the avatar laid over it as a
+        // positioned child. A member with no avatar — or one whose avatar file
+        // has gone missing — falls back to the letter rather than showing the
+        // browser's broken-image glyph.
+        m('span.CalendarAttendee-avatar', [
+          a.displayName.charAt(0).toUpperCase(),
+          a.avatarUrl
+            ? m('span.CalendarAttendee-avatarImg', { style: { backgroundImage: `url("${a.avatarUrl}")` } })
+            : null,
+        ]),
         m('.CalendarAttendee-names', [
           m('.CalendarAttendee-user', a.displayName),
           c
