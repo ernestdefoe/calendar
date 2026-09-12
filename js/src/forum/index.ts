@@ -1,6 +1,7 @@
 import app from 'flarum/forum/app';
 import { extend, override } from 'flarum/common/extend';
 import IndexSidebar from 'flarum/forum/components/IndexSidebar';
+import IndexPage from 'flarum/forum/components/IndexPage';
 import PostsUserPage from 'flarum/forum/components/PostsUserPage';
 import LinkButton from 'flarum/common/components/LinkButton';
 import FieldSet from 'flarum/common/components/FieldSet';
@@ -51,6 +52,26 @@ app.initializers.add('ernestdefoe/calendar', () => {
 
   // Stock-theme widgets, each its own sidebar block below the navigation.
   extend(IndexSidebar.prototype, 'items', function (items: any) {
+    /*
+     * 🚨 The INDEX only, and that is not an optimisation.
+     *
+     * Core renders this list as `<li>`s inside the navigation's own `<ul>`:
+     *
+     *     <nav class="IndexPage-nav sideNav"><ul>{items}</ul></nav>
+     *
+     * On the index, where that nav is a vertical column, a widget in there
+     * happens to look like a block underneath it. `IndexSidebar` is reused by
+     * other pages though — the Hashtags page is one — and those lay the same
+     * `<ul>` out HORIZONTALLY. The widgets are then dragged into the nav row,
+     * turning "Upcoming events" and the pulse chart into nav entries that
+     * overflow the bar and force a horizontal scrollbar across the page.
+     *
+     * They are widgets, so they render where widgets render and nowhere else.
+     * Anything wanting them on another page should use the FoF widget
+     * registration below, where an admin places them deliberately.
+     */
+    if (!app.current || !app.current.matches(IndexPage)) return;
+
     if (!hasWidgetCore && app.forum.attribute('ernestdefoe-calendar.showIndexWidget')) {
       const count = app.forum.attribute('ernestdefoe-calendar.indexWidgetCount') || 5;
       items.add('calendar-upcoming', m(UpcomingEvents, { count }), -10);
