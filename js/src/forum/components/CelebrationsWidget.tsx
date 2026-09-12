@@ -54,7 +54,8 @@ function row(p: Celebrant) {
 function avatar(p: Celebrant) {
   if (p.avatarUrl) return m('span.Avatar.CalCeleb-avatar', { style: { backgroundImage: `url("${p.avatarUrl}")` } });
   const ch = (p.displayName || p.username || '?').charAt(0).toUpperCase();
-  return m('span.Avatar.CalCeleb-avatar.CalCeleb-avatar--text', ch);
+  // notranslate: a lone initial is a word in some language. See PulseWidget.
+  return m('span.Avatar.CalCeleb-avatar.CalCeleb-avatar--text.notranslate', ch);
 }
 
 export default CelebrationsWidget;

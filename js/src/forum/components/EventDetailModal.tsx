@@ -137,7 +137,10 @@ function attendeeGroup(label: any, attendees?: RsvpAttendee[]) {
         // positioned child. A member with no avatar — or one whose avatar file
         // has gone missing — falls back to the letter rather than showing the
         // browser's broken-image glyph.
-        m('span.CalendarAttendee-avatar', [
+        // notranslate: the initial is a lone letter, and a lone letter is a
+        // word in some language — a browser translating the page turns "E"
+        // into "AND". See PulseWidget.
+        m('span.CalendarAttendee-avatar.notranslate', [
           a.displayName.charAt(0).toUpperCase(),
           a.avatarUrl
             ? m('span.CalendarAttendee-avatarImg', { style: { backgroundImage: `url("${a.avatarUrl}")` } })

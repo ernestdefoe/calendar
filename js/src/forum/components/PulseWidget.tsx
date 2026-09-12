@@ -95,8 +95,21 @@ function avatar(l: PulseLeader) {
   if (l.avatarUrl) {
     return m('span.Avatar.CalPulse-avatar', { style: { backgroundImage: `url("${l.avatarUrl}")` } });
   }
+
+  /*
+   * 🚨 notranslate on the initial.
+   *
+   * This branch renders a single letter, and a single letter is a word in
+   * some language. A user called Ernest gives "E", which a browser
+   * translating a Spanish page reads as the conjunction "e" and rewrites to
+   * the English word "AND" — so the circle fills with three characters and
+   * overflows. Reported, on a real forum, as broken avatars.
+   *
+   * The image branch above needs nothing: there is no text in it to translate.
+   */
   const ch = (l.displayName || l.username || '?').charAt(0).toUpperCase();
-  return m('span.Avatar.CalPulse-avatar.CalPulse-avatar--text', ch);
+
+  return m('span.Avatar.CalPulse-avatar.CalPulse-avatar--text.notranslate', ch);
 }
 
 export default PulseWidget;
