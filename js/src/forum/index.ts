@@ -101,10 +101,28 @@ app.initializers.add('ernestdefoe/calendar', () => {
     });
   }
 
-  // The marquee feature: a contribution heatmap + streaks at the top of every
-  // member's profile. override() lets us prepend above the activity feed.
+  /*
+   * A contribution heatmap + streaks at the top of every member's profile.
+   *
+   * 🚨 Stands down when ernestdefoe/cadence is drawing one, or a profile shows
+   * TWO activity maps stacked on each other. Cadence is the dedicated one —
+   * absolute scale, activity by kind, the reader's own timezone — and this one
+   * stays for the forums that have only ever had Calendar.
+   *
+   * The check is deliberately narrow: Cadence being INSTALLED is not enough,
+   * because its profile placement is a setting an admin can turn off. If it is
+   * off, Calendar keeps drawing, and nobody ends up with no map at all.
+   */
   override(PostsUserPage.prototype, 'content', function (this: any, original: any) {
-    const heatmap = this.user ? m('.PostsUserPage-heatmap', m(ActivityHeatmap, { userId: this.user.id() })) : null;
+    const cadenceIsDrawing =
+      'ernestdefoe-cadence' in ((window as any).flarum?.extensions ?? {}) &&
+      app.forum.attribute<boolean>('cadenceShowOnProfile') !== false;
+
+    const heatmap =
+      this.user && !cadenceIsDrawing
+        ? m('.PostsUserPage-heatmap', m(ActivityHeatmap, { userId: this.user.id() }))
+        : null;
+
     return [heatmap, original()];
   });
 
