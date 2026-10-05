@@ -1,6 +1,7 @@
 import app from 'flarum/forum/app';
 import { CalWidgetSkeleton, measure } from './CalSkeleton';
 import { forumPulse, type ForumPulse, type PulseLeader } from '../../common/api';
+import { bind } from '../../common/widgetData';
 
 declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
@@ -44,11 +45,10 @@ function miniGrid(days: Record<string, number>, max: number, weeks: number) {
  */
 const PulseWidget = {
   oninit(this: any, vnode: any) {
-    this.data = null as ForumPulse | null;
     const a = vnode.attrs || {};
-    forumPulse({ days: 120, leaderDays: 30, limit: Math.max(3, Number(a.count) || 5) })
-      .then((d) => { this.data = d; m.redraw(); })
-      .catch(() => { this.data = { days: {}, total: 0, max: 0, leaders: [], leaderDays: 30 } as any; m.redraw(); });
+    const limit = Math.max(3, Number(a.count) || 5);
+    bind<ForumPulse>(this, 'data', 'pulse:' + limit, () => forumPulse({ days: 120, leaderDays: 30, limit }),
+      { days: {}, total: 0, max: 0, leaders: [], leaderDays: 30 } as any);
   },
 
   view(this: any, vnode: any) {

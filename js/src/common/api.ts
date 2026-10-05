@@ -1,4 +1,5 @@
 import app from 'flarum/forum/app';
+import { invalidate } from './widgetData';
 
 /** A serialized event (mirrors ErnestDefoe\Calendar\Api\EventSerializer). */
 export interface CalEvent {
@@ -128,15 +129,15 @@ export function showEvent(id: number): Promise<CalEvent> {
 export function saveEvent(attrs: Record<string, unknown>, id?: number): Promise<CalEvent> {
   return app
     .request<any>({ method: id ? 'PATCH' : 'POST', url: api('/calendar/events' + (id ? '/' + id : '')), body: { data: { attributes: attrs } } })
-    .then((r: any) => r.data);
+    .then((r: any) => { invalidate('events:'); return r.data; });
 }
 
 export function deleteEvent(id: number): Promise<unknown> {
-  return app.request({ method: 'DELETE', url: api('/calendar/events/' + id) });
+  return app.request({ method: 'DELETE', url: api('/calendar/events/' + id) }).then((r) => { invalidate('events:'); return r; });
 }
 
 export function rsvp(id: number, status: string): Promise<CalEvent['rsvp']> {
-  return app.request<any>({ method: 'POST', url: api('/calendar/events/' + id + '/rsvp'), body: { data: { status } } }).then((r: any) => r.data);
+  return app.request<any>({ method: 'POST', url: api('/calendar/events/' + id + '/rsvp'), body: { data: { status } } }).then((r: any) => { invalidate('events:'); return r.data; });
 }
 
 export function listCategories(): Promise<CalCategory[]> {

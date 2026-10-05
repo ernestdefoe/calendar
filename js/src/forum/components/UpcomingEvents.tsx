@@ -2,6 +2,7 @@ import app from 'flarum/forum/app';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import EventDetailModal from './EventDetailModal';
 import { listEvents, type CalEvent } from '../../common/api';
+import { load as loadShared, peek } from '../../common/widgetData';
 import { shortTime, loc } from '../../common/dates';
 
 declare const m: any;
@@ -20,18 +21,27 @@ const UpcomingEvents = {
   },
 
   load(this: any, attrs: any) {
-    const from = new Date();
-    const to = new Date();
-    to.setFullYear(to.getFullYear() + 1);
-    listEvents(from, to, attrs.category || undefined)
-      .then((res) => {
-        const now = Date.now();
-        this.events = (res.data || [])
-          .filter((e: CalEvent) => new Date(e.end || e.start).getTime() >= now)
-          .slice(0, Math.max(1, Number(attrs.count) || 5));
-        m.redraw();
-      })
-      .catch(() => { this.events = []; m.redraw(); });
+    const category = attrs.category || '';
+    const pick = (all: CalEvent[]) => {
+      const now = Date.now();
+      return all
+        .filter((e: CalEvent) => new Date(e.end || e.start).getTime() >= now)
+        .slice(0, Math.max(1, Number(attrs.count) || 5));
+    };
+    const fetch = () => {
+      const from = new Date();
+      const to = new Date();
+      to.setFullYear(to.getFullYear() + 1);
+      return listEvents(from, to, category || undefined).then((res) => res.data || []);
+    };
+
+    const key = 'events:upcoming:' + category;
+    const fresh = peek<CalEvent[]>(key);
+    if (fresh !== undefined) {
+      this.events = pick(fresh);
+      return;
+    }
+    loadShared<CalEvent[]>(key, fetch, []).then((all) => { this.events = pick(all); m.redraw(); });
   },
 
   view(this: any, vnode: any) {

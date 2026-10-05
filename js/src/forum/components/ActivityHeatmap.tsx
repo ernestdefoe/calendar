@@ -1,6 +1,7 @@
 import app from 'flarum/forum/app';
 import { CalWidgetSkeleton, measure } from './CalSkeleton';
 import { userActivity, type UserActivity } from '../../common/api';
+import { load, peek } from '../../common/widgetData';
 import { loc } from '../../common/dates';
 
 declare const m: any;
@@ -87,9 +88,15 @@ const ActivityHeatmap = {
     this.error = false;
     const uid = Number(vnode.attrs.userId);
     if (uid) {
-      userActivity(uid)
-        .then((d) => { this.data = d; m.redraw(); })
-        .catch(() => { this.error = true; m.redraw(); });
+      // `false` is the stored failure, so a profile whose activity errors is
+      // asked once per TTL rather than on every remount.
+      const apply = (d: UserActivity | false) => {
+        if (d) this.data = d;
+        else this.error = true;
+      };
+      const fresh = peek<UserActivity | false>('activity:' + uid);
+      if (fresh !== undefined) apply(fresh);
+      else load<UserActivity | false>('activity:' + uid, () => userActivity(uid), false).then((d) => { apply(d); m.redraw(); });
     } else {
       this.error = true;
     }

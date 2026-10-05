@@ -1,6 +1,7 @@
 import app from 'flarum/forum/app';
 import { CalWidgetSkeleton, measure } from './CalSkeleton';
 import { celebrations, type Celebrant } from '../../common/api';
+import { bind } from '../../common/widgetData';
 
 declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
@@ -12,10 +13,7 @@ const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calenda
  */
 const CelebrationsWidget = {
   oninit(this: any) {
-    this.people = null as Celebrant[] | null;
-    celebrations()
-      .then((d) => { this.people = d; m.redraw(); })
-      .catch(() => { this.people = []; m.redraw(); });
+    bind<Celebrant[]>(this, 'people', 'celebrations', () => celebrations(), []);
   },
 
   view(this: any, vnode: any) {

@@ -4,6 +4,7 @@ namespace ErnestDefoe\Calendar\Api\Controller;
 
 use Carbon\Carbon;
 use Flarum\User\User;
+use Illuminate\Contracts\Cache\Repository;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -18,9 +19,33 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 class CelebrationsController implements RequestHandlerInterface
 {
+    /** Seconds today's list is served from the cache. */
+    public const TTL = 600;
+
+    public function __construct(protected Repository $cache) {}
+
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        $now  = Carbon::now();
+        $now = Carbon::now();
+
+        /*
+         * 🚨 Cached per day. The widget sits on the index sidebar by default,
+         * and the anniversary half matches on MONTH() and DAY() of joined_at,
+         * which no index can serve — a scan of the users table for every
+         * visitor on every index view, to produce a list that is the same for
+         * everyone all day. A birthday set a moment ago shows within the TTL.
+         */
+        $data = $this->cache->remember(
+            'ernestdefoe-calendar.celebrations.'.$now->toDateString(),
+            self::TTL,
+            fn () => $this->compute($now)
+        );
+
+        return new JsonResponse(['data' => $data]);
+    }
+
+    private function compute(Carbon $now): array
+    {
         $mmdd = $now->format('m-d');
 
         $birthdays = User::query()
@@ -43,9 +68,7 @@ class CelebrationsController implements RequestHandlerInterface
                 'years' => $now->year - $u->joined_at->year,
             ]);
 
-        return new JsonResponse([
-            'data' => $birthdays->concat($anniversaries)->values()->all(),
-        ]);
+        return $birthdays->concat($anniversaries)->values()->all();
     }
 
     private function base(User $u): array

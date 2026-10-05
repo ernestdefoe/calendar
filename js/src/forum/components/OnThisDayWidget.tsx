@@ -1,6 +1,7 @@
 import app from 'flarum/forum/app';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import { onThisDay, type Memory } from '../../common/api';
+import { bind } from '../../common/widgetData';
 
 declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
@@ -12,11 +13,8 @@ const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calenda
  */
 const OnThisDayWidget = {
   oninit(this: any, vnode: any) {
-    this.memories = null as Memory[] | null;
     const count = Math.max(1, Number((vnode.attrs || {}).count) || 6);
-    onThisDay(count)
-      .then((d) => { this.memories = d; m.redraw(); })
-      .catch(() => { this.memories = []; m.redraw(); });
+    bind<Memory[]>(this, 'memories', 'onthisday:' + count, () => onThisDay(count), []);
   },
 
   view(this: any, vnode: any) {
