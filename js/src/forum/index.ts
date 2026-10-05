@@ -87,18 +87,15 @@ app.initializers.add('ernestdefoe/calendar', () => {
   });
 
   // Self-service birthday picker in the account settings page (opt-in, MM-DD only).
-  // SettingsPage isn't an exported runtime module, so reach it via the registered
-  // route component; guarded so a core change can never break boot.
-  const SettingsPage = (app.routes.settings as any) && (app.routes.settings as any).component;
-  if (SettingsPage && SettingsPage.prototype) {
-    extend(SettingsPage.prototype, 'settingsItems', function (items: any) {
-      items.add(
-        'calendarBirthday',
-        FieldSet.component({ className: 'Settings-calendarBirthday', label: app.translator.trans('ernestdefoe-calendar.forum.birthday_section') }, [m(BirthdayField)]),
-        5
-      );
-    });
-  }
+  // SettingsPage is a lazily loaded chunk in Flarum 2, so it is extended by path:
+  // its route component is an async loader with no prototype to extend.
+  extend('flarum/forum/components/SettingsPage', 'settingsItems', function (items: any) {
+    items.add(
+      'calendarBirthday',
+      FieldSet.component({ className: 'Settings-calendarBirthday', label: app.translator.trans('ernestdefoe-calendar.forum.birthday_section') }, [m(BirthdayField)]),
+      5
+    );
+  });
 
   /*
    * A contribution heatmap + streaks at the top of every member's profile.
