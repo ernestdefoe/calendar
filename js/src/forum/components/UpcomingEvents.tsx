@@ -1,6 +1,5 @@
 import app from 'flarum/forum/app';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
-import EventDetailModal from './EventDetailModal';
 import { listEvents, type CalEvent } from '../../common/api';
 import { load as loadShared, peek } from '../../common/widgetData';
 import { shortTime, loc } from '../../common/dates';
@@ -66,7 +65,7 @@ const UpcomingEvents = {
 function eventRow(ev: CalEvent) {
   const start = new Date(ev.start);
   return m('li.CalendarWidget-event', {
-    onclick: () => app.modal.show(EventDetailModal, { event: ev }),
+    onclick: () => app.modal.show(() => import('./EventDetailModal'), { event: ev }),
     role: 'button',
     tabindex: 0,
   }, [

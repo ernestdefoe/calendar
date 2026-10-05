@@ -19,6 +19,9 @@ use Psr\Log\LoggerInterface;
 $extenders = [
     (new Extend\Frontend('forum'))
         ->js(__DIR__ . '/js/dist/forum.js')
+        // The calendar page and the event modals are their own chunks, loaded
+        // only when opened; this publishes them.
+        ->jsDirectory(__DIR__ . '/js/dist/forum')
         ->css(__DIR__ . '/less/forum.less')
         ->route('/calendar', 'calendar'),
 

@@ -1,7 +1,6 @@
 import app from 'flarum/forum/app';
 import Modal, { IInternalModalAttrs } from 'flarum/common/components/Modal';
 import Button from 'flarum/common/components/Button';
-import EventFormModal from './EventFormModal';
 import { rsvp, deleteEvent, showEvent, abs, mapUrl, type CalEvent, type RsvpAttendee } from '../../common/api';
 import { formatRange } from '../../common/dates';
 
@@ -115,7 +114,7 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
   }
 
   edit() {
-    app.modal.show(EventFormModal, { event: this.event, onsave: (ev: CalEvent) => { this.attrs.onchange?.(); Object.assign(this.event, ev); } });
+    app.modal.show(() => import('./EventFormModal'), { event: this.event, onsave: (ev: CalEvent) => { this.attrs.onchange?.(); Object.assign(this.event, ev); } });
   }
 
   remove() {

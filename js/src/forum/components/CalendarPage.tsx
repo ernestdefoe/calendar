@@ -2,8 +2,6 @@ import app from 'flarum/forum/app';
 import Page from 'flarum/common/components/Page';
 import Button from 'flarum/common/components/Button';
 import CalSkeleton, { measure } from './CalSkeleton';
-import EventFormModal from './EventFormModal';
-import EventDetailModal from './EventDetailModal';
 import MonthGrid from './MonthGrid';
 import TimeGrid from './TimeGrid';
 import EventListView from './EventListView';
@@ -81,8 +79,8 @@ export default class CalendarPage extends Page {
 
   setMode(mode: Mode) { this.mode = mode; this.load(); }
 
-  openCreate(day?: Date) { app.modal.show(EventFormModal, { day, onsave: () => this.load() }); }
-  openEvent(ev: CalEvent) { app.modal.show(EventDetailModal, { event: ev, onchange: () => this.load() }); }
+  openCreate(day?: Date) { app.modal.show(() => import('./EventFormModal'), { day, onsave: () => this.load() }); }
+  openEvent(ev: CalEvent) { app.modal.show(() => import('./EventDetailModal'), { event: ev, onchange: () => this.load() }); }
 
   view() {
     return m('.CalendarPage', m('.container', [

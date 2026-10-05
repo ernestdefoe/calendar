@@ -5,7 +5,6 @@ import IndexPage from 'flarum/forum/components/IndexPage';
 import PostsUserPage from 'flarum/forum/components/PostsUserPage';
 import LinkButton from 'flarum/common/components/LinkButton';
 import FieldSet from 'flarum/common/components/FieldSet';
-import CalendarPage from './components/CalendarPage';
 import UpcomingEvents from './components/UpcomingEvents';
 import ActivityHeatmap from './components/ActivityHeatmap';
 import PulseWidget from './components/PulseWidget';
@@ -27,7 +26,7 @@ declare const flarum: any;
  *    registerIntegrations().
  */
 app.initializers.add('ernestdefoe/calendar', () => {
-  app.routes.calendar = { path: '/calendar', component: CalendarPage };
+  app.routes.calendar = { path: '/calendar', component: () => import('./components/CalendarPage') };
 
   // Nav link sits with "All Discussions" in the sidebar navigation (Flarum 2
   // exposes these via navItems, not items — items is the New Discussion button +
