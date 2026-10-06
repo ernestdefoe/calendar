@@ -203,6 +203,10 @@ npm run dev      # watch
 npm run build    # production
 ```
 
+## Discuss
+
+Questions, ideas and release notes: [Calendar on discuss.flarum.org](https://discuss.flarum.org/d/39377-calendar).
+
 ## License
 
 [MIT](LICENSE) © ernestdefoe
