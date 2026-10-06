@@ -203,9 +203,11 @@ npm run dev      # watch
 npm run build    # production
 ```
 
-## Discuss
+## Support
 
-Questions, ideas and release notes: [Calendar on discuss.flarum.org](https://discuss.flarum.org/d/39377-calendar).
+- **Support forum:** [Calendar on ernestdefoe.online](https://ernestdefoe.online/d/39)
+- **Flarum community:** [Calendar on discuss.flarum.org](https://discuss.flarum.org/d/39377-calendar)
+- **Bug reports:** [GitHub issues](https://github.com/ernestdefoe/calendar/issues)
 
 ## License
 
