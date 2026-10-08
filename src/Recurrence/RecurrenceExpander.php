@@ -34,9 +34,9 @@ class RecurrenceExpander
         }
 
         $interval = max(1, (int) ($rule['INTERVAL'] ?? 1));
-        $count    = isset($rule['COUNT']) ? max(0, (int) $rule['COUNT']) : null;
-        $until     = isset($rule['UNTIL']) ? self::parseUntil((string) $rule['UNTIL'], $start) : null;
-        $byday    = isset($rule['BYDAY']) ? self::parseByday((string) $rule['BYDAY']) : [];
+        $count = isset($rule['COUNT']) ? max(0, (int) $rule['COUNT']) : null;
+        $until = isset($rule['UNTIL']) ? self::parseUntil((string) $rule['UNTIL'], $start) : null;
+        $byday = isset($rule['BYDAY']) ? self::parseByday((string) $rule['BYDAY']) : [];
 
         if ($freq === 'WEEKLY' && $byday) {
             return self::expandWeeklyByday($start, $from, $to, $interval, $count, $until, $byday, $cap);
@@ -53,21 +53,33 @@ class RecurrenceExpander
         $i = 0;
 
         while ($i++ < self::MAX_ITERATIONS) {
-            if ($until && $occ->gt($until)) break;
-            if ($count !== null && $emitted >= $count) break;
-            if ($occ->gt($to)) break;
+            if ($until && $occ->gt($until)) {
+                break;
+            }
+            if ($count !== null && $emitted >= $count) {
+                break;
+            }
+            if ($occ->gt($to)) {
+                break;
+            }
 
             if ($occ->gte($from)) {
                 $out[] = $occ->copy();
-                if (count($out) >= $cap) break;
+                if (count($out) >= $cap) {
+                    break;
+                }
             }
             $emitted++;
 
             switch ($freq) {
-                case 'DAILY':   $occ->addDays($interval); break;
-                case 'WEEKLY':  $occ->addWeeks($interval); break;
-                case 'MONTHLY': $occ->addMonthsNoOverflow($interval); break;
-                case 'YEARLY':  $occ->addYearsNoOverflow($interval); break;
+                case 'DAILY':   $occ->addDays($interval);
+                    break;
+                case 'WEEKLY':  $occ->addWeeks($interval);
+                    break;
+                case 'MONTHLY': $occ->addMonthsNoOverflow($interval);
+                    break;
+                case 'YEARLY':  $occ->addYearsNoOverflow($interval);
+                    break;
             }
         }
 
@@ -86,17 +98,27 @@ class RecurrenceExpander
         while ($i++ < self::MAX_ITERATIONS) {
             foreach ($days as $dow) {
                 $occ = $weekStart->copy()->addDays($dow)->setTime($start->hour, $start->minute, $start->second);
-                if ($occ->lt($start)) continue;                 // never before the series anchor
-                if ($until && $occ->gt($until)) return $out;
-                if ($count !== null && $emitted >= $count) return $out;
+                if ($occ->lt($start)) {
+                    continue;
+                }                 // never before the series anchor
+                if ($until && $occ->gt($until)) {
+                    return $out;
+                }
+                if ($count !== null && $emitted >= $count) {
+                    return $out;
+                }
                 $emitted++;
                 if ($occ->gte($from) && $occ->lte($to)) {
                     $out[] = $occ;
-                    if (count($out) >= $cap) return $out;
+                    if (count($out) >= $cap) {
+                        return $out;
+                    }
                 }
             }
             $weekStart->addWeeks($interval);
-            if ($weekStart->gt($to)) break;
+            if ($weekStart->gt($to)) {
+                break;
+            }
         }
 
         return $out;
@@ -108,10 +130,13 @@ class RecurrenceExpander
         $rrule = trim(preg_replace('/^RRULE:/i', '', trim($rrule)));
         $out = [];
         foreach (explode(';', $rrule) as $part) {
-            if (strpos($part, '=') === false) continue;
+            if (strpos($part, '=') === false) {
+                continue;
+            }
             [$k, $v] = explode('=', $part, 2);
             $out[strtoupper(trim($k))] = trim($v);
         }
+
         return $out;
     }
 
@@ -128,6 +153,7 @@ class RecurrenceExpander
         }
         $days = array_values($days);
         sort($days);
+
         return $days;
     }
 
@@ -141,11 +167,13 @@ class RecurrenceExpander
             }
             if (preg_match('/^\d{8}T\d{6}Z?$/', $clean)) {
                 $tz = str_ends_with($clean, 'Z') ? 'UTC' : $start->getTimezone();
+
                 return Carbon::createFromFormat('Ymd\THis', rtrim($clean, 'Z'), $tz);
             }
         } catch (\Throwable $e) {
             // bad UNTIL → treat as open-ended
         }
+
         return null;
     }
 }

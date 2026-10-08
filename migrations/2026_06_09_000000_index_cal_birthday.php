@@ -15,6 +15,7 @@ return [
         if (! $schema->hasColumn('users', 'cal_birthday')) {
             return;
         }
+
         try {
             $schema->table('users', function (Blueprint $table) {
                 $table->index('cal_birthday', 'users_cal_birthday_index');

@@ -12,7 +12,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * GET /api/calendar/celebrations
+ * GET /api/calendar/celebrations.
  *
  * Today's member milestones: opt-in birthdays (matched on the privacy-preserving
  * MM-DD field — no age exposed) and join-anniversaries (derived from the public
@@ -23,7 +23,9 @@ class CelebrationsController implements RequestHandlerInterface
     /** Seconds today's list is served from the cache. */
     public const TTL = 600;
 
-    public function __construct(protected Repository $cache) {}
+    public function __construct(protected Repository $cache)
+    {
+    }
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
@@ -68,7 +70,7 @@ class CelebrationsController implements RequestHandlerInterface
             ->limit(40)
             ->get()
             ->map(fn (User $u) => $this->base($u) + [
-                'type'  => 'anniversary',
+                'type' => 'anniversary',
                 'years' => $now->year - $u->joined_at->year,
             ]);
 
@@ -78,10 +80,10 @@ class CelebrationsController implements RequestHandlerInterface
     private function base(User $u): array
     {
         return [
-            'userId'      => (int) $u->id,
-            'username'    => $u->username,
+            'userId' => (int) $u->id,
+            'username' => $u->username,
             'displayName' => $u->display_name,
-            'avatarUrl'   => $u->avatar_url,
+            'avatarUrl' => $u->avatar_url,
         ];
     }
 }

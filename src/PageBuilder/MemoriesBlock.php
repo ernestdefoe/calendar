@@ -11,10 +11,25 @@ use Ernestdefoe\PageBuilder\Block\AbstractBlock;
 
 class MemoriesBlock extends AbstractBlock
 {
-    public function type(): string { return 'memories'; }
-    public function name(): string { return 'On This Day'; }
-    public function icon(): string { return 'fas fa-history'; }
-    public function category(): string { return 'forum'; }
+    public function type(): string
+    {
+        return 'memories';
+    }
+
+    public function name(): string
+    {
+        return 'On This Day';
+    }
+
+    public function icon(): string
+    {
+        return 'fas fa-history';
+    }
+
+    public function category(): string
+    {
+        return 'forum';
+    }
 
     public function settingsSchema(): array
     {

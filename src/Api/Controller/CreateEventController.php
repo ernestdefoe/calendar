@@ -38,8 +38,10 @@ class CreateEventController implements RequestHandlerInterface
                 $event->save();
                 break;
             } catch (UniqueConstraintViolationException $e) {
-                if ($attempt >= 3) throw $e;
-                $event->slug = $baseSlug . '-' . Str::lower(Str::random(5));
+                if ($attempt >= 3) {
+                    throw $e;
+                }
+                $event->slug = $baseSlug.'-'.Str::lower(Str::random(5));
             }
         }
 

@@ -12,7 +12,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * POST /api/calendar/events/{id}/rsvp  { data: { status: going|interested|none } }
+ * POST /api/calendar/events/{id}/rsvp  { data: { status: going|interested|none } }.
  *
  * Sets (or clears, with "none") the current user's RSVP and returns the fresh
  * counts + the user's status. Any registered user may RSVP to a visible event.
@@ -59,10 +59,10 @@ class RsvpController implements RequestHandlerInterface
             ->selectRaw('status, COUNT(*) as c')->groupBy('status')->pluck('c', 'status');
 
         return new JsonResponse(['data' => [
-            'going'      => (int) ($rows[EventRsvp::GOING] ?? 0),
+            'going' => (int) ($rows[EventRsvp::GOING] ?? 0),
             'interested' => (int) ($rows[EventRsvp::INTERESTED] ?? 0),
-            'mine'       => $mine,
-            'attendees'  => \ErnestDefoe\Calendar\Attendees::build((int) $event->id),
+            'mine' => $mine,
+            'attendees' => \ErnestDefoe\Calendar\Attendees::build((int) $event->id),
         ]]);
     }
 }

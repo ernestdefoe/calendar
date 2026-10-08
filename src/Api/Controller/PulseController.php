@@ -12,7 +12,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * GET /api/calendar/pulse
+ * GET /api/calendar/pulse.
  *
  * The forum-wide heartbeat: a daily activity series for the pulse widget plus a
  * "most active" leaderboard. Query params: `days` (series length, 14–365),
@@ -23,17 +23,19 @@ class PulseController implements RequestHandlerInterface
     /** Seconds a computed pulse is served from the cache. */
     public const TTL = 600;
 
-    public function __construct(protected ActivityRepository $activity, protected Repository $cache) {}
+    public function __construct(protected ActivityRepository $activity, protected Repository $cache)
+    {
+    }
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         // A forum guests can't view keeps its calendar from them too.
         RequestUtil::getActor($request)->assertCan('viewForum');
 
-        $qp         = $request->getQueryParams();
-        $days       = max(14, min(365, (int) ($qp['days'] ?? 120)));
+        $qp = $request->getQueryParams();
+        $days = max(14, min(365, (int) ($qp['days'] ?? 120)));
         $leaderDays = max(1, min(365, (int) ($qp['leaderDays'] ?? 30)));
-        $limit      = max(1, min(25, (int) ($qp['limit'] ?? 10)));
+        $limit = max(1, min(25, (int) ($qp['limit'] ?? 10)));
 
         /*
          * 🚨 Cached. The pulse widget sits on the index sidebar by default,
@@ -61,22 +63,24 @@ class PulseController implements RequestHandlerInterface
         $board = [];
         foreach ($leaders as $row) {
             $u = $users->get($row['userId']);
-            if (! $u) continue;
+            if (! $u) {
+                continue;
+            }
             $board[] = [
-                'userId'      => (int) $u->id,
-                'username'    => $u->username,
+                'userId' => (int) $u->id,
+                'username' => $u->username,
                 'displayName' => $u->display_name,
-                'avatarUrl'   => $u->avatar_url,
-                'count'       => $row['count'],
+                'avatarUrl' => $u->avatar_url,
+                'count' => $row['count'],
             ];
         }
 
         return [
-            'days'        => (object) $daily,
-            'total'       => array_sum($daily),
-            'max'         => $daily ? max($daily) : 0,
-            'leaders'     => $board,
-            'leaderDays'  => $leaderDays,
+            'days' => (object) $daily,
+            'total' => array_sum($daily),
+            'max' => $daily ? max($daily) : 0,
+            'leaders' => $board,
+            'leaderDays' => $leaderDays,
         ];
     }
 }

@@ -6,30 +6,30 @@
  * Calendar & Events for Flarum 2.
  */
 
-use Flarum\Extend;
+use ErnestDefoe\Calendar\Api\Controller;
 use Flarum\Api\Context;
-use Flarum\Api\Schema;
 use Flarum\Api\Resource\ForumResource;
+use Flarum\Api\Resource\UserResource;
+use Flarum\Api\Schema;
+use Flarum\Extend;
 use Flarum\Extension\ExtensionManager;
 use Flarum\User\User;
-use Flarum\Api\Resource\UserResource;
-use ErnestDefoe\Calendar\Api\Controller;
 use Psr\Log\LoggerInterface;
 
 $extenders = [
     (new Extend\Frontend('forum'))
-        ->js(__DIR__ . '/js/dist/forum.js')
+        ->js(__DIR__.'/js/dist/forum.js')
         // The calendar page and the event modals are their own chunks, loaded
         // only when opened; this publishes them.
-        ->jsDirectory(__DIR__ . '/js/dist/forum')
-        ->css(__DIR__ . '/less/forum.less')
+        ->jsDirectory(__DIR__.'/js/dist/forum')
+        ->css(__DIR__.'/less/forum.less')
         ->route('/calendar', 'calendar'),
 
     (new Extend\Frontend('admin'))
-        ->js(__DIR__ . '/js/dist/admin.js')
-        ->css(__DIR__ . '/less/admin.less'),
+        ->js(__DIR__.'/js/dist/admin.js')
+        ->css(__DIR__.'/less/admin.less'),
 
-    (new Extend\Locales(__DIR__ . '/resources/locale')),
+    (new Extend\Locales(__DIR__.'/resources/locale')),
 
     // ---- Read/write JSON API (custom controllers) ----
     (new Extend\Routes('api'))
@@ -72,11 +72,12 @@ $extenders = [
             // (request-time, not file-parse time) — keeps resolve() out of the
             // per-field ->get() closure while staying a process-cheap single call.
             $coverUploadsEnabled = false;
+
             try {
                 $coverUploadsEnabled = resolve(ExtensionManager::class)->isEnabled('fof-upload');
             } catch (\Throwable $e) {
                 try {
-                    resolve(LoggerInterface::class)->debug('[calendar] fof-upload detection failed: ' . $e->getMessage());
+                    resolve(LoggerInterface::class)->debug('[calendar] fof-upload detection failed: '.$e->getMessage());
                 } catch (\Throwable $ignored) {
                 }
             }

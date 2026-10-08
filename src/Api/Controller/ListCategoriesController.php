@@ -19,9 +19,9 @@ class ListCategoriesController implements RequestHandlerInterface
 
         $data = EventCategory::query()->orderBy('position')->orderBy('name')->get()
             ->map(fn (EventCategory $c) => [
-                'id'    => (int) $c->id,
-                'name'  => $c->name,
-                'slug'  => $c->slug,
+                'id' => (int) $c->id,
+                'name' => $c->name,
+                'slug' => $c->slug,
                 'color' => $c->color,
             ])->values()->all();
 

@@ -59,7 +59,9 @@ class ActivityRepository
     {
         $set = [];
         foreach ($daily as $d => $c) {
-            if ($c > 0) $set[$d] = true;
+            if ($c > 0) {
+                $set[$d] = true;
+            }
         }
 
         // Current: walk backwards from today (or yesterday if today is empty).
@@ -77,7 +79,9 @@ class ActivityRepository
         $longest = 0;
         foreach (array_keys($set) as $d) {
             $prev = Carbon::parse($d)->subDay()->toDateString();
-            if (! empty($set[$prev])) continue; // not the start of a run
+            if (! empty($set[$prev])) {
+                continue;
+            } // not the start of a run
             $len = 0;
             $c = Carbon::parse($d);
             while (! empty($set[$c->toDateString()])) {
@@ -108,6 +112,7 @@ class ActivityRepository
         foreach ($q->toBase()->get() as $row) {
             $out[(string) $row->d] = (int) $row->c;
         }
+
         return $out;
     }
 }

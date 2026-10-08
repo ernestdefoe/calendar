@@ -11,10 +11,25 @@ use Ernestdefoe\PageBuilder\Block\AbstractBlock;
 
 class PulseBlock extends AbstractBlock
 {
-    public function type(): string { return 'pulse'; }
-    public function name(): string { return 'Forum Pulse'; }
-    public function icon(): string { return 'fas fa-chart-line'; }
-    public function category(): string { return 'forum'; }
+    public function type(): string
+    {
+        return 'pulse';
+    }
+
+    public function name(): string
+    {
+        return 'Forum Pulse';
+    }
+
+    public function icon(): string
+    {
+        return 'fas fa-chart-line';
+    }
+
+    public function category(): string
+    {
+        return 'forum';
+    }
 
     public function settingsSchema(): array
     {

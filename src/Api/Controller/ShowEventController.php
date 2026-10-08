@@ -29,7 +29,7 @@ class ShowEventController implements RequestHandlerInterface
         // author — everyone else gets a 404 (no existence disclosure).
         if (! $event->is_published) {
             $isManager = $actor->hasPermission('calendar.manage');
-            $isAuthor  = $event->user_id && (int) $actor->id === (int) $event->user_id && $actor->hasPermission('calendar.create');
+            $isAuthor = $event->user_id && (int) $actor->id === (int) $event->user_id && $actor->hasPermission('calendar.create');
             if (! $isManager && ! $isAuthor) {
                 throw new ModelNotFoundException();
             }
@@ -38,11 +38,11 @@ class ShowEventController implements RequestHandlerInterface
         $rows = EventRsvp::query()->where('event_id', $id)
             ->selectRaw('status, COUNT(*) as c')->groupBy('status')->pluck('c', 'status');
         $rsvp = [
-            'going'      => (int) ($rows[EventRsvp::GOING] ?? 0),
+            'going' => (int) ($rows[EventRsvp::GOING] ?? 0),
             'interested' => (int) ($rows[EventRsvp::INTERESTED] ?? 0),
-            'mine'       => $actor->isGuest() ? null
+            'mine' => $actor->isGuest() ? null
                 : EventRsvp::query()->where('event_id', $id)->where('user_id', $actor->id)->value('status'),
-            'attendees'  => \ErnestDefoe\Calendar\Attendees::build($id),
+            'attendees' => \ErnestDefoe\Calendar\Attendees::build($id),
         ];
 
         return new JsonResponse(['data' => EventSerializer::serialize($event, $actor, null, $rsvp)]);

@@ -33,6 +33,6 @@ class IcalEventController implements RequestHandlerInterface
 
         return $response
             ->withHeader('Content-Type', 'text/calendar; charset=utf-8')
-            ->withHeader('Content-Disposition', 'attachment; filename="event-' . $event->id . '.ics"');
+            ->withHeader('Content-Disposition', 'attachment; filename="event-'.$event->id.'.ics"');
     }
 }

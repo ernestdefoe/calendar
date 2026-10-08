@@ -41,17 +41,17 @@ class Event extends AbstractModel
     protected $table = 'calendar_events';
 
     protected $casts = [
-        'start_at'     => 'datetime',
-        'end_at'       => 'datetime',
-        'all_day'      => 'boolean',
+        'start_at' => 'datetime',
+        'end_at' => 'datetime',
+        'all_day' => 'boolean',
         'is_published' => 'boolean',
-        'created_at'   => 'datetime',
-        'updated_at'   => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     protected $attributes = [
-        'all_day'      => false,
-        'timezone'     => 'UTC',
+        'all_day' => false,
+        'timezone' => 'UTC',
         'is_published' => true,
     ];
 

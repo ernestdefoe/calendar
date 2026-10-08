@@ -11,10 +11,25 @@ use Ernestdefoe\PageBuilder\Block\AbstractBlock;
 
 class CelebrationsBlock extends AbstractBlock
 {
-    public function type(): string { return 'celebrations'; }
-    public function name(): string { return 'Celebrations'; }
-    public function icon(): string { return 'fas fa-birthday-cake'; }
-    public function category(): string { return 'forum'; }
+    public function type(): string
+    {
+        return 'celebrations';
+    }
+
+    public function name(): string
+    {
+        return 'Celebrations';
+    }
+
+    public function icon(): string
+    {
+        return 'fas fa-birthday-cake';
+    }
+
+    public function category(): string
+    {
+        return 'forum';
+    }
 
     public function settingsSchema(): array
     {

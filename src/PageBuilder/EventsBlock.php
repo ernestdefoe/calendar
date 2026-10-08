@@ -21,10 +21,25 @@ use Ernestdefoe\PageBuilder\Block\AbstractBlock;
 
 class EventsBlock extends AbstractBlock
 {
-    public function type(): string { return 'events'; }
-    public function name(): string { return 'Upcoming Events'; }
-    public function icon(): string { return 'fas fa-calendar-day'; }
-    public function category(): string { return 'forum'; }
+    public function type(): string
+    {
+        return 'events';
+    }
+
+    public function name(): string
+    {
+        return 'Upcoming Events';
+    }
+
+    public function icon(): string
+    {
+        return 'fas fa-calendar-day';
+    }
+
+    public function category(): string
+    {
+        return 'forum';
+    }
 
     public function settingsSchema(): array
     {

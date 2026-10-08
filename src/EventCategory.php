@@ -19,7 +19,7 @@ class EventCategory extends AbstractModel
     protected $table = 'calendar_categories';
 
     protected $casts = [
-        'position'   => 'integer',
+        'position' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

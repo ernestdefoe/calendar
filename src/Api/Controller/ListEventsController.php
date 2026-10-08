@@ -17,7 +17,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * GET /api/calendar/events?from=&to=&category=
+ * GET /api/calendar/events?from=&to=&category=.
  *
  * Public, read-only listing for the calendar views and widgets. Recurring series
  * are expanded into individual occurrences within the requested window. RSVP
@@ -27,13 +27,13 @@ class ListEventsController implements RequestHandlerInterface
 {
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        $actor  = RequestUtil::getActor($request);
+        $actor = RequestUtil::getActor($request);
         // A forum guests can't view keeps its calendar from them too.
         $actor->assertCan('viewForum');
         $params = $request->getQueryParams();
 
         $from = self::date(Arr::get($params, 'from')) ?? Carbon::now()->startOfMonth();
-        $to   = self::date(Arr::get($params, 'to')) ?? (clone $from)->addMonths(2);
+        $to = self::date(Arr::get($params, 'to')) ?? (clone $from)->addMonths(2);
         // Bound the window so a recurring series can't be expanded indefinitely.
         if ($to->lt($from)) {
             $to = (clone $from)->addMonth();
@@ -64,12 +64,16 @@ class ListEventsController implements RequestHandlerInterface
 
         $data = [];
         foreach ($events as $event) {
-            if (count($data) >= $maxOccurrences) break;
+            if (count($data) >= $maxOccurrences) {
+                break;
+            }
             $rsvp = self::rsvpFor($event->id, $counts, $mine);
 
             if ($event->isRecurring()) {
                 foreach (RecurrenceExpander::occurrences($event->rrule, $event->start_at, $from, $to) as $occ) {
-                    if (count($data) >= $maxOccurrences) break;
+                    if (count($data) >= $maxOccurrences) {
+                        break;
+                    }
                     $data[] = EventSerializer::serialize($event, $actor, $occ, $rsvp);
                 }
             } else {
@@ -93,16 +97,24 @@ class ListEventsController implements RequestHandlerInterface
         $going = $interested = 0;
         if ($rows) {
             foreach ($rows as $r) {
-                if ($r->status === EventRsvp::GOING) $going = (int) $r->c;
-                if ($r->status === EventRsvp::INTERESTED) $interested = (int) $r->c;
+                if ($r->status === EventRsvp::GOING) {
+                    $going = (int) $r->c;
+                }
+                if ($r->status === EventRsvp::INTERESTED) {
+                    $interested = (int) $r->c;
+                }
             }
         }
+
         return ['going' => $going, 'interested' => $interested, 'mine' => $mine->get($eventId)];
     }
 
     private static function date(mixed $value): ?Carbon
     {
-        if (! $value) return null;
+        if (! $value) {
+            return null;
+        }
+
         try {
             return Carbon::parse((string) $value);
         } catch (\Throwable $e) {

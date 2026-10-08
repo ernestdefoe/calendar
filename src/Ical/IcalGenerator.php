@@ -17,7 +17,8 @@ class IcalGenerator
 {
     public function __construct(
         protected string $domain = 'localhost'
-    ) {}
+    ) {
+    }
 
     /** @param iterable<Event> $events */
     public function calendar(iterable $events, string $name): string
@@ -28,7 +29,7 @@ class IcalGenerator
             'PRODID:-//ernestdefoe//calendar//EN',
             'CALSCALE:GREGORIAN',
             'METHOD:PUBLISH',
-            'X-WR-CALNAME:' . $this->escape($name),
+            'X-WR-CALNAME:'.$this->escape($name),
         ];
 
         foreach ($events as $event) {
@@ -39,7 +40,7 @@ class IcalGenerator
 
         $lines[] = 'END:VCALENDAR';
 
-        return implode("\r\n", array_map([$this, 'fold'], $lines)) . "\r\n";
+        return implode("\r\n", array_map([$this, 'fold'], $lines))."\r\n";
     }
 
     public function single(Event $event, string $name): string
@@ -50,46 +51,46 @@ class IcalGenerator
             ['END:VCALENDAR']
         );
 
-        return implode("\r\n", array_map([$this, 'fold'], $lines)) . "\r\n";
+        return implode("\r\n", array_map([$this, 'fold'], $lines))."\r\n";
     }
 
     /** @return string[] the VEVENT block lines (unfolded) */
     private function vevent(Event $event): array
     {
         $start = $event->start_at instanceof Carbon ? $event->start_at->copy() : Carbon::parse($event->start_at);
-        $end   = $event->end_at ? ($event->end_at instanceof Carbon ? $event->end_at->copy() : Carbon::parse($event->end_at)) : null;
+        $end = $event->end_at ? ($event->end_at instanceof Carbon ? $event->end_at->copy() : Carbon::parse($event->end_at)) : null;
 
         $lines = ['BEGIN:VEVENT'];
-        $lines[] = 'UID:event-' . $event->id . '@' . $this->domain;
-        $lines[] = 'DTSTAMP:' . Carbon::now('UTC')->format('Ymd\THis\Z');
+        $lines[] = 'UID:event-'.$event->id.'@'.$this->domain;
+        $lines[] = 'DTSTAMP:'.Carbon::now('UTC')->format('Ymd\THis\Z');
 
         if ($event->all_day) {
-            $lines[] = 'DTSTART;VALUE=DATE:' . $start->format('Ymd');
+            $lines[] = 'DTSTART;VALUE=DATE:'.$start->format('Ymd');
             // iCal all-day DTEND is exclusive → the day after the last day.
             $lastDay = ($end ?: $start)->copy();
-            $lines[] = 'DTEND;VALUE=DATE:' . $lastDay->addDay()->format('Ymd');
+            $lines[] = 'DTEND;VALUE=DATE:'.$lastDay->addDay()->format('Ymd');
         } else {
-            $lines[] = 'DTSTART:' . $start->utc()->format('Ymd\THis\Z');
+            $lines[] = 'DTSTART:'.$start->utc()->format('Ymd\THis\Z');
             if ($end) {
-                $lines[] = 'DTEND:' . $end->utc()->format('Ymd\THis\Z');
+                $lines[] = 'DTEND:'.$end->utc()->format('Ymd\THis\Z');
             }
         }
 
         if ($event->isRecurring()) {
-            $lines[] = 'RRULE:' . preg_replace('/^RRULE:/i', '', trim((string) $event->rrule));
+            $lines[] = 'RRULE:'.preg_replace('/^RRULE:/i', '', trim((string) $event->rrule));
         }
 
-        $lines[] = 'SUMMARY:' . $this->escape($event->title);
+        $lines[] = 'SUMMARY:'.$this->escape($event->title);
 
         $description = trim(strip_tags((string) $event->description));
         if ($description !== '') {
-            $lines[] = 'DESCRIPTION:' . $this->escape($description);
+            $lines[] = 'DESCRIPTION:'.$this->escape($description);
         }
         if ($event->location) {
-            $lines[] = 'LOCATION:' . $this->escape($event->location);
+            $lines[] = 'LOCATION:'.$this->escape($event->location);
         }
         if ($event->url) {
-            $lines[] = 'URL:' . $this->escape($event->url);
+            $lines[] = 'URL:'.$this->escape($event->url);
         }
 
         $lines[] = 'END:VEVENT';
@@ -103,6 +104,7 @@ class IcalGenerator
         $text = str_replace('\\', '\\\\', $text);
         $text = str_replace([',', ';'], ['\,', '\;'], $text);
         $text = preg_replace('/\r\n|\r|\n/', '\\n', $text);
+
         return $text;
     }
 
@@ -118,10 +120,11 @@ class IcalGenerator
         while (strlen($remaining) > 0) {
             $limit = $first ? 75 : 74; // continuation lines start with a leading space
             $chunk = mb_strcut($remaining, 0, $limit, 'UTF-8');
-            $out .= ($first ? '' : "\r\n ") . $chunk;
+            $out .= ($first ? '' : "\r\n ").$chunk;
             $remaining = substr($remaining, strlen($chunk));
             $first = false;
         }
+
         return $out;
     }
 }

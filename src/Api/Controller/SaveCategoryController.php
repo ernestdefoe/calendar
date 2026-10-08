@@ -61,15 +61,17 @@ class SaveCategoryController implements RequestHandlerInterface
                 $category->save();
                 break;
             } catch (UniqueConstraintViolationException $e) {
-                if ($attempt >= 3) throw $e;
-                $category->slug = $baseSlug . '-' . Str::lower(Str::random(5));
+                if ($attempt >= 3) {
+                    throw $e;
+                }
+                $category->slug = $baseSlug.'-'.Str::lower(Str::random(5));
             }
         }
 
         return new JsonResponse(['data' => [
-            'id'    => (int) $category->id,
-            'name'  => $category->name,
-            'slug'  => $category->slug,
+            'id' => (int) $category->id,
+            'name' => $category->name,
+            'slug' => $category->slug,
             'color' => $category->color,
         ]], $id ? 200 : 201);
     }
@@ -80,8 +82,9 @@ class SaveCategoryController implements RequestHandlerInterface
         $slug = $base;
         $i = 2;
         while (EventCategory::where('slug', $slug)->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))->exists()) {
-            $slug = $base . '-' . $i++;
+            $slug = $base.'-'.$i++;
         }
+
         return $slug;
     }
 }
