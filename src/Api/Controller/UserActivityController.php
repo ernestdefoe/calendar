@@ -3,6 +3,7 @@
 namespace ErnestDefoe\Calendar\Api\Controller;
 
 use ErnestDefoe\Calendar\Activity\ActivityRepository;
+use Flarum\Http\RequestUtil;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -20,6 +21,9 @@ class UserActivityController implements RequestHandlerInterface
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
+        // A forum guests can't view keeps its calendar from them too.
+        RequestUtil::getActor($request)->assertCan('viewForum');
+
         $userId = (int) ($request->getAttribute('routeParameters')['id'] ?? 0);
 
         $daily  = $this->activity->userDaily($userId, 365);

@@ -28,6 +28,8 @@ class ListEventsController implements RequestHandlerInterface
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $actor  = RequestUtil::getActor($request);
+        // A forum guests can't view keeps its calendar from them too.
+        $actor->assertCan('viewForum');
         $params = $request->getQueryParams();
 
         $from = self::date(Arr::get($params, 'from')) ?? Carbon::now()->startOfMonth();

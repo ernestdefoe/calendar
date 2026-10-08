@@ -3,6 +3,7 @@
 namespace ErnestDefoe\Calendar\Api\Controller;
 
 use ErnestDefoe\Calendar\EventCategory;
+use Flarum\Http\RequestUtil;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -13,6 +14,9 @@ class ListCategoriesController implements RequestHandlerInterface
 {
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
+        // A forum guests can't view keeps its calendar from them too.
+        RequestUtil::getActor($request)->assertCan('viewForum');
+
         $data = EventCategory::query()->orderBy('position')->orderBy('name')->get()
             ->map(fn (EventCategory $c) => [
                 'id'    => (int) $c->id,

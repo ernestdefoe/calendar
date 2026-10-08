@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use ErnestDefoe\Calendar\Event;
 use ErnestDefoe\Calendar\Ical\IcalGenerator;
 use ErnestDefoe\Calendar\Recurrence\RecurrenceExpander;
+use Flarum\Http\RequestUtil;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Laminas\Diactoros\Response;
 use Psr\Http\Message\ResponseInterface;
@@ -27,6 +28,9 @@ class IcalFeedController implements RequestHandlerInterface
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
+        // A forum guests can't view keeps its calendar from them too.
+        RequestUtil::getActor($request)->assertCan('viewForum');
+
         // Eager-load category + user so per-event serialisation below doesn't
         // lazy-load them one row at a time (N+1). The 2000-row ceiling bounds
         // peak memory for forums with long event histories / many recurrences.

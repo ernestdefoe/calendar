@@ -3,6 +3,7 @@
 namespace ErnestDefoe\Calendar\Api\Controller;
 
 use Carbon\Carbon;
+use Flarum\Http\RequestUtil;
 use Flarum\User\User;
 use Illuminate\Contracts\Cache\Repository;
 use Laminas\Diactoros\Response\JsonResponse;
@@ -26,6 +27,9 @@ class CelebrationsController implements RequestHandlerInterface
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
+        // A forum guests can't view keeps its calendar from them too.
+        RequestUtil::getActor($request)->assertCan('viewForum');
+
         $now = Carbon::now();
 
         /*

@@ -26,6 +26,8 @@ class OnThisDayController implements RequestHandlerInterface
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $actor = RequestUtil::getActor($request);
+        // A forum guests can't view keeps its calendar from them too.
+        $actor->assertCan('viewForum');
         $now   = Carbon::now();
         $limit = max(1, min(20, (int) ($request->getQueryParams()['limit'] ?? 6)));
 

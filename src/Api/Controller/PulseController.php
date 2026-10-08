@@ -3,6 +3,7 @@
 namespace ErnestDefoe\Calendar\Api\Controller;
 
 use ErnestDefoe\Calendar\Activity\ActivityRepository;
+use Flarum\Http\RequestUtil;
 use Flarum\User\User;
 use Illuminate\Contracts\Cache\Repository;
 use Laminas\Diactoros\Response\JsonResponse;
@@ -26,6 +27,9 @@ class PulseController implements RequestHandlerInterface
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
+        // A forum guests can't view keeps its calendar from them too.
+        RequestUtil::getActor($request)->assertCan('viewForum');
+
         $qp         = $request->getQueryParams();
         $days       = max(14, min(365, (int) ($qp['days'] ?? 120)));
         $leaderDays = max(1, min(365, (int) ($qp['leaderDays'] ?? 30)));

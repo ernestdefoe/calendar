@@ -4,6 +4,7 @@ namespace ErnestDefoe\Calendar\Api\Controller;
 
 use ErnestDefoe\Calendar\Event;
 use ErnestDefoe\Calendar\Ical\IcalGenerator;
+use Flarum\Http\RequestUtil;
 use Illuminate\Support\Arr;
 use Laminas\Diactoros\Response;
 use Psr\Http\Message\ResponseInterface;
@@ -15,6 +16,9 @@ class IcalEventController implements RequestHandlerInterface
 {
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
+        // A forum guests can't view keeps its calendar from them too.
+        RequestUtil::getActor($request)->assertCan('viewForum');
+
         $id = (int) Arr::get($request->getAttributes(), 'routeParameters.id');
         // Only published events are downloadable — mirror IcalFeedController so a
         // visitor who guesses an event id can't pull an unpublished/draft event's
