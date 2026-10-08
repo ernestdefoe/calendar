@@ -132,7 +132,7 @@ class EngagementTest extends TestCase
         $this->assertSame(200, $status);
         $today = Carbon::now()->toDateString();
         $yesterday = Carbon::now()->subDay()->toDateString();
-        $this->assertSame([$yesterday => 1, $today => 2], array_intersect_key($body['data']['days'], [$today => 0, $yesterday => 0]));
+        $this->assertEquals([$yesterday => 1, $today => 2], array_intersect_key($body['data']['days'], [$today => 0, $yesterday => 0]), 'Keyed by day, in any order');
         $this->assertSame(3, $body['data']['total'], 'Hidden and private comments, and those over a year old, are left out');
         $this->assertSame(['current' => 2, 'longest' => 2], $body['data']['streak']);
 
