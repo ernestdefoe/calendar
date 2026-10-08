@@ -24,13 +24,16 @@ function miniGrid(days: Record<string, number>, max: number, weeks: number) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   let cur = new Date(today.getTime() - (weeks * 7 - 1) * DAY_MS);
-  cur = new Date(cur.getTime() - (cur.getDay() * DAY_MS)); // align to Sunday for the strip
+  cur = new Date(cur.getTime() - cur.getDay() * DAY_MS); // align to Sunday for the strip
   const cols: any[] = [];
   while (cur <= today) {
     const col: any[] = [];
     for (let i = 0; i < 7; i++) {
       if (cur > today) col.push(null);
-      else { const k = ymd(cur); col.push({ lvl: level(days[k] || 0, max) }); }
+      else {
+        const k = ymd(cur);
+        col.push({ lvl: level(days[k] || 0, max) });
+      }
       cur = new Date(cur.getTime() + DAY_MS);
     }
     cols.push(col);
@@ -47,8 +50,13 @@ const PulseWidget = {
   oninit(this: any, vnode: any) {
     const a = vnode.attrs || {};
     const limit = Math.max(3, Number(a.count) || 5);
-    bind<ForumPulse>(this, 'data', 'pulse:' + limit, () => forumPulse({ days: 120, leaderDays: 30, limit }),
-      { days: {}, total: 0, max: 0, leaders: [], leaderDays: 30 } as any);
+    bind<ForumPulse>(this, 'data', 'pulse:' + limit, () => forumPulse({ days: 120, leaderDays: 30, limit }), {
+      days: {},
+      total: 0,
+      max: 0,
+      leaders: [],
+      leaderDays: 30,
+    } as any);
   },
 
   view(this: any, vnode: any) {
@@ -58,22 +66,26 @@ const PulseWidget = {
     const weeks = Math.max(6, Math.min(20, Number(a.weeks) || 14));
 
     return m('.CalPulse', measure('CalPulse'), [
-      m('.CalPulse-head', [
-        m('h4.CalPulse-title', title),
-        d ? m('span.CalPulse-total', t('pulse_total', { count: d.total })) : null,
-      ]),
+      m('.CalPulse-head', [m('h4.CalPulse-title', title), d ? m('span.CalPulse-total', t('pulse_total', { count: d.total })) : null]),
 
       !d
         ? m(CalWidgetSkeleton, { block: 'CalPulse', bar: 'CalPulse-skel', rows: 4, fallback: 176 })
         : [
-            m('.CalPulse-grid', miniGrid(d.days, d.max, weeks).map((col: any) =>
-              m('.CalPulse-col', col.map((cell: any) =>
-                cell ? m('span.CalHeat-cell', { 'data-lvl': cell.lvl }) : m('span.CalHeat-cell.is-future')
-              ))
-            )),
+            m(
+              '.CalPulse-grid',
+              miniGrid(d.days, d.max, weeks).map((col: any) =>
+                m(
+                  '.CalPulse-col',
+                  col.map((cell: any) => (cell ? m('span.CalHeat-cell', { 'data-lvl': cell.lvl }) : m('span.CalHeat-cell.is-future')))
+                )
+              )
+            ),
 
             d.leaders.length
-              ? m('ol.CalPulse-board', d.leaders.map((l: PulseLeader, i: number) => leaderRow(l, i)))
+              ? m(
+                  'ol.CalPulse-board',
+                  d.leaders.map((l: PulseLeader, i: number) => leaderRow(l, i))
+                )
               : m('p.CalPulse-empty', t('pulse_empty')),
           ],
     ]);

@@ -56,9 +56,7 @@ export function weekdayNames(weekStartsOn = 0): string[] {
   // 🚨 This used to be a hardcoded English array, under a docblock that said
   // "localised". Derived from real dates instead: 2023-01-01 was a Sunday, so
   // adding 0..6 days walks Sun→Sat and Intl names them in the forum's locale.
-  const base = Array.from({ length: 7 }, (_, i) =>
-    new Date(2023, 0, 1 + i).toLocaleDateString(loc(), { weekday: 'short' })
-  );
+  const base = Array.from({ length: 7 }, (_, i) => new Date(2023, 0, 1 + i).toLocaleDateString(loc(), { weekday: 'short' }));
 
   return [...base.slice(weekStartsOn), ...base.slice(0, weekStartsOn)];
 }

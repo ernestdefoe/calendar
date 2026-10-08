@@ -36,12 +36,18 @@ function parseDeadline(raw: string): number | null {
 
 function render(el: HTMLElement): void {
   const deadline = parseDeadline(el.getAttribute('data-deadline') || '');
-  if (deadline === null) { el.setAttribute('data-state', 'invalid'); return; }
+  if (deadline === null) {
+    el.setAttribute('data-state', 'invalid');
+    return;
+  }
 
   if (el.getAttribute('data-init') !== '1') build(el);
 
   const diff = deadline - Date.now();
-  if (diff <= 0) { setDone(el); return; }
+  if (diff <= 0) {
+    setDone(el);
+    return;
+  }
 
   el.setAttribute('data-state', 'live');
   const secs = Math.floor(diff / 1000);
@@ -62,8 +68,10 @@ function build(el: HTMLElement): void {
   el.innerHTML =
     (label ? `<span class="CalCountdown-caption">${escapeHtml(label)}</span>` : '') +
     '<span class="CalCountdown-clock">' +
-    unit('d', tr('cd_days')) + unit('h', tr('cd_hours')) +
-    unit('m', tr('cd_mins')) + unit('s', tr('cd_secs')) +
+    unit('d', tr('cd_days')) +
+    unit('h', tr('cd_hours')) +
+    unit('m', tr('cd_mins')) +
+    unit('s', tr('cd_secs')) +
     '</span>';
 }
 

@@ -27,8 +27,11 @@ const OnThisDayWidget = {
       memories === null
         ? m('.CalMemories-loading', m(LoadingIndicator))
         : memories.length === 0
-        ? m('p.CalMemories-empty', t('memories_empty'))
-        : m('ul.CalMemories-list', memories.map((mem) => row(mem))),
+          ? m('p.CalMemories-empty', t('memories_empty'))
+          : m(
+              'ul.CalMemories-list',
+              memories.map((mem) => row(mem))
+            ),
     ]);
   },
 };

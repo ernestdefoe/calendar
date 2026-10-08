@@ -30,7 +30,10 @@ export default class EventFormModal extends Modal<FormAttrs> {
      * the form a day out with nothing to show for it.
      */
     const now = this.attrs.day ? asLocalDate(this.attrs.day) : new Date();
-    if (!this.attrs.day) { now.setMinutes(0, 0, 0); now.setHours(now.getHours() + 1); }
+    if (!this.attrs.day) {
+      now.setMinutes(0, 0, 0);
+      now.setHours(now.getHours() + 1);
+    }
     const later = new Date(now.getTime() + 60 * 60 * 1000);
 
     this.data = ev
@@ -61,11 +64,20 @@ export default class EventFormModal extends Modal<FormAttrs> {
           repeat: '',
         };
 
-    listCategories().then((c) => { this.categories = c; m.redraw(); }).catch(() => {});
+    listCategories()
+      .then((c) => {
+        this.categories = c;
+        m.redraw();
+      })
+      .catch(() => {});
   }
 
-  className() { return 'CalendarEventModal Modal--medium'; }
-  title() { return this.attrs.event ? t('edit_event') : t('add_event'); }
+  className() {
+    return 'CalendarEventModal Modal--medium';
+  }
+  title() {
+    return this.attrs.event ? t('edit_event') : t('add_event');
+  }
 
   content() {
     const d = this.data;
@@ -74,68 +86,105 @@ export default class EventFormModal extends Modal<FormAttrs> {
     // Flarum 2's Modal does NOT wrap content() in a form (unlike 1.x), so we must
     // render our own <form> — otherwise the type="submit" button submits nothing
     // and "create" appears to do nothing.
-    return m('.Modal-body.CalendarForm', m('form.CalendarForm-form', { onsubmit: (e: Event) => this.onsubmit(e) }, [
-      m('input.FormControl.CalendarForm-titleInput', {
-        value: d.title, placeholder: t('field_title'), required: true, autofocus: true,
-        oninput: (e: any) => (d.title = e.target.value),
-      }),
+    return m(
+      '.Modal-body.CalendarForm',
+      m('form.CalendarForm-form', { onsubmit: (e: Event) => this.onsubmit(e) }, [
+        m('input.FormControl.CalendarForm-titleInput', {
+          value: d.title,
+          placeholder: t('field_title'),
+          required: true,
+          autofocus: true,
+          oninput: (e: any) => (d.title = e.target.value),
+        }),
 
-      // ---- When ----
-      m('.CalendarForm-section', [
-        m('.CalendarForm-sectionTitle', [m('i.icon.fas.fa-clock'), ' ', t('section_when')]),
-        m('label.CalendarForm-toggle', [
-          m('input', {
-            type: 'checkbox',
-            checked: d.allDay,
-            // 🚨 Switching All-day on must clear the time from the STORED value,
-            // not just from what the inputs display. It used to set the flag
-            // alone: the fields showed a bare date while d.start still held
-            // '…T12:00' and d.end '…T10:00', so an end that looked equal to the
-            // start was still an hour earlier underneath. Reported by ClaudiusH
-            // as "on the UI the timestamp is removed, but internally still kept".
-            onchange: (e: any) => {
-              d.allDay = e.target.checked;
-              if (d.allDay) {
-                d.start = d.start.slice(0, 10) + 'T00:00';
-                d.end = d.end ? d.end.slice(0, 10) + 'T00:00' : '';
-              }
-            },
-          }),
-          m('span.CalendarForm-toggleTrack'),
-          m('span.CalendarForm-toggleLabel', t('field_all_day')),
+        // ---- When ----
+        m('.CalendarForm-section', [
+          m('.CalendarForm-sectionTitle', [m('i.icon.fas.fa-clock'), ' ', t('section_when')]),
+          m('label.CalendarForm-toggle', [
+            m('input', {
+              type: 'checkbox',
+              checked: d.allDay,
+              // 🚨 Switching All-day on must clear the time from the STORED value,
+              // not just from what the inputs display. It used to set the flag
+              // alone: the fields showed a bare date while d.start still held
+              // '…T12:00' and d.end '…T10:00', so an end that looked equal to the
+              // start was still an hour earlier underneath. Reported by ClaudiusH
+              // as "on the UI the timestamp is removed, but internally still kept".
+              onchange: (e: any) => {
+                d.allDay = e.target.checked;
+                if (d.allDay) {
+                  d.start = d.start.slice(0, 10) + 'T00:00';
+                  d.end = d.end ? d.end.slice(0, 10) + 'T00:00' : '';
+                }
+              },
+            }),
+            m('span.CalendarForm-toggleTrack'),
+            m('span.CalendarForm-toggleLabel', t('field_all_day')),
+          ]),
+          m('.CalendarForm-grid', [
+            field(
+              t('field_start'),
+              m('input.FormControl', {
+                type: d.allDay ? 'date' : 'datetime-local',
+                value: d.allDay ? d.start.slice(0, 10) : d.start,
+                oninput: (e: any) => (d.start = d.allDay ? e.target.value + 'T00:00' : e.target.value),
+              })
+            ),
+            field(
+              t('field_end'),
+              m('input.FormControl', {
+                type: d.allDay ? 'date' : 'datetime-local',
+                value: d.allDay ? (d.end || '').slice(0, 10) : d.end,
+                oninput: (e: any) => (d.end = d.allDay ? (e.target.value ? e.target.value + 'T00:00' : '') : e.target.value),
+              })
+            ),
+          ]),
+          field(
+            t('field_repeat'),
+            m('select.FormControl', { value: d.repeat, onchange: (e: any) => (d.repeat = e.target.value) }, [
+              m('option', { value: '' }, t('repeat_none')),
+              m('option', { value: 'DAILY' }, t('repeat_daily')),
+              m('option', { value: 'WEEKLY' }, t('repeat_weekly')),
+              m('option', { value: 'MONTHLY' }, t('repeat_monthly')),
+              m('option', { value: 'YEARLY' }, t('repeat_yearly')),
+            ])
+          ),
         ]),
-        m('.CalendarForm-grid', [
-          field(t('field_start'), m('input.FormControl', { type: d.allDay ? 'date' : 'datetime-local', value: d.allDay ? d.start.slice(0, 10) : d.start, oninput: (e: any) => (d.start = d.allDay ? e.target.value + 'T00:00' : e.target.value) })),
-          field(t('field_end'), m('input.FormControl', { type: d.allDay ? 'date' : 'datetime-local', value: d.allDay ? (d.end || '').slice(0, 10) : d.end, oninput: (e: any) => (d.end = d.allDay ? (e.target.value ? e.target.value + 'T00:00' : '') : e.target.value) })),
+
+        // ---- Details ----
+        m('.CalendarForm-section', [
+          m('.CalendarForm-sectionTitle', [m('i.icon.fas.fa-circle-info'), ' ', t('section_details')]),
+          field(
+            t('field_location'),
+            m('input.FormControl', { value: d.location, placeholder: '123 Main St, City', oninput: (e: any) => (d.location = e.target.value) })
+          ),
+          field(
+            t('field_category'),
+            m('select.FormControl', { value: d.categoryId, onchange: (e: any) => (d.categoryId = e.target.value) }, [
+              m('option', { value: '' }, '—'),
+              ...this.categories.map((c) => m('option', { value: c.id }, c.name)),
+            ])
+          ),
+          field(t('field_url'), m('input.FormControl', { value: d.url, placeholder: 'https://…', oninput: (e: any) => (d.url = e.target.value) })),
+          this.coverField(),
+          field(
+            t('field_description'),
+            m('textarea.FormControl', {
+              rows: 4,
+              value: d.description,
+              placeholder: t('field_description'),
+              oninput: (e: any) => (d.description = e.target.value),
+            })
+          ),
         ]),
-        field(t('field_repeat'), m('select.FormControl', { value: d.repeat, onchange: (e: any) => (d.repeat = e.target.value) }, [
-          m('option', { value: '' }, t('repeat_none')),
-          m('option', { value: 'DAILY' }, t('repeat_daily')),
-          m('option', { value: 'WEEKLY' }, t('repeat_weekly')),
-          m('option', { value: 'MONTHLY' }, t('repeat_monthly')),
-          m('option', { value: 'YEARLY' }, t('repeat_yearly')),
-        ])),
-      ]),
 
-      // ---- Details ----
-      m('.CalendarForm-section', [
-        m('.CalendarForm-sectionTitle', [m('i.icon.fas.fa-circle-info'), ' ', t('section_details')]),
-        field(t('field_location'), m('input.FormControl', { value: d.location, placeholder: '123 Main St, City', oninput: (e: any) => (d.location = e.target.value) })),
-        field(t('field_category'), m('select.FormControl', { value: d.categoryId, onchange: (e: any) => (d.categoryId = e.target.value) }, [
-          m('option', { value: '' }, '—'),
-          ...this.categories.map((c) => m('option', { value: c.id }, c.name)),
-        ])),
-        field(t('field_url'), m('input.FormControl', { value: d.url, placeholder: 'https://…', oninput: (e: any) => (d.url = e.target.value) })),
-        this.coverField(),
-        field(t('field_description'), m('textarea.FormControl', { rows: 4, value: d.description, placeholder: t('field_description'), oninput: (e: any) => (d.description = e.target.value) })),
-      ]),
-
-      // ---- Actions ----
-      m('.CalendarForm-actions', [
-        Button.component({ className: 'Button', type: 'button', onclick: () => app.modal.close() }, t('cancel')),
-        Button.component({ type: 'submit', className: 'Button Button--primary', icon: 'fas fa-check', loading: this.loading }, t('save')),
-      ]),
-    ]));
+        // ---- Actions ----
+        m('.CalendarForm-actions', [
+          Button.component({ className: 'Button', type: 'button', onclick: () => app.modal.close() }, t('cancel')),
+          Button.component({ type: 'submit', className: 'Button Button--primary', icon: 'fas fa-check', loading: this.loading }, t('save')),
+        ]),
+      ])
+    );
   }
 
   /**
@@ -151,7 +200,11 @@ export default class EventFormModal extends Modal<FormAttrs> {
       m('label', t('field_cover')),
       d.coverUrl
         ? m('.CalendarForm-cover', { style: { backgroundImage: `url("${String(d.coverUrl).replace(/"/g, '%22')}")` } }, [
-            m('button.Button.Button--icon.CalendarForm-coverRemove', { type: 'button', title: t('cover_remove'), onclick: () => (d.coverUrl = '') }, m('i.fas.fa-times')),
+            m(
+              'button.Button.Button--icon.CalendarForm-coverRemove',
+              { type: 'button', title: t('cover_remove'), onclick: () => (d.coverUrl = '') },
+              m('i.fas.fa-times')
+            ),
           ])
         : null,
       m('.CalendarForm-coverControls', [
@@ -162,7 +215,11 @@ export default class EventFormModal extends Modal<FormAttrs> {
               m('input', { type: 'file', accept: 'image/*', disabled: this.uploading, onchange: (e: any) => this.uploadCover(e) }),
             ])
           : null,
-        m('input.FormControl', { value: d.coverUrl, placeholder: canUpload ? t('cover_or_url') : 'https://…/cover.jpg', oninput: (e: any) => (d.coverUrl = e.target.value) }),
+        m('input.FormControl', {
+          value: d.coverUrl,
+          placeholder: canUpload ? t('cover_or_url') : 'https://…/cover.jpg',
+          oninput: (e: any) => (d.coverUrl = e.target.value),
+        }),
       ]),
     ]);
   }
@@ -198,7 +255,10 @@ export default class EventFormModal extends Modal<FormAttrs> {
         },
         () => app.alerts.show({ type: 'error' }, t('cover_error'))
       )
-      .then(() => { this.uploading = false; m.redraw(); });
+      .then(() => {
+        this.uploading = false;
+        m.redraw();
+      });
   }
 
   onsubmit(e: Event) {
@@ -234,7 +294,11 @@ export default class EventFormModal extends Modal<FormAttrs> {
 }
 
 function guessTz(): string {
-  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) { return 'UTC'; }
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch (e) {
+    return 'UTC';
+  }
 }
 function freqOf(rrule?: string | null): string {
   const m2 = /FREQ=([A-Z]+)/.exec(rrule || '');

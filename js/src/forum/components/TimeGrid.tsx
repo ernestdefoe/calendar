@@ -26,15 +26,26 @@ export default class TimeGrid extends Component {
     return m('.CalendarTime' + (days.length === 1 ? '.CalendarTime--day' : '.CalendarTime--week'), [
       m('.CalendarTime-head', [
         m('.CalendarTime-gutter'),
-        m('.CalendarTime-heads', days.map((d) => m('.CalendarTime-dayhead' + (isToday(d) ? '.is-today' : ''), [
-          m('span.CalendarTime-dow', d.toLocaleDateString(loc(), { weekday: 'short' })),
-          m('span.CalendarTime-dnum', d.getDate()),
-        ]))),
+        m(
+          '.CalendarTime-heads',
+          days.map((d) =>
+            m('.CalendarTime-dayhead' + (isToday(d) ? '.is-today' : ''), [
+              m('span.CalendarTime-dow', d.toLocaleDateString(loc(), { weekday: 'short' })),
+              m('span.CalendarTime-dnum', d.getDate()),
+            ])
+          )
+        ),
       ]),
       this.allDayRow(days),
       m('.CalendarTime-body', [
-        m('.CalendarTime-hours', HOURS.map((h) => m('.CalendarTime-hourlabel', h === 0 ? null : m('span', hourLabel(h))))),
-        m('.CalendarTime-grid', days.map((d) => this.timeColumn(d))),
+        m(
+          '.CalendarTime-hours',
+          HOURS.map((h) => m('.CalendarTime-hourlabel', h === 0 ? null : m('span', hourLabel(h))))
+        ),
+        m(
+          '.CalendarTime-grid',
+          days.map((d) => this.timeColumn(d))
+        ),
       ]),
     ]);
   }
@@ -45,42 +56,64 @@ export default class TimeGrid extends Component {
     if (!has) return null;
     return m('.CalendarTime-allday', [
       m('.CalendarTime-gutter.CalendarTime-alldayLabel', t('all_day')),
-      m('.CalendarTime-alldayCells', days.map((d) =>
-        m('.CalendarTime-alldayCell', a.events.filter((e) => e.allDay && eventOnDay(e, d)).map((ev) =>
-          m('button.CalendarChip', {
-            type: 'button',
-            style: ev.category ? { '--cal-accent': ev.category.color } : undefined,
-            onclick: () => a.onEvent(ev),
-          }, m('span.CalendarChip-title', ev.title))
-        ))
-      )),
+      m(
+        '.CalendarTime-alldayCells',
+        days.map((d) =>
+          m(
+            '.CalendarTime-alldayCell',
+            a.events
+              .filter((e) => e.allDay && eventOnDay(e, d))
+              .map((ev) =>
+                m(
+                  'button.CalendarChip',
+                  {
+                    type: 'button',
+                    style: ev.category ? { '--cal-accent': ev.category.color } : undefined,
+                    onclick: () => a.onEvent(ev),
+                  },
+                  m('span.CalendarChip-title', ev.title)
+                )
+              )
+          )
+        )
+      ),
     ]);
   }
 
   timeColumn(day: Date) {
     const a = this.attrs as TimeGridAttrs;
     const segs = layoutDay(a.events, day);
-    return m('.CalendarTime-col' + (isToday(day) ? '.is-today' : ''), {
-      ondblclick: a.canCreate ? (e: any) => this.createAt(e, day) : undefined,
-    }, [
-      ...HOURS.map((h) => m('.CalendarTime-line', { style: { top: (h / 24) * 100 + '%' } })),
-      isToday(day) ? this.nowLine() : null,
-      ...segs.map((s: any) => m('button.CalendarTime-event', {
-        type: 'button',
-        style: {
-          top: s.top + '%',
-          height: s.height + '%',
-          left: (s.col / s.cols) * 100 + '%',
-          width: 100 / s.cols + '%',
-          ...(s.ev.category ? { '--cal-accent': s.ev.category.color } : {}),
-        },
-        title: s.ev.title,
-        onclick: (e: Event) => { e.stopPropagation(); a.onEvent(s.ev); },
-      }, [
-        m('span.CalendarTime-eventTime', shortTime(s.ev.start)),
-        m('span.CalendarTime-eventTitle', s.ev.title),
-      ])),
-    ]);
+    return m(
+      '.CalendarTime-col' + (isToday(day) ? '.is-today' : ''),
+      {
+        ondblclick: a.canCreate ? (e: any) => this.createAt(e, day) : undefined,
+      },
+      [
+        ...HOURS.map((h) => m('.CalendarTime-line', { style: { top: (h / 24) * 100 + '%' } })),
+        isToday(day) ? this.nowLine() : null,
+        ...segs.map((s: any) =>
+          m(
+            'button.CalendarTime-event',
+            {
+              type: 'button',
+              style: {
+                top: s.top + '%',
+                height: s.height + '%',
+                left: (s.col / s.cols) * 100 + '%',
+                width: 100 / s.cols + '%',
+                ...(s.ev.category ? { '--cal-accent': s.ev.category.color } : {}),
+              },
+              title: s.ev.title,
+              onclick: (e: Event) => {
+                e.stopPropagation();
+                a.onEvent(s.ev);
+              },
+            },
+            [m('span.CalendarTime-eventTime', shortTime(s.ev.start)), m('span.CalendarTime-eventTitle', s.ev.title)]
+          )
+        ),
+      ]
+    );
   }
 
   nowLine() {

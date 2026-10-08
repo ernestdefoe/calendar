@@ -19,16 +19,21 @@ export default class EventListView extends Component {
     const upcoming = events.filter((e) => new Date(e.end || e.start).getTime() >= now);
     if (!upcoming.length) return m('.CalendarPage-empty', t('no_events'));
 
-    return m('ul.CalendarList', upcoming.map((ev) => m('li.CalendarList-item', { onclick: () => onEvent(ev) }, [
-      m('.CalendarList-date', { style: ev.category ? { '--cal-accent': ev.category.color } : undefined }, [
-        m('span.CalendarList-mon', new Date(ev.start).toLocaleDateString(loc(), { month: 'short' })),
-        m('span.CalendarList-day', new Date(ev.start).getDate()),
-      ]),
-      m('.CalendarList-body', [
-        m('span.CalendarList-name', ev.title),
-        m('span.CalendarList-meta', formatRange(ev)),
-        ev.location ? m('span.CalendarList-loc', [m('i.icon.fas.fa-location-dot'), ' ', ev.location]) : null,
-      ]),
-    ])));
+    return m(
+      'ul.CalendarList',
+      upcoming.map((ev) =>
+        m('li.CalendarList-item', { onclick: () => onEvent(ev) }, [
+          m('.CalendarList-date', { style: ev.category ? { '--cal-accent': ev.category.color } : undefined }, [
+            m('span.CalendarList-mon', new Date(ev.start).toLocaleDateString(loc(), { month: 'short' })),
+            m('span.CalendarList-day', new Date(ev.start).getDate()),
+          ]),
+          m('.CalendarList-body', [
+            m('span.CalendarList-name', ev.title),
+            m('span.CalendarList-meta', formatRange(ev)),
+            ev.location ? m('span.CalendarList-loc', [m('i.icon.fas.fa-location-dot'), ' ', ev.location]) : null,
+          ]),
+        ])
+      )
+    );
   }
 }

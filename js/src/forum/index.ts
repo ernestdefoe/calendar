@@ -36,10 +36,7 @@ app.initializers.add('ernestdefoe/calendar', () => {
     if (app.forum.attribute('ernestdefoe-calendar.hideNavLink')) return;
     items.add(
       'calendar',
-      LinkButton.component(
-        { href: app.route('calendar'), icon: 'fas fa-calendar-days' },
-        app.translator.trans('ernestdefoe-calendar.forum.nav')
-      ),
+      LinkButton.component({ href: app.route('calendar'), icon: 'fas fa-calendar-days' }, app.translator.trans('ernestdefoe-calendar.forum.nav')),
       5
     );
   });
@@ -92,7 +89,9 @@ app.initializers.add('ernestdefoe/calendar', () => {
   extend('flarum/forum/components/SettingsPage', 'settingsItems', function (items: any) {
     items.add(
       'calendarBirthday',
-      FieldSet.component({ className: 'Settings-calendarBirthday', label: app.translator.trans('ernestdefoe-calendar.forum.birthday_section') }, [m(BirthdayField)]),
+      FieldSet.component({ className: 'Settings-calendarBirthday', label: app.translator.trans('ernestdefoe-calendar.forum.birthday_section') }, [
+        m(BirthdayField),
+      ]),
       5
     );
   });
@@ -111,22 +110,16 @@ app.initializers.add('ernestdefoe/calendar', () => {
    */
   override(PostsUserPage.prototype, 'content', function (this: any, original: any) {
     const cadenceIsDrawing =
-      'ernestdefoe-cadence' in ((window as any).flarum?.extensions ?? {}) &&
-      app.forum.attribute<boolean>('cadenceShowOnProfile') !== false;
+      'ernestdefoe-cadence' in ((window as any).flarum?.extensions ?? {}) && app.forum.attribute<boolean>('cadenceShowOnProfile') !== false;
 
-    const heatmap =
-      this.user && !cadenceIsDrawing
-        ? m('.PostsUserPage-heatmap', m(ActivityHeatmap, { userId: this.user.id() }))
-        : null;
+    const heatmap = this.user && !cadenceIsDrawing ? m('.PostsUserPage-heatmap', m(ActivityHeatmap, { userId: this.user.id() })) : null;
 
     return [heatmap, original()];
   });
 
   // fof/forum-widgets-core (optional): register Upcoming Events as a managed
   // widget. Its modules live in the main bundle, so this is safe at init time.
-  registerFofWidget(app, () =>
-    m(UpcomingEvents, { count: app.forum.attribute('ernestdefoe-calendar.indexWidgetCount') || 5 })
-  );
+  registerFofWidget(app, () => m(UpcomingEvents, { count: app.forum.attribute('ernestdefoe-calendar.indexWidgetCount') || 5 }));
 
   // Defer so sibling extensions (Bespoke / Page Builder) have run their own
   // initializers and created app.bespoke / app.pageBuilder before we register our

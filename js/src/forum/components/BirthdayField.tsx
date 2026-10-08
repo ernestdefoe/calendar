@@ -27,7 +27,7 @@ const BirthdayField = {
       label: new Date(2000, i, 1).toLocaleDateString(loc(), { month: 'long' }),
     }));
     const days = Array.from({ length: 31 }, (_, i) => pad(i + 1));
-    const dirty = this.mm + '-' + this.dd !== String((app.session.user?.attribute('calendarBirthday')) || '-');
+    const dirty = this.mm + '-' + this.dd !== String(app.session.user?.attribute('calendarBirthday') || '-');
 
     return m('.CalBirthday', [
       m('p.helpText', t('birthday_help')),
@@ -41,7 +41,7 @@ const BirthdayField = {
           ...days.map((d) => m('option', { value: d }, d)),
         ]),
         Button.component(
-          { className: 'Button', loading: this.saving, disabled: !dirty || (!!this.mm !== !!this.dd), onclick: () => this.save() },
+          { className: 'Button', loading: this.saving, disabled: !dirty || !!this.mm !== !!this.dd, onclick: () => this.save() },
           t('birthday_save')
         ),
       ]),
@@ -56,8 +56,15 @@ const BirthdayField = {
     m.redraw();
     user
       .save({ calendarBirthday: value })
-      .then(() => { this.saving = false; app.alerts.show({ type: 'success' }, t('birthday_saved')); m.redraw(); })
-      .catch(() => { this.saving = false; m.redraw(); });
+      .then(() => {
+        this.saving = false;
+        app.alerts.show({ type: 'success' }, t('birthday_saved'));
+        m.redraw();
+      })
+      .catch(() => {
+        this.saving = false;
+        m.redraw();
+      });
   },
 };
 

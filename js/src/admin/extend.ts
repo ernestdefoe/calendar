@@ -59,14 +59,8 @@ export default [
       label: t('show_celebrations_widget'),
       default: true,
     }))
-    .permission(
-      () => ({ icon: 'fas fa-calendar-plus', label: t('permission_create'), permission: 'calendar.create' }),
-      'start'
-    )
-    .permission(
-      () => ({ icon: 'fas fa-calendar-check', label: t('permission_manage'), permission: 'calendar.manage' }),
-      'moderate'
-    )
+    .permission(() => ({ icon: 'fas fa-calendar-plus', label: t('permission_create'), permission: 'calendar.create' }), 'start')
+    .permission(() => ({ icon: 'fas fa-calendar-check', label: t('permission_manage'), permission: 'calendar.manage' }), 'moderate')
     // Custom component (category CRUD) on the same settings page — the Flarum 2
     // declarative replacement for app.extensionData.for(...).registerSetting().
     .customSetting(() => m(CategoryManager), -10),

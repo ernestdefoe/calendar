@@ -53,8 +53,7 @@ function registerBespoke(): void {
         { key: 'weeks', type: 'number', label: 'Weeks of activity', default: 14 },
       ],
       component: {
-        view: (v: any) =>
-          m(PulseWidget, { title: v.attrs.settings.title, count: v.attrs.settings.count, weeks: v.attrs.settings.weeks }),
+        view: (v: any) => m(PulseWidget, { title: v.attrs.settings.title, count: v.attrs.settings.count, weeks: v.attrs.settings.weeks }),
       },
     });
 
@@ -109,11 +108,17 @@ function registerPageBuilder(): void {
     });
 
     pb.registerBlock('memories', {
-      view: (v: any) => { const s = v.attrs.settings || {}; return m(OnThisDayWidget, { title: s.title, count: s.count || 6 }); },
+      view: (v: any) => {
+        const s = v.attrs.settings || {};
+        return m(OnThisDayWidget, { title: s.title, count: s.count || 6 });
+      },
     });
 
     pb.registerBlock('celebrations', {
-      view: (v: any) => { const s = v.attrs.settings || {}; return m(CelebrationsWidget, { title: s.title }); },
+      view: (v: any) => {
+        const s = v.attrs.settings || {};
+        return m(CelebrationsWidget, { title: s.title });
+      },
     });
   } catch (e) {
     console.warn('[calendar] page-builder block registration failed', e);

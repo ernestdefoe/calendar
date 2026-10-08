@@ -71,8 +71,12 @@ function buildWeeks(days: Record<string, number>, weekStart: number, max: number
 
 function earnedBadges(d: UserActivity) {
   const out: any[] = [];
-  STREAK_BADGES.forEach((b) => { if (d.streak.longest >= b.n) out.push({ icon: b.icon, label: t(b.key) }); });
-  TOTAL_BADGES.forEach((b) => { if (d.total >= b.n) out.push({ icon: b.icon, label: t(b.key) }); });
+  STREAK_BADGES.forEach((b) => {
+    if (d.streak.longest >= b.n) out.push({ icon: b.icon, label: t(b.key) });
+  });
+  TOTAL_BADGES.forEach((b) => {
+    if (d.total >= b.n) out.push({ icon: b.icon, label: t(b.key) });
+  });
   return out;
 }
 
@@ -96,7 +100,11 @@ const ActivityHeatmap = {
       };
       const fresh = peek<UserActivity | false>('activity:' + uid);
       if (fresh !== undefined) apply(fresh);
-      else load<UserActivity | false>('activity:' + uid, () => userActivity(uid), false).then((d) => { apply(d); m.redraw(); });
+      else
+        load<UserActivity | false>('activity:' + uid, () => userActivity(uid), false).then((d) => {
+          apply(d);
+          m.redraw();
+        });
     } else {
       this.error = true;
     }
@@ -122,20 +130,35 @@ const ActivityHeatmap = {
         stat(d.activeDays, t('heat_active_days')),
       ]),
 
-      m('.CalHeat-scroll', m('.CalHeat-cal', [
-        m('.CalHeat-months', months.map((mo: any) => m('span.CalHeat-month', { style: { '--col': mo.idx } }, mo.label))),
-        m('.CalHeat-grid', weeks.map((week: any) =>
-          m('.CalHeat-week', week.map((cell: any) =>
-            cell
-              ? m('span.CalHeat-cell', { 'data-lvl': cell.lvl, title: t('heat_cell', { count: cell.count, date: cell.date }) })
-              : m('span.CalHeat-cell.is-future')
-          ))
-        )),
-      ])),
+      m(
+        '.CalHeat-scroll',
+        m('.CalHeat-cal', [
+          m(
+            '.CalHeat-months',
+            months.map((mo: any) => m('span.CalHeat-month', { style: { '--col': mo.idx } }, mo.label))
+          ),
+          m(
+            '.CalHeat-grid',
+            weeks.map((week: any) =>
+              m(
+                '.CalHeat-week',
+                week.map((cell: any) =>
+                  cell
+                    ? m('span.CalHeat-cell', { 'data-lvl': cell.lvl, title: t('heat_cell', { count: cell.count, date: cell.date }) })
+                    : m('span.CalHeat-cell.is-future')
+                )
+              )
+            )
+          ),
+        ])
+      ),
 
       m('.CalHeat-foot', [
         badges.length
-          ? m('.CalHeat-badges', badges.map((b: any) => m('span.CalHeat-badge', { title: b.label }, [b.icon, ' ', m('span.CalHeat-badgeLbl', b.label)])))
+          ? m(
+              '.CalHeat-badges',
+              badges.map((b: any) => m('span.CalHeat-badge', { title: b.label }, [b.icon, ' ', m('span.CalHeat-badgeLbl', b.label)]))
+            )
           : m('span'),
         m('.CalHeat-legend', [
           m('span.CalHeat-legendLbl', t('heat_less')),

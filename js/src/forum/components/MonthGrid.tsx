@@ -24,8 +24,14 @@ export default class MonthGrid extends Component {
     const a = this.attrs as MonthGridAttrs;
     const cells = monthMatrix(a.year, a.month, a.weekStart);
     return m('.CalendarGrid', measure('grid'), [
-      m('.CalendarGrid-weekdays', weekdayNames(a.weekStart).map((d: string) => m('span', d))),
-      m('.CalendarGrid-days', cells.map((day: Date) => this.dayCell(day))),
+      m(
+        '.CalendarGrid-weekdays',
+        weekdayNames(a.weekStart).map((d: string) => m('span', d))
+      ),
+      m(
+        '.CalendarGrid-days',
+        cells.map((day: Date) => this.dayCell(day))
+      ),
     ]);
   }
 
@@ -33,18 +39,31 @@ export default class MonthGrid extends Component {
     const a = this.attrs as MonthGridAttrs;
     const inMonth = day.getMonth() === a.month;
     const dayEvents = a.events.filter((e) => eventOnDay(e, day)).slice(0, 4);
-    return m('.CalendarGrid-cell' + (inMonth ? '' : '.is-out') + (isToday(day) ? '.is-today' : ''), {
-      ondblclick: a.canCreate ? () => a.onCreate(day) : undefined,
-    }, [
-      m('span.CalendarGrid-num', day.getDate()),
-      m('.CalendarGrid-events', dayEvents.map((ev) => m('button.CalendarChip', {
-        type: 'button',
-        style: ev.category ? { '--cal-accent': ev.category.color } : undefined,
-        onclick: (e: Event) => { e.stopPropagation(); a.onEvent(ev); },
-      }, [
-        ev.allDay ? null : m('span.CalendarChip-time', shortTime(ev.start)),
-        m('span.CalendarChip-title', ev.title),
-      ]))),
-    ]);
+    return m(
+      '.CalendarGrid-cell' + (inMonth ? '' : '.is-out') + (isToday(day) ? '.is-today' : ''),
+      {
+        ondblclick: a.canCreate ? () => a.onCreate(day) : undefined,
+      },
+      [
+        m('span.CalendarGrid-num', day.getDate()),
+        m(
+          '.CalendarGrid-events',
+          dayEvents.map((ev) =>
+            m(
+              'button.CalendarChip',
+              {
+                type: 'button',
+                style: ev.category ? { '--cal-accent': ev.category.color } : undefined,
+                onclick: (e: Event) => {
+                  e.stopPropagation();
+                  a.onEvent(ev);
+                },
+              },
+              [ev.allDay ? null : m('span.CalendarChip-time', shortTime(ev.start)), m('span.CalendarChip-title', ev.title)]
+            )
+          )
+        ),
+      ]
+    );
   }
 }

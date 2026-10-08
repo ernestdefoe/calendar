@@ -28,16 +28,17 @@ const CelebrationsWidget = {
       m('.CalCeleb-head', [m('h4.CalCeleb-title', ['🎉 ', title])]),
       people === null
         ? m(CalWidgetSkeleton, { block: 'CalCeleb', bar: 'CalCeleb-skel', rows: 3, fallback: 118 })
-        : m('ul.CalCeleb-list', people.map((p) => row(p))),
+        : m(
+            'ul.CalCeleb-list',
+            people.map((p) => row(p))
+          ),
     ]);
   },
 };
 
 function row(p: Celebrant) {
   const emoji = p.type === 'birthday' ? '🎂' : '🎈';
-  const note = p.type === 'birthday'
-    ? t('celebrations_birthday')
-    : t('celebrations_anniversary', { years: p.years });
+  const note = p.type === 'birthday' ? t('celebrations_birthday') : t('celebrations_anniversary', { years: p.years });
 
   return m('li.CalCeleb-item', [
     m('span.CalCeleb-emoji', emoji),

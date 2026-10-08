@@ -6,9 +6,7 @@ import MonthGrid from './MonthGrid';
 import TimeGrid from './TimeGrid';
 import EventListView from './EventListView';
 import { listEvents, feedUrl, type CalEvent, type CalCategory } from '../../common/api';
-import {
-  monthMatrix, monthLabel, weekDays, weekRangeLabel, dayTitle, startOfDay, addDays,
-} from '../../common/dates';
+import { monthMatrix, monthLabel, weekDays, weekRangeLabel, dayTitle, startOfDay, addDays } from '../../common/dates';
 
 declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
@@ -36,7 +34,9 @@ export default class CalendarPage extends Page {
     this.load();
   }
 
-  weekStart(): number { return (app.forum.attribute('ernestdefoe-calendar.weekStartsOn') as number) || 0; }
+  weekStart(): number {
+    return (app.forum.attribute('ernestdefoe-calendar.weekStartsOn') as number) || 0;
+  }
 
   range(): { from: Date; to: Date } {
     if (this.mode === 'month') {
@@ -64,8 +64,16 @@ export default class CalendarPage extends Page {
     this.loading = true;
     const { from, to } = this.range();
     listEvents(from, to, this.category || undefined)
-      .then((res) => { this.events = res.data; this.categories = res.categories; this.loading = false; m.redraw(); })
-      .catch(() => { this.loading = false; m.redraw(); });
+      .then((res) => {
+        this.events = res.data;
+        this.categories = res.categories;
+        this.loading = false;
+        m.redraw();
+      })
+      .catch(() => {
+        this.loading = false;
+        m.redraw();
+      });
   }
 
   step(delta: number) {
@@ -75,20 +83,25 @@ export default class CalendarPage extends Page {
     this.load();
   }
 
-  goToday() { this.cursor = new Date(); this.load(); }
+  goToday() {
+    this.cursor = new Date();
+    this.load();
+  }
 
-  setMode(mode: Mode) { this.mode = mode; this.load(); }
+  setMode(mode: Mode) {
+    this.mode = mode;
+    this.load();
+  }
 
-  openCreate(day?: Date) { app.modal.show(() => import('./EventFormModal'), { day, onsave: () => this.load() }); }
-  openEvent(ev: CalEvent) { app.modal.show(() => import('./EventDetailModal'), { event: ev, onchange: () => this.load() }); }
+  openCreate(day?: Date) {
+    app.modal.show(() => import('./EventFormModal'), { day, onsave: () => this.load() });
+  }
+  openEvent(ev: CalEvent) {
+    app.modal.show(() => import('./EventDetailModal'), { event: ev, onchange: () => this.load() });
+  }
 
   view() {
-    return m('.CalendarPage', m('.container', [
-      this.header(),
-      this.loading
-        ? m(CalSkeleton)
-        : this.body(),
-    ]));
+    return m('.CalendarPage', m('.container', [this.header(), this.loading ? m(CalSkeleton) : this.body()]));
   }
 
   /** Render the active view via its dedicated component. */
@@ -99,8 +112,13 @@ export default class CalendarPage extends Page {
 
     if (this.mode === 'month') {
       return m(MonthGrid, {
-        year: this.cursor.getFullYear(), month: this.cursor.getMonth(), weekStart: this.weekStart(),
-        events: this.events, canCreate, onEvent, onCreate,
+        year: this.cursor.getFullYear(),
+        month: this.cursor.getMonth(),
+        weekStart: this.weekStart(),
+        events: this.events,
+        canCreate,
+        onEvent,
+        onCreate,
       });
     }
     if (this.mode === 'week') {
@@ -141,21 +159,34 @@ export default class CalendarPage extends Page {
           tab(this, 'list', t('view_list')),
         ]),
         this.categories.length
-          ? m('select.FormControl.CalendarPage-filter', { value: this.category, onchange: (e: any) => { this.category = e.target.value; this.load(); } }, [
-              m('option', { value: '' }, t('field_category')),
-              ...this.categories.map((c) => m('option', { value: c.slug }, c.name)),
-            ])
+          ? m(
+              'select.FormControl.CalendarPage-filter',
+              {
+                value: this.category,
+                onchange: (e: any) => {
+                  this.category = e.target.value;
+                  this.load();
+                },
+              },
+              [m('option', { value: '' }, t('field_category')), ...this.categories.map((c) => m('option', { value: c.slug }, c.name))]
+            )
           : null,
         m('a.Button.Button--icon.CalendarPage-subscribe', { href: feedUrl(), title: t('subscribe') as string }, [m('i.Button-icon.fas.fa-rss')]),
-        canCreate ? Button.component({ className: 'Button Button--primary', icon: 'fas fa-plus', onclick: () => this.openCreate() }, t('add_event')) : null,
+        canCreate
+          ? Button.component({ className: 'Button Button--primary', icon: 'fas fa-plus', onclick: () => this.openCreate() }, t('add_event'))
+          : null,
       ]),
     ]);
   }
 }
 
 function tab(page: CalendarPage, mode: Mode, label: string) {
-  return m('button.Button.CalendarPage-view' + (page.mode === mode ? '.is-active' : ''), {
-    type: 'button',
-    onclick: () => page.setMode(mode),
-  }, label);
+  return m(
+    'button.Button.CalendarPage-view' + (page.mode === mode ? '.is-active' : ''),
+    {
+      type: 'button',
+      onclick: () => page.setMode(mode),
+    },
+    label
+  );
 }

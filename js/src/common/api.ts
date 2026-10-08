@@ -40,7 +40,12 @@ export interface RsvpAttendees {
   interested: RsvpAttendee[];
 }
 
-export interface CalCategory { id: number; name: string; slug: string; color: string }
+export interface CalCategory {
+  id: number;
+  name: string;
+  slug: string;
+  color: string;
+}
 
 export interface UserActivity {
   userId: number;
@@ -100,8 +105,7 @@ export function celebrations(): Promise<Celebrant[]> {
 /** Absolute URL for a server path the serializer handed us (e.g. an .ics path). */
 export const abs = (path: string) => base().replace(/\/$/, '') + '/' + path.replace(/^\//, '');
 export const feedUrl = () => abs('calendar/feed.ics');
-export const mapUrl = (location: string) =>
-  'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(location);
+export const mapUrl = (location: string) => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(location);
 
 export function userActivity(userId: number): Promise<UserActivity> {
   return app.request<any>({ method: 'GET', url: api('/calendar/activity/' + userId) }).then((r: any) => r.data);
@@ -129,15 +133,24 @@ export function showEvent(id: number): Promise<CalEvent> {
 export function saveEvent(attrs: Record<string, unknown>, id?: number): Promise<CalEvent> {
   return app
     .request<any>({ method: id ? 'PATCH' : 'POST', url: api('/calendar/events' + (id ? '/' + id : '')), body: { data: { attributes: attrs } } })
-    .then((r: any) => { invalidate('events:'); return r.data; });
+    .then((r: any) => {
+      invalidate('events:');
+      return r.data;
+    });
 }
 
 export function deleteEvent(id: number): Promise<unknown> {
-  return app.request({ method: 'DELETE', url: api('/calendar/events/' + id) }).then((r) => { invalidate('events:'); return r; });
+  return app.request({ method: 'DELETE', url: api('/calendar/events/' + id) }).then((r) => {
+    invalidate('events:');
+    return r;
+  });
 }
 
 export function rsvp(id: number, status: string): Promise<CalEvent['rsvp']> {
-  return app.request<any>({ method: 'POST', url: api('/calendar/events/' + id + '/rsvp'), body: { data: { status } } }).then((r: any) => { invalidate('events:'); return r.data; });
+  return app.request<any>({ method: 'POST', url: api('/calendar/events/' + id + '/rsvp'), body: { data: { status } } }).then((r: any) => {
+    invalidate('events:');
+    return r.data;
+  });
 }
 
 export function listCategories(): Promise<CalCategory[]> {

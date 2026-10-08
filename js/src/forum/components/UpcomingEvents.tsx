@@ -23,9 +23,7 @@ const UpcomingEvents = {
     const category = attrs.category || '';
     const pick = (all: CalEvent[]) => {
       const now = Date.now();
-      return all
-        .filter((e: CalEvent) => new Date(e.end || e.start).getTime() >= now)
-        .slice(0, Math.max(1, Number(attrs.count) || 5));
+      return all.filter((e: CalEvent) => new Date(e.end || e.start).getTime() >= now).slice(0, Math.max(1, Number(attrs.count) || 5));
     };
     const fetch = () => {
       const from = new Date();
@@ -40,7 +38,10 @@ const UpcomingEvents = {
       this.events = pick(fresh);
       return;
     }
-    loadShared<CalEvent[]>(key, fetch, []).then((all) => { this.events = pick(all); m.redraw(); });
+    loadShared<CalEvent[]>(key, fetch, []).then((all) => {
+      this.events = pick(all);
+      m.redraw();
+    });
   },
 
   view(this: any, vnode: any) {
@@ -56,31 +57,38 @@ const UpcomingEvents = {
       events === null
         ? m('.CalendarWidget-loading', m(LoadingIndicator))
         : events.length === 0
-        ? m('p.CalendarWidget-empty', t('no_events'))
-        : m('ul.CalendarWidget-list', events.map((ev) => eventRow(ev))),
+          ? m('p.CalendarWidget-empty', t('no_events'))
+          : m(
+              'ul.CalendarWidget-list',
+              events.map((ev) => eventRow(ev))
+            ),
     ]);
   },
 };
 
 function eventRow(ev: CalEvent) {
   const start = new Date(ev.start);
-  return m('li.CalendarWidget-event', {
-    onclick: () => app.modal.show(() => import('./EventDetailModal'), { event: ev }),
-    role: 'button',
-    tabindex: 0,
-  }, [
-    m('.CalendarWidget-date', { style: ev.category ? { '--cal-accent': ev.category.color } : undefined }, [
-      m('span.CalendarWidget-mon', start.toLocaleDateString(loc(), { month: 'short' })),
-      m('span.CalendarWidget-day', start.getDate()),
-    ]),
-    m('.CalendarWidget-body', [
-      m('span.CalendarWidget-name', ev.title),
-      m('span.CalendarWidget-meta', [
-        ev.allDay ? t('all_day') : shortTime(ev.start),
-        ev.location ? m('span.CalendarWidget-loc', [' · ', m('i.icon.fas.fa-location-dot'), ' ', ev.location]) : null,
+  return m(
+    'li.CalendarWidget-event',
+    {
+      onclick: () => app.modal.show(() => import('./EventDetailModal'), { event: ev }),
+      role: 'button',
+      tabindex: 0,
+    },
+    [
+      m('.CalendarWidget-date', { style: ev.category ? { '--cal-accent': ev.category.color } : undefined }, [
+        m('span.CalendarWidget-mon', start.toLocaleDateString(loc(), { month: 'short' })),
+        m('span.CalendarWidget-day', start.getDate()),
       ]),
-    ]),
-  ]);
+      m('.CalendarWidget-body', [
+        m('span.CalendarWidget-name', ev.title),
+        m('span.CalendarWidget-meta', [
+          ev.allDay ? t('all_day') : shortTime(ev.start),
+          ev.location ? m('span.CalendarWidget-loc', [' · ', m('i.icon.fas.fa-location-dot'), ' ', ev.location]) : null,
+        ]),
+      ]),
+    ]
+  );
 }
 
 export default UpcomingEvents;
