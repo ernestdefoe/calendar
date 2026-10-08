@@ -10,6 +10,7 @@ use ErnestDefoe\Calendar\EventRsvp;
 use ErnestDefoe\Calendar\Recurrence\RecurrenceExpander;
 use Flarum\Http\RequestUtil;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -84,7 +85,7 @@ class ListEventsController implements RequestHandlerInterface
         return new JsonResponse(['data' => $data, 'categories' => $categories]);
     }
 
-    private static function rsvpFor($eventId, $counts, $mine): array
+    private static function rsvpFor(int $eventId, Collection $counts, Collection $mine): array
     {
         $rows = $counts->get($eventId);
         $going = $interested = 0;
@@ -97,7 +98,7 @@ class ListEventsController implements RequestHandlerInterface
         return ['going' => $going, 'interested' => $interested, 'mine' => $mine->get($eventId)];
     }
 
-    private static function date($value): ?Carbon
+    private static function date(mixed $value): ?Carbon
     {
         if (! $value) return null;
         try {

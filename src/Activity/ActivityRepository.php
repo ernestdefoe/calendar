@@ -43,6 +43,7 @@ class ActivityRepository
             ->groupBy('user_id')
             ->orderByDesc('c')
             ->limit($limit)
+            ->toBase()
             ->get()
             ->map(fn ($r) => ['userId' => (int) $r->user_id, 'count' => (int) $r->c])
             ->all();
@@ -104,7 +105,7 @@ class ActivityRepository
         $scope($q);
 
         $out = [];
-        foreach ($q->get() as $row) {
+        foreach ($q->toBase()->get() as $row) {
             $out[(string) $row->d] = (int) $row->c;
         }
         return $out;

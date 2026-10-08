@@ -28,6 +28,7 @@ class EventCategory extends AbstractModel
         'color' => '#3b5bdb',
     ];
 
+    /** @return HasMany<Event, $this> */
     public function events(): HasMany
     {
         return $this->hasMany(Event::class, 'category_id');

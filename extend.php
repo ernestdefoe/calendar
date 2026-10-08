@@ -101,10 +101,10 @@ $extenders = [
                 ->nullable()
                 ->writable(fn (User $user, Context $context) => $context->getActor()->id === $user->id
                     || $context->getActor()->can('editUser', $user))
-                ->get(fn (User $user) => $user->cal_birthday)
+                ->get(fn (User $user) => $user->getAttribute('cal_birthday'))
                 ->set(function (User $user, ?string $value) {
                     $value = is_string($value) ? trim($value) : '';
-                    $user->cal_birthday = preg_match('/^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/', $value) ? $value : null;
+                    $user->setAttribute('cal_birthday', preg_match('/^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/', $value) ? $value : null);
                 }),
         ]),
 

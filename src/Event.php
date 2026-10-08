@@ -55,21 +55,25 @@ class Event extends AbstractModel
         'is_published' => true,
     ];
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    /** @return BelongsTo<EventCategory, $this> */
     public function category(): BelongsTo
     {
         return $this->belongsTo(EventCategory::class, 'category_id');
     }
 
+    /** @return BelongsTo<Discussion, $this> */
     public function discussion(): BelongsTo
     {
         return $this->belongsTo(Discussion::class, 'discussion_id');
     }
 
+    /** @return HasMany<EventRsvp, $this> */
     public function rsvps(): HasMany
     {
         return $this->hasMany(EventRsvp::class, 'event_id');

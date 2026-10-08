@@ -89,7 +89,7 @@ class EventInput
         'end_before_start'  => 'The end must be after the start.',
     ];
 
-    private static function parseDate($value): ?Carbon
+    private static function parseDate(mixed $value): ?Carbon
     {
         if ($value === null || $value === '') return null;
         try {
@@ -104,13 +104,13 @@ class EventInput
         return in_array($tz, timezone_identifiers_list(), true) ? $tz : 'UTC';
     }
 
-    private static function str($v, int $max): ?string
+    private static function str(mixed $v, int $max): ?string
     {
         $v = trim((string) $v);
         return $v === '' ? null : mb_substr($v, 0, $max);
     }
 
-    private static function url($v): ?string
+    private static function url(mixed $v): ?string
     {
         $v = trim((string) $v);
         if ($v === '') return null;
@@ -132,7 +132,7 @@ class EventInput
     }
 
     /** Keep only a safe RRULE-ish charset; the expander/iCal tolerate the rest. */
-    private static function rrule($v): ?string
+    private static function rrule(mixed $v): ?string
     {
         $v = strtoupper(trim((string) $v));
         if ($v === '') return null;
@@ -140,7 +140,7 @@ class EventInput
         return mb_substr($v, 0, 600);
     }
 
-    private static function uniqueSlug(string $title, $ignoreId = null): string
+    private static function uniqueSlug(string $title, ?int $ignoreId = null): string
     {
         $base = Str::slug($title) ?: 'event';
         $slug = $base;

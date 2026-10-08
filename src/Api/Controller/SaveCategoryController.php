@@ -74,7 +74,7 @@ class SaveCategoryController implements RequestHandlerInterface
         ]], $id ? 200 : 201);
     }
 
-    private static function uniqueSlug(string $name, $ignoreId = null): string
+    private static function uniqueSlug(string $name, ?int $ignoreId = null): string
     {
         $base = Str::slug($name) ?: 'category';
         $slug = $base;
