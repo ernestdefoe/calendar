@@ -56,7 +56,7 @@ class SaveCategoryController implements RequestHandlerInterface
         // uniqueSlug is check-then-insert; under concurrency two requests can
         // collide on the unique index. Retry with a fresh suffix instead of 500.
         $baseSlug = $category->slug;
-        for ($attempt = 0; ; $attempt++) {
+        for ($attempt = 0;; $attempt++) {
             try {
                 $category->save();
                 break;

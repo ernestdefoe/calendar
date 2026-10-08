@@ -33,7 +33,7 @@ class CreateEventController implements RequestHandlerInterface
         // concurrency two requests can pass the check and collide on the unique
         // index. Retry with a fresh suffix instead of returning a 500.
         $baseSlug = $event->slug;
-        for ($attempt = 0; ; $attempt++) {
+        for ($attempt = 0;; $attempt++) {
             try {
                 $event->save();
                 break;

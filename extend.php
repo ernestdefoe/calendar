@@ -29,7 +29,7 @@ $extenders = [
         ->js(__DIR__.'/js/dist/admin.js')
         ->css(__DIR__.'/less/admin.less'),
 
-    (new Extend\Locales(__DIR__.'/resources/locale')),
+    new Extend\Locales(__DIR__.'/resources/locale'),
 
     // ---- Read/write JSON API (custom controllers) ----
     (new Extend\Routes('api'))
