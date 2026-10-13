@@ -101,7 +101,7 @@ export default [
         (g: any) => g.namePlural(),
         (g: any) => !['2', '3'].includes(g.id())
       ),
-      default: [],
+      default: '[]',
     }))
     .setting(() => ({
       setting: 'ernestdefoe-calendar.pulse_exclude_users',
@@ -128,7 +128,7 @@ export default [
             label: t('onthisday_exclude_tags'),
             help: t('onthisday_exclude_tags_help'),
             options: tagOptions(),
-            default: [],
+            default: '[]',
           }
         : null
     )
