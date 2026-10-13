@@ -7,13 +7,20 @@ declare const m: any;
 declare const flarum: any;
 const t = (k: string) => app.translator.trans('ernestdefoe-calendar.admin.' + k);
 
-/** `{ id: name }` for a store type, for a multi-select's options. */
-function options(type: string, keep: (model: any) => boolean = () => true): Record<string, string> {
+/**
+ * `{ id: label }` for a store type, for a multi-select's options. The label
+ * is read with `label`, because models name it differently.
+ *
+ * 🚨 2.3.0 called `model.name()` on groups, and a Group has no name() — it
+ * has nameSingular()/namePlural(). The throw took the whole Calendar settings
+ * page down with it. Reported by jslirola on discuss.flarum.org.
+ */
+function options(type: string, label: (model: any) => string, keep: (model: any) => boolean = () => true): Record<string, string> {
   const out: Record<string, string> = {};
   app.store
     .all(type)
     .filter(keep)
-    .forEach((model: any) => (out[model.id()] = model.name()));
+    .forEach((model: any) => (out[model.id()] = label(model)));
   return out;
 }
 
@@ -31,7 +38,7 @@ function tagOptions(): Record<string, string> {
     tagsRequested = true;
     app.store.find('tags').then(() => m.redraw());
   }
-  return options('tags');
+  return options('tags', (tag: any) => tag.name());
 }
 
 export default [
@@ -89,7 +96,11 @@ export default [
       help: t('pulse_exclude_groups_help'),
       // Guests and Members are not stored as memberships, so they cannot be
       // matched — and leaving out every member would empty the pulse anyway.
-      options: options('groups', (g: any) => !['2', '3'].includes(g.id())),
+      options: options(
+        'groups',
+        (g: any) => g.namePlural(),
+        (g: any) => !['2', '3'].includes(g.id())
+      ),
       default: [],
     }))
     .setting(() => ({
