@@ -133,6 +133,14 @@ ernestdefoe-calendar:
     end_before_start: The end must be after the start.
     category_name_required: The category name is required.
 
+  # Shared by both frontends (Flarum loads `lib` keys in the forum AND admin).
+  lib:
+    widgets:
+      calendarUpcoming: Upcoming events
+      calendarPulse: Forum pulse
+      calendarCelebrations: Today’s celebrations
+      calendarMemories: On this day
+
   admin:
     settings_title: Calendar
     default_view: Default calendar view

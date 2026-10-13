@@ -65,7 +65,19 @@ export default function registerFofWidget(app: any, render: Partial<Record<FofWi
       }
     }
 
-    widgets.add({ key, component: CalendarWidget, isDisabled: false, isUnique: true, placement: 'end', position });
+    widgets.add({
+      key,
+      component: CalendarWidget,
+      // How the tile reads in the widget manager's layout editor, in versions
+      // that support it; older ones ignore these and label every tile with the
+      // extension's name. A callback, so only the editor ever translates it.
+      title: () => app.translator.trans('ernestdefoe-calendar.lib.widgets.' + key),
+      icon,
+      isDisabled: false,
+      isUnique: true,
+      placement: 'end',
+      position,
+    });
   });
 
   widgets.extend(app, 'ernestdefoe-calendar');
