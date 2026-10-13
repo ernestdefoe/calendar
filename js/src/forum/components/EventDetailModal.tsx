@@ -3,6 +3,8 @@ import Modal, { IInternalModalAttrs } from 'flarum/common/components/Modal';
 import Button from 'flarum/common/components/Button';
 import { rsvp, deleteEvent, showEvent, abs, mapUrl, type CalEvent, type RsvpAttendee } from '../../common/api';
 import { formatRange } from '../../common/dates';
+import Avatar from 'flarum/common/components/Avatar';
+import { asUser } from '../../common/users';
 
 // Official WoW class colors — used to tint attendee character names when the
 // armory extension supplies them. Static reference data; harmless elsewhere.
@@ -185,9 +187,18 @@ function attendeeGroup(label: any, attendees?: RsvpAttendee[]) {
           // notranslate: the initial is a lone letter, and a lone letter is a
           // word in some language — a browser translating the page turns "E"
           // into "AND". See PulseWidget.
+          // The image is core's Avatar on a real User model, so it is the same
+          // face the member has everywhere else on the forum.
           m('span.CalendarAttendee-avatar.notranslate', [
             a.displayName.charAt(0).toUpperCase(),
-            a.avatarUrl ? m('span.CalendarAttendee-avatarImg', { style: { backgroundImage: `url("${a.avatarUrl}")` } }) : null,
+            a.avatarUrl
+              ? m(Avatar, {
+                  user: asUser(a.id, a),
+                  className: 'CalendarAttendee-avatarImg',
+                  title: null,
+                  onerror: (e: Event) => ((e.target as HTMLElement).style.display = 'none'),
+                })
+              : null,
           ]),
           m('.CalendarAttendee-names', [
             m('.CalendarAttendee-user', a.displayName),

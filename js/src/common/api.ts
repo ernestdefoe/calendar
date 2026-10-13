@@ -1,5 +1,6 @@
 import app from 'flarum/forum/app';
 import { invalidate } from './widgetData';
+import type { BasicUser } from './users';
 
 /** A serialized event (mirrors ErnestDefoe\Calendar\Api\EventSerializer). */
 export interface CalEvent {
@@ -26,11 +27,8 @@ export interface CalEvent {
   googleUrl: string;
 }
 
-export interface RsvpAttendee {
+export interface RsvpAttendee extends BasicUser {
   id: number;
-  username: string;
-  displayName: string;
-  avatarUrl: string | null;
   /** Main WoW character from ernestdefoe/armory, when installed. */
   character?: { name: string; class: string | null; spec: string | null; itemLevel: number | null; level: number | null } | null;
 }
@@ -56,11 +54,8 @@ export interface UserActivity {
   max: number;
 }
 
-export interface PulseLeader {
+export interface PulseLeader extends BasicUser {
   userId: number;
-  username: string;
-  displayName: string;
-  avatarUrl: string | null;
   count: number;
 }
 
@@ -82,11 +77,8 @@ export interface Memory {
   participantCount: number;
 }
 
-export interface Celebrant {
+export interface Celebrant extends BasicUser {
   userId: number;
-  username: string;
-  displayName: string;
-  avatarUrl: string | null;
   type: 'birthday' | 'anniversary';
   years?: number;
 }

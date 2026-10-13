@@ -51,9 +51,7 @@ class Attendees
             $bucket = $row->status === 'interested' ? 'interested' : 'going';
             $out[$bucket][] = [
                 'id' => (int) $user->id,
-                'username' => (string) $user->username,
-                'displayName' => (string) $user->display_name,
-                'avatarUrl' => $user->avatar_url,
+                ...BasicUser::of($user),
                 'character' => $characters[$user->id] ?? null,
             ];
         }

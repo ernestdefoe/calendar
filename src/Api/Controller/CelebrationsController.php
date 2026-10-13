@@ -3,6 +3,7 @@
 namespace ErnestDefoe\Calendar\Api\Controller;
 
 use Carbon\Carbon;
+use ErnestDefoe\Calendar\BasicUser;
 use Flarum\Http\RequestUtil;
 use Flarum\User\User;
 use Illuminate\Contracts\Cache\Repository;
@@ -79,11 +80,6 @@ class CelebrationsController implements RequestHandlerInterface
 
     private function base(User $u): array
     {
-        return [
-            'userId' => (int) $u->id,
-            'username' => $u->username,
-            'displayName' => $u->display_name,
-            'avatarUrl' => $u->avatar_url,
-        ];
+        return ['userId' => (int) $u->id] + BasicUser::of($u);
     }
 }

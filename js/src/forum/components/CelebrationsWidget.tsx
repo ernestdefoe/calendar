@@ -2,6 +2,8 @@ import app from 'flarum/forum/app';
 import { CalWidgetSkeleton, measure } from './CalSkeleton';
 import { celebrations, type Celebrant } from '../../common/api';
 import { bind } from '../../common/widgetData';
+import { asUser } from '../../common/users';
+import Avatar from 'flarum/common/components/Avatar';
 
 declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
@@ -40,21 +42,16 @@ function row(p: Celebrant) {
   const emoji = p.type === 'birthday' ? '🎂' : '🎈';
   const note = p.type === 'birthday' ? t('celebrations_birthday') : t('celebrations_anniversary', { years: p.years });
 
+  const user = asUser(p.userId, p);
+
   return m('li.CalCeleb-item', [
     m('span.CalCeleb-emoji', emoji),
-    m('a.CalCeleb-user', { href: app.route('user', { username: p.username }), oncreate: m.route.Link }, [
-      avatar(p),
-      m('span.CalCeleb-name', p.displayName || p.username),
+    m('a.CalCeleb-user', { href: app.route.user(user), oncreate: m.route.Link }, [
+      m(Avatar, { user, className: 'CalCeleb-avatar notranslate' }),
+      m('span.CalCeleb-name', user.displayName()),
     ]),
     m('span.CalCeleb-note', note),
   ]);
-}
-
-function avatar(p: Celebrant) {
-  if (p.avatarUrl) return m('span.Avatar.CalCeleb-avatar', { style: { backgroundImage: `url("${p.avatarUrl}")` } });
-  const ch = (p.displayName || p.username || '?').charAt(0).toUpperCase();
-  // notranslate: a lone initial is a word in some language. See PulseWidget.
-  return m('span.Avatar.CalCeleb-avatar.CalCeleb-avatar--text.notranslate', ch);
 }
 
 export default CelebrationsWidget;

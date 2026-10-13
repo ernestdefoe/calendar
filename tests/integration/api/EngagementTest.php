@@ -153,6 +153,9 @@ class EngagementTest extends TestCase
             [['normal', 3], ['organiser', 2], ['veteran', 1]],
             array_map(fn ($l) => [$l['username'], $l['count']], $body['data']['leaders'])
         );
+        // What core's Avatar and app.route.user need to draw a real User model.
+        $this->assertSame(['userId', 'username', 'displayName', 'avatarUrl', 'avatarSrcset', 'slug', 'count'], array_keys($body['data']['leaders'][0]));
+        $this->assertSame('normal', $body['data']['leaders'][0]['slug']);
     }
 
     #[Test]

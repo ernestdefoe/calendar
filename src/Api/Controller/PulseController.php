@@ -3,6 +3,7 @@
 namespace ErnestDefoe\Calendar\Api\Controller;
 
 use ErnestDefoe\Calendar\Activity\ActivityRepository;
+use ErnestDefoe\Calendar\BasicUser;
 use Flarum\Http\RequestUtil;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\User;
@@ -87,13 +88,7 @@ class PulseController implements RequestHandlerInterface
             if (! $u) {
                 continue;
             }
-            $board[] = [
-                'userId' => (int) $u->id,
-                'username' => $u->username,
-                'displayName' => $u->display_name,
-                'avatarUrl' => $u->avatar_url,
-                'count' => $row['count'],
-            ];
+            $board[] = ['userId' => (int) $u->id] + BasicUser::of($u) + ['count' => $row['count']];
         }
 
         return [
