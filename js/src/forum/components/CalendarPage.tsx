@@ -1,6 +1,8 @@
 import app from 'flarum/forum/app';
 import Page from 'flarum/common/components/Page';
 import Button from 'flarum/common/components/Button';
+import PageStructure from 'flarum/forum/components/PageStructure';
+import IndexSidebar from 'flarum/forum/components/IndexSidebar';
 import CalSkeleton, { measure } from './CalSkeleton';
 import MonthGrid from './MonthGrid';
 import TimeGrid from './TimeGrid';
@@ -101,7 +103,16 @@ export default class CalendarPage extends Page {
   }
 
   view() {
-    return m('.CalendarPage', m('.container', [this.header(), this.loading ? m(CalSkeleton) : this.body()]));
+    /*
+     * Inside core's PageStructure with the index sidebar, like every other
+     * forum page. Without it the calendar had no navigation at all — and on a
+     * phone, where the sidebar collapses into the "All Discussions ▾"
+     * switcher at the top, there was no way back to the rest of the forum.
+     */
+    return m(PageStructure, { className: 'CalendarPage', sidebar: () => m(IndexSidebar) }, [
+      this.header(),
+      this.loading ? m(CalSkeleton) : this.body(),
+    ]);
   }
 
   /** Render the active view via its dedicated component. */

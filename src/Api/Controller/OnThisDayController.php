@@ -4,7 +4,9 @@ namespace ErnestDefoe\Calendar\Api\Controller;
 
 use Carbon\Carbon;
 use Flarum\Discussion\Discussion;
+use Flarum\Extension\ExtensionManager;
 use Flarum\Http\RequestUtil;
+use Flarum\Settings\SettingsRepositoryInterface;
 use Illuminate\Contracts\Cache\Repository;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
@@ -21,7 +23,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 class OnThisDayController implements RequestHandlerInterface
 {
-    public function __construct(protected Repository $cache)
+    public function __construct(protected Repository $cache, protected SettingsRepositoryInterface $settings, protected ExtensionManager $extensions)
     {
     }
 
@@ -58,8 +60,23 @@ class OnThisDayController implements RequestHandlerInterface
             return new JsonResponse(['data' => []]);
         }
 
-        $discussions = Discussion::whereVisibleTo($actor)
-            ->whereIn('discussions.id', $ids)
+        $query = Discussion::whereVisibleTo($actor)->whereIn('discussions.id', $ids);
+
+        /*
+         * Tags the admin left out — typically a read-only one (announcements,
+         * an archive), where a memory invites a reply nobody can post. Only
+         * with flarum/tags enabled: without it the pivot table may not exist.
+         */
+        $excludedTags = array_values(array_filter(array_map('intval', (array) json_decode((string) $this->settings->get('ernestdefoe-calendar.onthisday_exclude_tags'), true))));
+
+        if ($excludedTags && $this->extensions->isEnabled('flarum-tags')) {
+            $query->whereNotExists(fn ($q) => $q->selectRaw('1')
+                ->from('discussion_tag')
+                ->whereColumn('discussion_tag.discussion_id', 'discussions.id')
+                ->whereIn('discussion_tag.tag_id', $excludedTags));
+        }
+
+        $discussions = $query
             ->whereNull('hidden_at')
             ->where('is_private', false)
             ->orderByDesc('comment_count')

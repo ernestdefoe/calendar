@@ -156,6 +156,24 @@ class EngagementTest extends TestCase
     }
 
     #[Test]
+    public function the_pulse_leaves_out_excluded_groups_and_members()
+    {
+        $this->setting('ernestdefoe-calendar.pulse_exclude_groups', json_encode([5]));
+        $this->setting('ernestdefoe-calendar.pulse_exclude_users', ' veteran , nobody-by-this-name');
+        $this->freshCache();
+
+        [$status, $body] = $this->get('/api/calendar/pulse');
+
+        $this->assertSame(200, $status);
+        $this->assertSame(
+            [['normal', 3]],
+            array_map(fn ($l) => [$l['username'], $l['count']], $body['data']['leaders']),
+            'The Organiser group and the named member are both gone'
+        );
+        $this->assertSame(3, $body['data']['total'], 'Their posts leave the activity chart too');
+    }
+
+    #[Test]
     public function on_this_day_shows_only_discussions_the_actor_can_see()
     {
         $this->freshCache();

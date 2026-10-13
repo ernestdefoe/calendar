@@ -4,6 +4,7 @@ namespace ErnestDefoe\Calendar\Activity;
 
 use Carbon\Carbon;
 use Flarum\Post\Post;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Aggregates forum activity into the day-bucketed shapes the heatmap, streaks,
@@ -22,18 +23,21 @@ class ActivityRepository
         return $this->daily($days, fn ($q) => $q->where('user_id', $userId));
     }
 
-    /** Daily comment counts across the whole forum over the last $days days. */
-    public function forumDaily(int $days = 120): array
+    /**
+     * Daily comment counts across the whole forum over the last $days days,
+     * leaving out the authors in $exclude (see excluding()).
+     */
+    public function forumDaily(int $days = 120, array $exclude = []): array
     {
-        return $this->daily($days, fn ($q) => $q->whereNotNull('user_id'));
+        return $this->daily($days, fn ($q) => $this->excluding($q->whereNotNull('user_id'), $exclude));
     }
 
     /** Top contributors (by comment count) over the last $days days. */
-    public function leaders(int $days = 30, int $limit = 10): array
+    public function leaders(int $days = 30, int $limit = 10, array $exclude = []): array
     {
         $from = Carbon::now()->subDays($days - 1)->startOfDay();
 
-        return Post::query()
+        return $this->excluding(Post::query(), $exclude)
             ->selectRaw('user_id, COUNT(*) as c')
             ->where('type', 'comment')
             ->whereNotNull('user_id')
@@ -92,6 +96,26 @@ class ActivityRepository
         }
 
         return ['current' => $current, 'longest' => max($longest, $current)];
+    }
+
+    /**
+     * Leave out authors an admin has excluded from the pulse: members of the
+     * `groups` ids, plus the `users` ids. Meant for automated accounts — a
+     * feed bot posting daily tops the leaderboard forever and drowns out the
+     * people it exists to show off. The group match is a subquery, so it is
+     * one query however many members the group has.
+     */
+    private function excluding(Builder $query, array $exclude): Builder
+    {
+        if (! empty($exclude['groups'])) {
+            $query->whereNotIn('user_id', fn ($q) => $q->select('user_id')->from('group_user')->whereIn('group_id', $exclude['groups']));
+        }
+
+        if (! empty($exclude['users'])) {
+            $query->whereNotIn('user_id', $exclude['users']);
+        }
+
+        return $query;
     }
 
     private function daily(int $days, callable $scope): array

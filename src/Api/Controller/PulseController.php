@@ -4,6 +4,7 @@ namespace ErnestDefoe\Calendar\Api\Controller;
 
 use ErnestDefoe\Calendar\Activity\ActivityRepository;
 use Flarum\Http\RequestUtil;
+use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\User;
 use Illuminate\Contracts\Cache\Repository;
 use Laminas\Diactoros\Response\JsonResponse;
@@ -23,7 +24,7 @@ class PulseController implements RequestHandlerInterface
     /** Seconds a computed pulse is served from the cache. */
     public const TTL = 600;
 
-    public function __construct(protected ActivityRepository $activity, protected Repository $cache)
+    public function __construct(protected ActivityRepository $activity, protected Repository $cache, protected SettingsRepositoryInterface $settings)
     {
     }
 
@@ -44,20 +45,40 @@ class PulseController implements RequestHandlerInterface
          * same for everyone (aggregate counts of public comments) and a
          * heartbeat ten minutes old is still a heartbeat.
          */
+        $groups = (string) $this->settings->get('ernestdefoe-calendar.pulse_exclude_groups');
+        $users = (string) $this->settings->get('ernestdefoe-calendar.pulse_exclude_users');
+
+        // The exclusions are part of the key, so changing them in the admin
+        // takes effect on the next request instead of after the TTL.
         $data = $this->cache->remember(
-            "ernestdefoe-calendar.pulse.$days.$leaderDays.$limit",
+            "ernestdefoe-calendar.pulse.$days.$leaderDays.$limit.".md5($groups.'|'.$users),
             self::TTL,
-            fn () => $this->compute($days, $leaderDays, $limit)
+            fn () => $this->compute($days, $leaderDays, $limit, $this->exclusions($groups, $users))
         );
 
         return new JsonResponse(['data' => $data]);
     }
 
-    private function compute(int $days, int $leaderDays, int $limit): array
+    /**
+     * The authors the admin left out of the pulse: groups by id, users by
+     * username — resolved to ids here, inside the cached compute, so the
+     * lookup runs once per TTL rather than on every request.
+     */
+    private function exclusions(string $groups, string $users): array
     {
-        $daily = $this->activity->forumDaily($days);
+        $groupIds = array_values(array_filter(array_map('intval', (array) json_decode($groups, true))));
 
-        $leaders = $this->activity->leaders($leaderDays, $limit);
+        $names = array_values(array_filter(array_map('trim', explode(',', $users))));
+        $userIds = $names ? User::query()->whereIn('username', $names)->pluck('id')->map(fn ($id) => (int) $id)->all() : [];
+
+        return ['groups' => $groupIds, 'users' => $userIds];
+    }
+
+    private function compute(int $days, int $leaderDays, int $limit, array $exclude): array
+    {
+        $daily = $this->activity->forumDaily($days, $exclude);
+
+        $leaders = $this->activity->leaders($leaderDays, $limit, $exclude);
         $users = User::query()->whereIn('id', array_column($leaders, 'userId'))->get()->keyBy('id');
 
         $board = [];

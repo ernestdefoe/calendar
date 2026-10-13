@@ -85,10 +85,12 @@ php flarum cache:clear
 
 | Setting | What it does |
 | --- | --- |
-| **Default view** | Month grid or upcoming list when the calendar opens. |
+| **Default view** | Month, week, day or upcoming list when the calendar opens. |
 | **Week starts on** | Sunday or Monday. |
 | **Index widget** | Show an "Upcoming events" widget on the forum index. |
 | **Widget count** | How many upcoming events the widget lists. |
+| **Forum pulse exclusions** | Leave groups or named members (bots, feed importers) out of the pulse chart and leaderboard. |
+| **On this day exclusions** | Never resurface discussions from chosen tags — e.g. read-only ones nobody can reply in. |
 | **Link discussion** | Auto-create a discussion thread for each new event (for comments). |
 | **Categories** | Add / rename / recolour / delete colour-coded categories. |
 
@@ -99,10 +101,15 @@ Two permissions are added under **Admin → Permissions**:
 
 ## The Upcoming Events widget
 
+Events already under way are listed under **Happening now** with the date they
+end; multi-day events show their date span.
+
 The widget is a self-contained component, so it shows up automatically wherever
 your theme supports it:
 
 - **Default theme** — appears in the index sidebar (toggle in admin).
+- **FoF Widgets Core** — Upcoming events, Forum pulse, Today's celebrations and
+  On this day are each a separate widget, placed independently in its widget manager.
 - **Bespoke** — available in the widget tray as **Upcoming events**.
 - **Page Builder** — available as an **Events** block.
 

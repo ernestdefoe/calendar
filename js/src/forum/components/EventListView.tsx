@@ -1,6 +1,6 @@
 import app from 'flarum/forum/app';
 import Component from 'flarum/common/Component';
-import { formatRange, loc } from '../../common/dates';
+import { formatRange, loc, eventDate, endsAt } from '../../common/dates';
 import { type CalEvent } from '../../common/api';
 
 declare const m: any;
@@ -16,7 +16,7 @@ export default class EventListView extends Component {
   view() {
     const { events, onEvent } = this.attrs as { events: CalEvent[]; onEvent: (ev: CalEvent) => void };
     const now = Date.now();
-    const upcoming = events.filter((e) => new Date(e.end || e.start).getTime() >= now);
+    const upcoming = events.filter((e) => endsAt(e) >= now);
     if (!upcoming.length) return m('.CalendarPage-empty', t('no_events'));
 
     return m(
@@ -24,8 +24,8 @@ export default class EventListView extends Component {
       upcoming.map((ev) =>
         m('li.CalendarList-item', { onclick: () => onEvent(ev) }, [
           m('.CalendarList-date', { style: ev.category ? { '--cal-accent': ev.category.color } : undefined }, [
-            m('span.CalendarList-mon', new Date(ev.start).toLocaleDateString(loc(), { month: 'short' })),
-            m('span.CalendarList-day', new Date(ev.start).getDate()),
+            m('span.CalendarList-mon', eventDate(ev, ev.start).toLocaleDateString(loc(), { month: 'short' })),
+            m('span.CalendarList-day', eventDate(ev, ev.start).getDate()),
           ]),
           m('.CalendarList-body', [
             m('span.CalendarList-name', ev.title),

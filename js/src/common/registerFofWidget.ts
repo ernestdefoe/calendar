@@ -1,17 +1,34 @@
 declare const flarum: any;
 
+/** The calendar's widgets, keyed as fof/forum-widgets-core stores them. */
+export type FofWidgetKey = 'calendarUpcoming' | 'calendarPulse' | 'calendarCelebrations' | 'calendarMemories';
+
+const WIDGETS: { key: FofWidgetKey; title: string; icon: string; position: number }[] = [
+  { key: 'calendarUpcoming', title: 'widget_title', icon: 'fas fa-calendar-days', position: 1 },
+  { key: 'calendarPulse', title: 'pulse_title', icon: 'fas fa-chart-simple', position: 2 },
+  { key: 'calendarCelebrations', title: 'celebrations_title', icon: 'fas fa-cake-candles', position: 3 },
+  { key: 'calendarMemories', title: 'memories_title', icon: 'fas fa-clock-rotate-left', position: 4 },
+];
+
+/** Whether fof/forum-widgets-core is enabled, so it places the widgets instead of the sidebar. */
+export function hasFofWidgets(): boolean {
+  return typeof flarum !== 'undefined' && !!flarum?.extensions && 'fof-forum-widgets-core' in flarum.extensions;
+}
+
 /**
  * Optional fof/forum-widgets-core integration. When that extension is enabled,
- * "Upcoming events" registers as a managed widget so admins place it with the
- * widget manager; without it, nothing changes (the stock sidebar mount in
- * forum/index.ts keeps working). Resolved through flarum.reg at runtime — no
- * build-time dependency, so the bundle never breaks when the core is absent.
+ * each calendar widget registers as its own managed widget, so admins place
+ * them independently with the widget manager — events at the top, the pulse at
+ * the bottom, one of them not at all. Without it, nothing changes (the stock
+ * sidebar mounts in forum/index.ts keep working). Resolved through flarum.reg
+ * at runtime — no build-time dependency, so the bundle never breaks when the
+ * core is absent.
  *
  * Registered from BOTH frontends (the widget manager's admin UI lists widgets
- * by their class metadata); the admin side passes no content renderer.
+ * by their class metadata); the admin side passes no content renderers.
  */
-export default function registerFofWidget(app: any, makeContent?: () => any): void {
-  if (!flarum?.extensions || !('fof-forum-widgets-core' in flarum.extensions)) return;
+export default function registerFofWidget(app: any, render: Partial<Record<FofWidgetKey, () => any>> = {}): void {
+  if (!hasFofWidgets()) return;
 
   const widgetsMod = flarum.reg?.get?.('fof-forum-widgets-core', 'common/extend/Widgets');
   const widgetMod = flarum.reg?.get?.('fof-forum-widgets-core', 'common/components/Widget');
@@ -19,40 +36,37 @@ export default function registerFofWidget(app: any, makeContent?: () => any): vo
   const WidgetBase = (widgetMod?.default ?? widgetMod) as { new (...args: any[]): any } | undefined;
   if (!Widgets || !WidgetBase) return;
 
-  class CalendarUpcomingWidget extends WidgetBase {
-    className() {
-      // Flat: UpcomingEvents draws its own card + heading, so skip the
-      // widget-core container chrome to avoid a double header.
-      return 'CalendarFofWidget FofWidgets-Widget--flat';
+  const widgets = new Widgets();
+
+  WIDGETS.forEach(({ key, title, icon, position }) => {
+    class CalendarWidget extends WidgetBase {
+      className() {
+        // Flat: each component draws its own card + heading, so skip the
+        // widget-core container chrome to avoid a double header.
+        return 'CalendarFofWidget FofWidgets-Widget--flat';
+      }
+
+      header() {
+        // The component renders its own heading — the chrome title on top of
+        // it read as a duplicate.
+        return null;
+      }
+
+      icon() {
+        return icon;
+      }
+
+      title() {
+        return app.translator.trans('ernestdefoe-calendar.forum.' + title);
+      }
+
+      content() {
+        return render[key] ? render[key]!() : null;
+      }
     }
 
-    header() {
-      // The component renders its own heading (with a Calendar link) — the
-      // chrome title on top of it read as a duplicate.
-      return null;
-    }
+    widgets.add({ key, component: CalendarWidget, isDisabled: false, isUnique: true, placement: 'end', position });
+  });
 
-    icon() {
-      return 'fas fa-calendar-days';
-    }
-
-    title() {
-      return app.translator.trans('ernestdefoe-calendar.forum.widget_title');
-    }
-
-    content() {
-      return makeContent ? makeContent() : null;
-    }
-  }
-
-  new Widgets()
-    .add({
-      key: 'calendarUpcoming',
-      component: CalendarUpcomingWidget,
-      isDisabled: false,
-      isUnique: true,
-      placement: 'end',
-      position: 1,
-    })
-    .extend(app, 'ernestdefoe-calendar');
+  widgets.extend(app, 'ernestdefoe-calendar');
 }

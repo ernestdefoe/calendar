@@ -110,14 +110,14 @@ export function weekRangeLabel(days: Date[]): string {
   // a repeated month or year, in every locale. It is ES2021 and present in
   // every browser Flarum 2 supports; the hand-built form stays as a fallback
   // for anything exotic rather than throwing.
-  return range(a, b, { day: 'numeric', month: 'short', year: 'numeric' });
+  return dateRange(a, b, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 /**
  * A date range formatted for the reader's locale, falling back to a plain
  * "a – b" if the engine has no formatRange.
  */
-function range(a: Date, b: Date, opts: Intl.DateTimeFormatOptions): string {
+export function dateRange(a: Date, b: Date, opts: Intl.DateTimeFormatOptions): string {
   try {
     const fmt: any = new Intl.DateTimeFormat(loc(), opts);
     if (typeof fmt.formatRange === 'function') return fmt.formatRange(a, b);
@@ -207,10 +207,29 @@ export function layoutDay(events: CalEvent[], day: Date): TimedSegment[] {
   return segs.map(({ ev, top, height, col, cols }) => ({ ev, top, height, col, cols }));
 }
 
+/**
+ * An event's start or end as a Date to read with local getters. An all-day
+ * event's dates are stored as those dates at UTC midnight, so they are taken
+ * in UTC — read locally they land a day early anywhere west of Greenwich
+ * (a 20 September event showed as the 19th on the date tile and the grid).
+ */
+export function eventDate(ev: CalEvent, iso: string): Date {
+  const d = new Date(iso);
+
+  return ev.allDay ? new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) : d;
+}
+
+/** When an event stops being current: an all-day event runs to the end of its last day. */
+export function endsAt(ev: CalEvent): number {
+  const end = eventDate(ev, ev.end || ev.start);
+
+  return ev.allDay ? end.getTime() + 86400000 : end.getTime();
+}
+
 /** Does an event (with absolute start/end) touch the given calendar day? */
 export function eventOnDay(ev: CalEvent, day: Date): boolean {
-  const s = new Date(ev.start);
-  const e = ev.end ? new Date(ev.end) : s;
+  const s = eventDate(ev, ev.start);
+  const e = ev.end ? eventDate(ev, ev.end) : s;
   const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
   const dayEnd = new Date(dayStart);
   dayEnd.setDate(dayEnd.getDate() + 1);
@@ -219,14 +238,14 @@ export function eventOnDay(ev: CalEvent, day: Date): boolean {
 
 /** Human-friendly date/time range for an event. */
 export function formatRange(ev: CalEvent): string {
-  const s = new Date(ev.start);
-  const e = ev.end ? new Date(ev.end) : null;
+  const s = eventDate(ev, ev.start);
+  const e = ev.end ? eventDate(ev, ev.end) : null;
   const dOpts: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' };
   const tOpts: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
 
   if (ev.allDay) {
     // Locale-ordered, for the same reason as weekRangeLabel.
-    if (e && !sameDay(s, e)) return range(s, e, dOpts);
+    if (e && !sameDay(s, e)) return dateRange(s, e, dOpts);
     return s.toLocaleDateString(loc(), { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   }
 

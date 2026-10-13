@@ -12,11 +12,10 @@ import OnThisDayWidget from './components/OnThisDayWidget';
 import CelebrationsWidget from './components/CelebrationsWidget';
 import BirthdayField from './components/BirthdayField';
 import { registerIntegrations } from './integrations';
-import registerFofWidget from '../common/registerFofWidget';
+import registerFofWidget, { hasFofWidgets } from '../common/registerFofWidget';
 import { startCountdowns } from './countdowns';
 
 declare const m: any;
-declare const flarum: any;
 
 /**
  * Forum entry point.
@@ -41,10 +40,10 @@ app.initializers.add('ernestdefoe/calendar', () => {
     );
   });
 
-  // With fof/forum-widgets-core enabled, Upcoming Events becomes a managed
-  // widget (registered below) — the admin controls its placement there, so the
-  // hardcoded sidebar mount steps aside to avoid showing the list twice.
-  const hasWidgetCore = typeof flarum !== 'undefined' && flarum?.extensions && 'fof-forum-widgets-core' in flarum.extensions;
+  // With fof/forum-widgets-core enabled, every calendar widget is a managed
+  // widget (registered below) — the admin places each one there, so the
+  // hardcoded sidebar mounts step aside to avoid showing anything twice.
+  const hasWidgetCore = hasFofWidgets();
 
   // Stock-theme widgets, each its own sidebar block below the navigation.
   extend(IndexSidebar.prototype, 'items', function (items: any) {
@@ -66,9 +65,9 @@ app.initializers.add('ernestdefoe/calendar', () => {
      * Anything wanting them on another page should use the FoF widget
      * registration below, where an admin places them deliberately.
      */
-    if (!app.current || !app.current.matches(IndexPage)) return;
+    if (!app.current || !app.current.matches(IndexPage) || hasWidgetCore) return;
 
-    if (!hasWidgetCore && app.forum.attribute('ernestdefoe-calendar.showIndexWidget')) {
+    if (app.forum.attribute('ernestdefoe-calendar.showIndexWidget')) {
       const count = app.forum.attribute('ernestdefoe-calendar.indexWidgetCount') || 5;
       items.add('calendar-upcoming', m(UpcomingEvents, { count }), -10);
     }
@@ -117,9 +116,14 @@ app.initializers.add('ernestdefoe/calendar', () => {
     return [heatmap, original()];
   });
 
-  // fof/forum-widgets-core (optional): register Upcoming Events as a managed
+  // fof/forum-widgets-core (optional): register each widget as a managed
   // widget. Its modules live in the main bundle, so this is safe at init time.
-  registerFofWidget(app, () => m(UpcomingEvents, { count: app.forum.attribute('ernestdefoe-calendar.indexWidgetCount') || 5 }));
+  registerFofWidget(app, {
+    calendarUpcoming: () => m(UpcomingEvents, { count: app.forum.attribute('ernestdefoe-calendar.indexWidgetCount') || 5 }),
+    calendarPulse: () => m(PulseWidget, { count: 5 }),
+    calendarCelebrations: () => m(CelebrationsWidget),
+    calendarMemories: () => m(OnThisDayWidget, { count: 6 }),
+  });
 
   // Defer so sibling extensions (Bespoke / Page Builder) have run their own
   // initializers and created app.bespoke / app.pageBuilder before we register our

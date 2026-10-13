@@ -8,6 +8,10 @@
 @cal-muted: var(--muted-color, #8a8a8a);
 @cal-surface: var(--body-bg, #fff);
 @cal-accentFallback: var(--primary-color, #3b5bdb);
+// A tint of the primary colour, not --primary-color-light: a theme can set
+// that to a solid light shade (dev's Warren does), and today's date then sat
+// white-on-pink, unreadable.
+@cal-today: ~"color-mix(in srgb, var(--primary-color, #3b5bdb) 14%, transparent)";
 
 .CalendarPage {
   padding: 24px 0 60px;
@@ -66,7 +70,7 @@
     display: flex; flex-direction: column; gap: 4px;
     &:nth-child(7n + 1) { border-left: 0; }
     &.is-out { opacity: .45; }
-    &.is-today { background: var(--primary-color-light, rgba(59, 91, 219, 0.08)); }
+    &.is-today { background: @cal-today; }
   }
   &-num { font-size: 12.5px; font-weight: 600; color: @cal-muted; align-self: flex-end; }
   &-events { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
@@ -97,7 +101,7 @@
   &-dayhead {
     flex: 1; text-align: center; padding: 8px 4px; border-left: 1px solid @cal-border;
     display: flex; flex-direction: column; gap: 2px;
-    &.is-today { background: var(--primary-color-light, rgba(59, 91, 219, 0.08)); }
+    &.is-today { background: @cal-today; }
   }
   &-dow { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: @cal-muted; }
   &-dnum { font-size: 18px; font-weight: 800; line-height: 1; }
@@ -119,7 +123,7 @@
 
   &-col {
     flex: 1; position: relative; border-left: 1px solid @cal-border; height: @cal-hour * 24;
-    &.is-today { background: var(--primary-color-light, rgba(59, 91, 219, 0.05)); }
+    &.is-today { background: @cal-today; }
   }
   &-line { position: absolute; left: 0; right: 0; border-top: 1px solid @cal-border; opacity: .55; }
 
@@ -138,7 +142,7 @@
   &-eventTitle { font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 
-@media (max-width: 767px) {
+@media @phone {
   .CalendarTime-dow { font-size: 9px; }
   .CalendarTime-dnum { font-size: 14px; }
   .CalendarTime-eventTime { display: none; }
@@ -172,6 +176,11 @@
   &-event { padding: 8px; gap: 10px; }
   &-date { width: 46px; padding: 4px 0; }
   &-empty { color: @cal-muted; font-size: 13px; margin: 4px 0; }
+  &-group {
+    margin: 10px 0 2px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .04em; color: @cal-muted;
+    &:first-of-type { margin-top: 2px; }
+  }
   &-loading { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; }
 }
 @keyframes cal-pulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
@@ -323,8 +332,23 @@
 }
 .CalendarForm-coverControls .FormControl { flex: 1; min-width: 160px; }
 
-@media (max-width: 767px) {
-  .CalendarGrid-cell { min-height: 76px; }
+// The phone agenda under the month grid; the grid's chips become dots there.
+.CalendarGrid-agenda { display: none; }
+
+@media @phone {
+  .CalendarGrid-cell { min-height: 52px; padding: 4px; cursor: pointer; }
+  .CalendarGrid-cell.is-selected { box-shadow: inset 0 0 0 2px var(--primary-color, @cal-accentFallback); }
+  .CalendarGrid-num { align-self: center; }
+  .CalendarGrid-events { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 3px; }
+  .CalendarGrid .CalendarChip {
+    width: 7px; height: 7px; padding: 0; border: 0; border-radius: 50%; pointer-events: none;
+    background: var(--cal-accent, @cal-accentFallback);
+    > * { display: none; }
+  }
+  .CalendarGrid-agenda { display: block; margin-top: 16px; }
+  .CalendarGrid-agendaTitle { margin: 0 0 6px; font-size: 15px; }
+  .CalendarGrid-agendaDot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--cal-accent, @cal-accentFallback); }
+  .CalendarGrid-agendaEmpty { color: @cal-muted; margin: 8px 0; }
   .CalendarChip-time { display: none; }
   .CalendarForm-grid { grid-template-columns: 1fr; }
   .CalendarPage-subscribe { margin-left: 0; }
@@ -478,6 +502,11 @@
   &-title { margin: 0; font-size: 15px; }
   &-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
   &-empty { color: @cal-muted; font-size: 13px; margin: 4px 0; }
+  &-group {
+    margin: 10px 0 2px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .04em; color: @cal-muted;
+    &:first-of-type { margin-top: 2px; }
+  }
   &-loading { display: flex; flex-direction: column; gap: 8px; }
   &-skel { height: 34px; border-radius: 8px; background: var(--control-bg, rgba(127, 127, 127, 0.12)); animation: cal-pulse 1.2s ease-in-out infinite; }
 }

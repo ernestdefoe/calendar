@@ -2,7 +2,7 @@ import app from 'flarum/forum/app';
 import Modal, { IInternalModalAttrs } from 'flarum/common/components/Modal';
 import Button from 'flarum/common/components/Button';
 import { saveEvent, listCategories, type CalEvent, type CalCategory } from '../../common/api';
-import { toLocalInput } from '../../common/dates';
+import { toLocalInput, eventDate } from '../../common/dates';
 
 declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
@@ -40,8 +40,10 @@ export default class EventFormModal extends Modal<FormAttrs> {
       ? {
           title: ev.title,
           description: ev.description || '',
-          start: toLocalInput(new Date(ev.start)),
-          end: ev.end ? toLocalInput(new Date(ev.end)) : '',
+          // eventDate: an all-day date read locally loaded a day early west
+          // of Greenwich, and saving moved the event back a day each time.
+          start: toLocalInput(eventDate(ev, ev.start)),
+          end: ev.end ? toLocalInput(eventDate(ev, ev.end)) : '',
           allDay: ev.allDay,
           timezone: ev.timezone || guessTz(),
           location: ev.location || '',
