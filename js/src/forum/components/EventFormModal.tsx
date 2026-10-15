@@ -158,7 +158,11 @@ export default class EventFormModal extends Modal<FormAttrs> {
           m('.CalendarForm-sectionTitle', [m('i.icon.fas.fa-circle-info'), ' ', t('section_details')]),
           field(
             t('field_location'),
-            m('input.FormControl', { value: d.location, placeholder: '123 Main St, City', oninput: (e: any) => (d.location = e.target.value) })
+            m('input.FormControl', {
+              value: d.location,
+              placeholder: app.translator.trans('ernestdefoe-calendar.forum.location_placeholder', {}, true),
+              oninput: (e: any) => (d.location = e.target.value),
+            })
           ),
           field(
             t('field_category'),

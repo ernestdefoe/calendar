@@ -118,6 +118,14 @@ ernestdefoe-calendar:
     celebrations_anniversary: "{years}y on the forum"
     widget_celebrations: Celebrations
 
+    # ---- widget settings (Bespoke widget tray) ----
+    wf_title: Title
+    wf_how_many: How many
+    wf_category: Category slug (optional)
+    wf_leaderboard_size: Leaderboard size
+    wf_weeks: Weeks of activity
+    location_placeholder: 123 Main St, City
+
     # ---- birthday (account settings) ----
     birthday_section: Birthday
     birthday_help: Add your birthday (month & day only — never the year) to be celebrated by the community. Leave blank to opt out.

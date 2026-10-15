@@ -6,6 +6,10 @@ import CelebrationsWidget from './components/CelebrationsWidget';
 
 declare const m: any;
 
+/** A full key: Bespoke resolves a dotted schema label from our locale. */
+const K = 'ernestdefoe-calendar.forum.';
+const text = (k: string): string => app.translator.trans(K + k, {}, true) as string;
+
 /**
  * Register the calendar's placeable widgets ("Upcoming events" + "Forum pulse")
  * with sibling extensions when present. Each integration is feature-detected and
@@ -28,9 +32,9 @@ function registerBespoke(): void {
       icon: '📅',
       zones: ['hero', 'above-list', 'sidebar', 'below-list', 'footer'],
       schema: [
-        { key: 'title', type: 'text', label: 'Title', default: 'Upcoming events' },
-        { key: 'count', type: 'number', label: 'How many', default: 5 },
-        { key: 'category', type: 'text', label: 'Category slug (optional)', default: '' },
+        { key: 'title', type: 'text', label: K + 'wf_title', default: text('widget_title') },
+        { key: 'count', type: 'number', label: K + 'wf_how_many', default: 5 },
+        { key: 'category', type: 'text', label: K + 'wf_category', default: '' },
       ],
       component: {
         view: (v: any) =>
@@ -48,9 +52,9 @@ function registerBespoke(): void {
       icon: '📈',
       zones: ['hero', 'above-list', 'sidebar', 'below-list', 'footer'],
       schema: [
-        { key: 'title', type: 'text', label: 'Title', default: 'Forum pulse' },
-        { key: 'count', type: 'number', label: 'Leaderboard size', default: 5 },
-        { key: 'weeks', type: 'number', label: 'Weeks of activity', default: 14 },
+        { key: 'title', type: 'text', label: K + 'wf_title', default: text('pulse_title') },
+        { key: 'count', type: 'number', label: K + 'wf_leaderboard_size', default: 5 },
+        { key: 'weeks', type: 'number', label: K + 'wf_weeks', default: 14 },
       ],
       component: {
         view: (v: any) => m(PulseWidget, { title: v.attrs.settings.title, count: v.attrs.settings.count, weeks: v.attrs.settings.weeks }),
@@ -63,8 +67,8 @@ function registerBespoke(): void {
       icon: '🕰️',
       zones: ['hero', 'above-list', 'sidebar', 'below-list', 'footer'],
       schema: [
-        { key: 'title', type: 'text', label: 'Title', default: 'On this day' },
-        { key: 'count', type: 'number', label: 'How many', default: 6 },
+        { key: 'title', type: 'text', label: K + 'wf_title', default: text('memories_title') },
+        { key: 'count', type: 'number', label: K + 'wf_how_many', default: 6 },
       ],
       component: { view: (v: any) => m(OnThisDayWidget, { title: v.attrs.settings.title, count: v.attrs.settings.count }) },
     });
@@ -74,7 +78,7 @@ function registerBespoke(): void {
       label: 'widget_celebrations',
       icon: '🎉',
       zones: ['hero', 'above-list', 'sidebar', 'below-list', 'footer'],
-      schema: [{ key: 'title', type: 'text', label: 'Title', default: 'Celebrations' }],
+      schema: [{ key: 'title', type: 'text', label: K + 'wf_title', default: text('widget_celebrations') }],
       component: { view: (v: any) => m(CelebrationsWidget, { title: v.attrs.settings.title }) },
     });
   } catch (e) {
