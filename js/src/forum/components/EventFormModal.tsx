@@ -166,9 +166,13 @@ export default class EventFormModal extends Modal<FormAttrs> {
           ),
           field(
             t('field_category'),
-            m('select.FormControl', { value: d.categoryId, onchange: (e: any) => (d.categoryId = e.target.value) }, [
-              m('option', { value: '' }, '—'),
-              ...this.categories.map((c) => m('option', { value: c.id }, c.name)),
+            // 🚨 `selected` on the options, not `value` on the select: the
+            // categories arrive after the form opens, and Mithril sets a
+            // select's value BEFORE it adds the options — so editing an event
+            // showed "—" and saving wiped its category. Reported by RelicSystem.
+            m('select.FormControl', { onchange: (e: any) => (d.categoryId = e.target.value) }, [
+              m('option', { value: '', selected: !d.categoryId }, '—'),
+              ...this.categories.map((c) => m('option', { value: c.id, selected: String(c.id) === String(d.categoryId) }, c.name)),
             ])
           ),
           field(t('field_url'), m('input.FormControl', { value: d.url, placeholder: 'https://…', oninput: (e: any) => (d.url = e.target.value) })),
