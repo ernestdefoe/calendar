@@ -5,6 +5,7 @@ namespace ErnestDefoe\Calendar\Api\Controller;
 use ErnestDefoe\Calendar\Api\EventInput;
 use ErnestDefoe\Calendar\Api\EventSerializer;
 use ErnestDefoe\Calendar\Event;
+use ErnestDefoe\Calendar\EventDiscussion;
 use Flarum\Http\RequestUtil;
 use Illuminate\Support\Arr;
 use Laminas\Diactoros\Response\JsonResponse;
@@ -15,6 +16,10 @@ use Psr\Http\Server\RequestHandlerInterface;
 /** PATCH /api/calendar/events/{id} — update an event (creator or manager). */
 class UpdateEventController implements RequestHandlerInterface
 {
+    public function __construct(private EventDiscussion $discussions)
+    {
+    }
+
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $actor = RequestUtil::getActor($request);
@@ -29,6 +34,7 @@ class UpdateEventController implements RequestHandlerInterface
         $attrs = (array) Arr::get((array) $request->getParsedBody(), 'data.attributes', []);
         EventInput::apply($event, $attrs, false);
         $event->save();
+        $this->discussions->syncTitle($event);
 
         $event->load(['user', 'category']);
 

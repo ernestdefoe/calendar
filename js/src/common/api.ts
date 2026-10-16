@@ -131,6 +131,14 @@ export function saveEvent(attrs: Record<string, unknown>, id?: number): Promise<
     });
 }
 
+/** Start the comment thread for an event that has none. */
+export function startDiscussion(id: number): Promise<CalEvent> {
+  return app.request<any>({ method: 'POST', url: api('/calendar/events/' + id + '/discussion') }).then((r: any) => {
+    invalidate('events:');
+    return r.data;
+  });
+}
+
 export function deleteEvent(id: number): Promise<unknown> {
   return app.request({ method: 'DELETE', url: api('/calendar/events/' + id) }).then((r) => {
     invalidate('events:');

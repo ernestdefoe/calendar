@@ -7,7 +7,7 @@ import CalSkeleton, { measure } from './CalSkeleton';
 import MonthGrid from './MonthGrid';
 import TimeGrid from './TimeGrid';
 import EventListView from './EventListView';
-import { listEvents, feedUrl, type CalEvent, type CalCategory } from '../../common/api';
+import { listEvents, showEvent, feedUrl, type CalEvent, type CalCategory } from '../../common/api';
 import { monthMatrix, monthLabel, weekDays, weekRangeLabel, dayTitle, startOfDay, addDays } from '../../common/dates';
 
 declare const m: any;
@@ -34,6 +34,14 @@ export default class CalendarPage extends Page {
     this.mode = (app.forum.attribute('ernestdefoe-calendar.defaultView') as Mode) || 'month';
     app.setTitle(t('page_title'));
     this.load();
+
+    // /calendar?event=12 — the link an event's discussion carries back here.
+    const id = parseInt(m.route.param('event'), 10);
+    if (id) {
+      showEvent(id)
+        .then((ev) => this.openEvent(ev))
+        .catch(() => {});
+    }
   }
 
   weekStart(): number {

@@ -58,6 +58,35 @@ export default [
       default: '0',
     }))
     .setting(() => ({
+      setting: 'ernestdefoe-calendar.date_order',
+      type: 'select',
+      label: t('date_order'),
+      help: t('date_order_help'),
+      options: { auto: t('date_order_auto'), dmy: t('date_order_dmy'), mdy: t('date_order_mdy') },
+      default: 'auto',
+    }))
+    .setting(() => ({
+      setting: 'ernestdefoe-calendar.event_discussions',
+      type: 'boolean',
+      label: t('event_discussions'),
+      help: t('event_discussions_help'),
+      default: false,
+    }))
+    .setting(() =>
+      'flarum-tags' in (flarum?.extensions ?? {})
+        ? {
+            setting: 'ernestdefoe-calendar.event_discussion_tags',
+            type: 'select',
+            multiple: true,
+            json: true,
+            label: t('event_discussion_tags'),
+            help: t('event_discussion_tags_help'),
+            options: tagOptions(),
+            default: '[]',
+          }
+        : null
+    )
+    .setting(() => ({
       setting: 'ernestdefoe-calendar.hide_nav_link',
       type: 'boolean',
       label: t('hide_nav_link'),

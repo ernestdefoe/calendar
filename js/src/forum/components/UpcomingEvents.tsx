@@ -2,7 +2,7 @@ import app from 'flarum/forum/app';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import { listEvents, type CalEvent } from '../../common/api';
 import { load as loadShared, peek } from '../../common/widgetData';
-import { shortTime, loc, sameDay, dateRange, eventDate, endsAt } from '../../common/dates';
+import { shortTime, loc, dateLoc, sameDay, dateRange, eventDate, endsAt } from '../../common/dates';
 
 declare const m: any;
 const t = (k: string, p?: any) => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
@@ -95,7 +95,7 @@ function when(ev: CalEvent): any {
   const day: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
 
   if (start.getTime() <= Date.now() && end) {
-    return t('ends_at', { date: !ev.allDay && sameDay(end, new Date()) ? shortTime(ev.end!) : end.toLocaleDateString(loc(), day) });
+    return t('ends_at', { date: !ev.allDay && sameDay(end, new Date()) ? shortTime(ev.end!) : end.toLocaleDateString(dateLoc(), day) });
   }
   if (end && !sameDay(start, end)) return dateRange(start, end, day);
 

@@ -27,6 +27,28 @@ export function loc(): string | undefined {
   }
 }
 
+/**
+ * The locale to format DATES in: the forum's, unless the admin chose a day or
+ * month order. Intl cannot be told an order, but the region decides it — so
+ * the forum's language with a GB region reads "31 December 2026" and with a US
+ * region "December 31, 2026". Languages that are day-first everywhere simply
+ * stay as they are. Times keep loc(): the order setting must not flip the
+ * 12/24-hour clock.
+ */
+export function dateLoc(): string | undefined {
+  let order: unknown;
+  try {
+    order = (app as any).forum?.attribute('ernestdefoe-calendar.dateOrder');
+  } catch (e) {
+    return loc();
+  }
+  if (order !== 'dmy' && order !== 'mdy') return loc();
+
+  const lang = (loc() || (typeof navigator !== 'undefined' && navigator.language) || 'en').split('-')[0];
+
+  return lang + (order === 'dmy' ? '-GB' : '-US');
+}
+
 /** A 6×7 grid of Dates covering the month, padded to whole weeks. */
 export function monthMatrix(year: number, month: number, weekStartsOn = 0): Date[] {
   const first = new Date(year, month, 1);
@@ -95,7 +117,7 @@ export function weekDays(d: Date, weekStartsOn = 0): Date[] {
 
 /** "Mon, June 7, 2026" — full label for the day view. */
 export function dayTitle(d: Date): string {
-  return d.toLocaleDateString(loc(), { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString(dateLoc(), { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 /** "Jun 1 – 7, 2026" / "Jun 29 – Jul 5, 2026" — label for the week view. */
@@ -119,12 +141,12 @@ export function weekRangeLabel(days: Date[]): string {
  */
 export function dateRange(a: Date, b: Date, opts: Intl.DateTimeFormatOptions): string {
   try {
-    const fmt: any = new Intl.DateTimeFormat(loc(), opts);
+    const fmt: any = new Intl.DateTimeFormat(dateLoc(), opts);
     if (typeof fmt.formatRange === 'function') return fmt.formatRange(a, b);
 
     return `${fmt.format(a)} – ${fmt.format(b)}`;
   } catch (e) {
-    return `${a.toLocaleDateString(loc(), opts)} – ${b.toLocaleDateString(loc(), opts)}`;
+    return `${a.toLocaleDateString(dateLoc(), opts)} – ${b.toLocaleDateString(dateLoc(), opts)}`;
   }
 }
 
@@ -246,14 +268,14 @@ export function formatRange(ev: CalEvent): string {
   if (ev.allDay) {
     // Locale-ordered, for the same reason as weekRangeLabel.
     if (e && !sameDay(s, e)) return dateRange(s, e, dOpts);
-    return s.toLocaleDateString(loc(), { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    return s.toLocaleDateString(dateLoc(), { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   }
 
-  const date = s.toLocaleDateString(loc(), dOpts);
+  const date = s.toLocaleDateString(dateLoc(), dOpts);
   const startT = s.toLocaleTimeString(loc(), tOpts);
   if (!e) return `${date}, ${startT}`;
   if (sameDay(s, e)) return `${date}, ${startT} – ${e.toLocaleTimeString(loc(), tOpts)}`;
-  return `${date}, ${startT} – ${e.toLocaleDateString(loc(), dOpts)}, ${e.toLocaleTimeString(loc(), tOpts)}`;
+  return `${date}, ${startT} – ${e.toLocaleDateString(dateLoc(), dOpts)}, ${e.toLocaleTimeString(loc(), tOpts)}`;
 }
 
 export function shortTime(iso: string): string {

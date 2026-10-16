@@ -38,6 +38,7 @@ $extenders = [
         ->post('/calendar/events', 'calendar.events.create', Controller\CreateEventController::class)
         ->patch('/calendar/events/{id}', 'calendar.events.update', Controller\UpdateEventController::class)
         ->delete('/calendar/events/{id}', 'calendar.events.delete', Controller\DeleteEventController::class)
+        ->post('/calendar/events/{id}/discussion', 'calendar.events.discussion', Controller\StartEventDiscussionController::class)
         ->post('/calendar/events/{id}/rsvp', 'calendar.events.rsvp', Controller\RsvpController::class)
         ->get('/calendar/categories', 'calendar.categories.list', Controller\ListCategoriesController::class)
         ->post('/calendar/categories', 'calendar.categories.create', Controller\SaveCategoryController::class)
@@ -57,6 +58,7 @@ $extenders = [
 
     // ---- Expose settings + the create permission to the forum payload ----
     (new Extend\Settings())
+        ->serializeToForum('ernestdefoe-calendar.dateOrder', 'ernestdefoe-calendar.date_order', fn ($v) => in_array($v, ['dmy', 'mdy'], true) ? $v : 'auto')
         ->serializeToForum('ernestdefoe-calendar.hideNavLink', 'ernestdefoe-calendar.hide_nav_link', fn ($v) => filter_var($v, FILTER_VALIDATE_BOOLEAN))
         ->serializeToForum('ernestdefoe-calendar.defaultView', 'ernestdefoe-calendar.default_view', fn ($v) => $v ?: 'month')
         ->serializeToForum('ernestdefoe-calendar.weekStartsOn', 'ernestdefoe-calendar.week_starts_on', fn ($v) => (int) ($v ?? 0))

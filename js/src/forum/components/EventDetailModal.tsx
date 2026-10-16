@@ -1,7 +1,7 @@
 import app from 'flarum/forum/app';
 import Modal, { IInternalModalAttrs } from 'flarum/common/components/Modal';
 import Button from 'flarum/common/components/Button';
-import { rsvp, deleteEvent, showEvent, abs, mapUrl, type CalEvent, type RsvpAttendee } from '../../common/api';
+import { rsvp, deleteEvent, showEvent, startDiscussion, abs, mapUrl, type CalEvent, type RsvpAttendee } from '../../common/api';
 import { formatRange } from '../../common/dates';
 import Avatar from 'flarum/common/components/Avatar';
 import { asUser } from '../../common/users';
@@ -36,6 +36,7 @@ interface DetailAttrs extends IInternalModalAttrs {
 export default class EventDetailModal extends Modal<DetailAttrs> {
   event!: CalEvent;
   busy = false;
+  starting = false;
 
   oninit(vnode: any) {
     super.oninit(vnode);
@@ -54,6 +55,20 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
         })
         .catch(() => {});
     }
+  }
+
+  startThread() {
+    this.starting = true;
+    startDiscussion(this.event.id)
+      .then((ev) => {
+        this.event.discussionId = ev.discussionId;
+        this.attrs.onchange?.();
+      })
+      .catch(() => {})
+      .finally(() => {
+        this.starting = false;
+        m.redraw();
+      });
   }
 
   className() {
@@ -120,7 +135,12 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
               m('i.Button-icon.fas.fa-comments'),
               m('span.Button-label', t('view_discussion')),
             ])
-          : null,
+          : ev.canEdit && app.forum.attribute('canStartDiscussion')
+            ? Button.component(
+                { className: 'Button Button--icon', icon: 'fas fa-comments', loading: this.starting, onclick: () => this.startThread() },
+                t('start_discussion')
+              )
+            : null,
       ]),
 
       ev.canEdit

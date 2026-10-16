@@ -5,6 +5,7 @@ namespace ErnestDefoe\Calendar\Api\Controller;
 use ErnestDefoe\Calendar\Api\EventInput;
 use ErnestDefoe\Calendar\Api\EventSerializer;
 use ErnestDefoe\Calendar\Event;
+use ErnestDefoe\Calendar\EventDiscussion;
 use Flarum\Http\RequestUtil;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Arr;
@@ -17,6 +18,10 @@ use Psr\Http\Server\RequestHandlerInterface;
 /** POST /api/calendar/events — create an event (requires calendar.create). */
 class CreateEventController implements RequestHandlerInterface
 {
+    public function __construct(private EventDiscussion $discussions)
+    {
+    }
+
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $actor = RequestUtil::getActor($request);
@@ -43,6 +48,12 @@ class CreateEventController implements RequestHandlerInterface
                 }
                 $event->slug = $baseSlug.'-'.Str::lower(Str::random(5));
             }
+        }
+
+        // A draft's thread would show it to everyone before it is published.
+        // (null on a fresh model: the column default is true.)
+        if ($event->is_published !== false && $this->discussions->automatic()) {
+            $this->discussions->startQuietly($event, $actor, $request);
         }
 
         $event->load(['user', 'category']);
