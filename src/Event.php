@@ -5,6 +5,7 @@ namespace ErnestDefoe\Calendar;
 use Carbon\Carbon;
 use Flarum\Database\AbstractModel;
 use Flarum\Discussion\Discussion;
+use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -54,6 +55,22 @@ class Event extends AbstractModel
         'timezone' => 'UTC',
         'is_published' => true,
     ];
+
+    /**
+     * The admin can switch the location field off (`location_mode` = off) for
+     * forums whose events all happen online. The stored value is kept, so
+     * switching it back on restores it, but while it is off every reader — the
+     * API, the .ics feed, Google Calendar links, event threads — sees none.
+     */
+    public function getLocationAttribute(?string $value): ?string
+    {
+        return $value !== null && ! self::locationEnabled() ? null : $value;
+    }
+
+    public static function locationEnabled(): bool
+    {
+        return resolve(SettingsRepositoryInterface::class)->get('ernestdefoe-calendar.location_mode') !== 'off';
+    }
 
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo

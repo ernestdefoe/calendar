@@ -1,7 +1,7 @@
 import app from 'flarum/forum/app';
 import Modal, { IInternalModalAttrs } from 'flarum/common/components/Modal';
 import Button from 'flarum/common/components/Button';
-import { rsvp, deleteEvent, showEvent, startDiscussion, abs, mapUrl, type CalEvent, type RsvpAttendee } from '../../common/api';
+import { rsvp, deleteEvent, showEvent, startDiscussion, abs, type CalEvent, type RsvpAttendee } from '../../common/api';
 import { formatRange } from '../../common/dates';
 import Avatar from 'flarum/common/components/Avatar';
 import { asUser } from '../../common/users';
@@ -32,7 +32,31 @@ interface DetailAttrs extends IInternalModalAttrs {
   onchange?: () => void;
 }
 
-/** Read view of an event: details, location→map, RSVP, export, edit/delete. */
+const MAPS: Record<string, string> = {
+  google: 'https://www.google.com/maps/search/?api=1&query=',
+  apple: 'https://maps.apple.com/?q=',
+  osm: 'https://www.openstreetmap.org/search?query=',
+};
+
+/**
+ * Where an event's location links to: a web address (a Discord invite, a
+ * stream) opens directly; anything else goes to the admin's chosen map, or
+ * nowhere when they picked plain text.
+ */
+function locationHref(location: string): string | null {
+  if (/^https?:\/\/\S+$/i.test(location)) return location;
+  const map = MAPS[app.forum.attribute<string>('ernestdefoe-calendar.locationMode')];
+
+  return map ? map + encodeURIComponent(location) : null;
+}
+
+function locationLink(location: string) {
+  const href = locationHref(location);
+
+  return href ? m('a', { href, target: '_blank', rel: 'noopener noreferrer' }, location) : m('span', location);
+}
+
+/** Read view of an event: details, location→link, RSVP, export, edit/delete. */
 export default class EventDetailModal extends Modal<DetailAttrs> {
   event!: CalEvent;
   busy = false;
@@ -99,12 +123,7 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
 
       m('.CalendarDetail-meta', [
         row('fas fa-clock', formatRange(ev) + (ev.recurring ? ' · ' + t('repeat_' + freqWord(ev.rrule)) : '')),
-        ev.location
-          ? m('.CalendarDetail-row', [
-              m('i.icon.fas.fa-location-dot'),
-              m('a', { href: mapUrl(ev.location), target: '_blank', rel: 'noopener' }, ev.location),
-            ])
-          : null,
+        ev.location ? m('.CalendarDetail-row', [m('i.icon.fas.fa-location-dot'), locationLink(ev.location)]) : null,
         ev.url && (/^https?:\/\//i.test(ev.url) || (ev.url.startsWith('/') && !ev.url.startsWith('//')))
           ? m('.CalendarDetail-row', [m('i.icon.fas.fa-link'), m('a', { href: ev.url, target: '_blank', rel: 'noopener noreferrer' }, ev.url)])
           : null,

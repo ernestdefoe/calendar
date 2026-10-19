@@ -59,6 +59,7 @@ $extenders = [
     // ---- Expose settings + the create permission to the forum payload ----
     (new Extend\Settings())
         ->serializeToForum('ernestdefoe-calendar.dateOrder', 'ernestdefoe-calendar.date_order', fn ($v) => in_array($v, ['dmy', 'mdy'], true) ? $v : 'auto')
+        ->serializeToForum('ernestdefoe-calendar.locationMode', 'ernestdefoe-calendar.location_mode', fn ($v) => in_array($v, ['apple', 'osm', 'text', 'off'], true) ? $v : 'google')
         ->serializeToForum('ernestdefoe-calendar.hideNavLink', 'ernestdefoe-calendar.hide_nav_link', fn ($v) => filter_var($v, FILTER_VALIDATE_BOOLEAN))
         ->serializeToForum('ernestdefoe-calendar.defaultView', 'ernestdefoe-calendar.default_view', fn ($v) => $v ?: 'month')
         ->serializeToForum('ernestdefoe-calendar.weekStartsOn', 'ernestdefoe-calendar.week_starts_on', fn ($v) => (int) ($v ?? 0))

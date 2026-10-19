@@ -66,6 +66,20 @@ export default [
       default: 'auto',
     }))
     .setting(() => ({
+      setting: 'ernestdefoe-calendar.location_mode',
+      type: 'select',
+      label: t('location_mode'),
+      help: t('location_mode_help'),
+      options: {
+        google: t('location_google'),
+        apple: t('location_apple'),
+        osm: t('location_osm'),
+        text: t('location_text'),
+        off: t('location_off'),
+      },
+      default: 'google',
+    }))
+    .setting(() => ({
       setting: 'ernestdefoe-calendar.event_discussions',
       type: 'boolean',
       label: t('event_discussions'),

@@ -6,6 +6,8 @@ import { toLocalInput, eventDate } from '../../common/dates';
 
 declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
+// The admin can switch the location field off; it is then neither shown nor sent.
+const locationOn = () => app.forum.attribute('ernestdefoe-calendar.locationMode') !== 'off';
 
 interface FormAttrs extends IInternalModalAttrs {
   event?: CalEvent;
@@ -156,14 +158,16 @@ export default class EventFormModal extends Modal<FormAttrs> {
         // ---- Details ----
         m('.CalendarForm-section', [
           m('.CalendarForm-sectionTitle', [m('i.icon.fas.fa-circle-info'), ' ', t('section_details')]),
-          field(
-            t('field_location'),
-            m('input.FormControl', {
-              value: d.location,
-              placeholder: app.translator.trans('ernestdefoe-calendar.forum.location_placeholder', {}, true),
-              oninput: (e: any) => (d.location = e.target.value),
-            })
-          ),
+          locationOn()
+            ? field(
+                t('field_location'),
+                m('input.FormControl', {
+                  value: d.location,
+                  placeholder: app.translator.trans('ernestdefoe-calendar.forum.location_placeholder', {}, true),
+                  oninput: (e: any) => (d.location = e.target.value),
+                })
+              )
+            : null,
           field(
             t('field_category'),
             // 🚨 `selected` on the options, not `value` on the select: the
@@ -282,7 +286,7 @@ export default class EventFormModal extends Modal<FormAttrs> {
       end: d.end ? localToIso(d.end, d.allDay) : null,
       allDay: d.allDay,
       timezone: d.timezone,
-      location: d.location,
+      ...(locationOn() ? { location: d.location } : {}),
       url: d.url,
       coverUrl: d.coverUrl,
       categoryId: d.categoryId || null,

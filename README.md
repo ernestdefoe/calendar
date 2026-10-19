@@ -40,7 +40,11 @@ with admin toggles for the index widgets.
 - 🗓️ **Month, Week, Day & list** views with quick prev / today / next navigation.
   Week/Day are true time grids with hour lines, a live "now" indicator, side-by-side
   overlapping events, and double-click-to-create at the clicked time slot.
-- 📍 **Location** on every event, rendered as a one-tap **Google Maps** link.
+- 📍 **Optional location** on every event. A web address (a Discord invite, a
+  stream) links straight to it; anything else links to **Google Maps**, **Apple
+  Maps** or **OpenStreetMap**, or shows as plain text — the admin's choice. Forums
+  whose events all happen online can switch the field **off** entirely: it leaves
+  the form and is hidden on event pages, widgets, threads and the `.ics` feed.
 - 🔁 **Recurring events** (daily / weekly / monthly / yearly) via standard `RRULE`,
   expanded on the fly so each occurrence shows on the right day.
 - ✅ **RSVP** — members mark themselves *Going* or *Interested*, with live counts.
@@ -87,6 +91,7 @@ php flarum cache:clear
 | --- | --- |
 | **Default view** | Month, week, day or upcoming list when the calendar opens. |
 | **Week starts on** | Sunday or Monday. |
+| **Event location** | Where a location links: Google Maps (default), Apple Maps, OpenStreetMap, plain text, or **Off** to remove the field everywhere. A location that is a web address always links straight to it. |
 | **Index widget** | Show an "Upcoming events" widget on the forum index. |
 | **Widget count** | How many upcoming events the widget lists. |
 | **Forum pulse exclusions** | Leave groups or named members (bots, feed importers) out of the pulse chart and leaderboard. |
@@ -161,6 +166,11 @@ trailing `Z`) rather than a bare local time, or the server has to guess. For an
 (`2026-10-04T00:00:00Z`); that is what keeps a birthday on the 4th for a reader in
 Auckland as well as in Los Angeles. `timezone` is the *display* timezone and does
 not change what is stored.
+
+Only `title` and `start` are required. `location` is optional free text (up to
+255 characters; a URL is fine and is linked directly). When the admin has set
+**Event location** to *Off*, a `location` sent to the API is ignored and every
+event is returned with `"location": null`.
 
 The rest of the surface:
 

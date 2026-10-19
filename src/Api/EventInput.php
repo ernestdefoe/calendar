@@ -54,7 +54,8 @@ class EventInput
         if (array_key_exists('description', $attrs)) {
             $event->description = mb_substr((string) $attrs['description'], 0, 20000);
         }
-        if (array_key_exists('location', $attrs)) {
+        // Ignored while the admin has the location field switched off.
+        if (array_key_exists('location', $attrs) && Event::locationEnabled()) {
             $event->location = self::str($attrs['location'], 255);
         }
         if (array_key_exists('url', $attrs)) {

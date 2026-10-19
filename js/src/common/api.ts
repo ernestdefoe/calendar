@@ -97,7 +97,6 @@ export function celebrations(): Promise<Celebrant[]> {
 /** Absolute URL for a server path the serializer handed us (e.g. an .ics path). */
 export const abs = (path: string) => base().replace(/\/$/, '') + '/' + path.replace(/^\//, '');
 export const feedUrl = () => abs('calendar/feed.ics');
-export const mapUrl = (location: string) => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(location);
 
 export function userActivity(userId: number): Promise<UserActivity> {
   return app.request<any>({ method: 'GET', url: api('/calendar/activity/' + userId) }).then((r: any) => r.data);
