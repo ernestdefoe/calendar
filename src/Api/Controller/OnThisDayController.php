@@ -3,6 +3,7 @@
 namespace ErnestDefoe\Calendar\Api\Controller;
 
 use Carbon\Carbon;
+use ErnestDefoe\Calendar\SettingIds;
 use Flarum\Discussion\Discussion;
 use Flarum\Extension\ExtensionManager;
 use Flarum\Http\RequestUtil;
@@ -67,7 +68,7 @@ class OnThisDayController implements RequestHandlerInterface
          * an archive), where a memory invites a reply nobody can post. Only
          * with flarum/tags enabled: without it the pivot table may not exist.
          */
-        $excludedTags = array_values(array_filter(array_map('intval', (array) json_decode((string) $this->settings->get('ernestdefoe-calendar.onthisday_exclude_tags'), true))));
+        $excludedTags = SettingIds::from($this->settings->get('ernestdefoe-calendar.onthisday_exclude_tags'));
 
         if ($excludedTags && $this->extensions->isEnabled('flarum-tags')) {
             $query->whereNotExists(fn ($q) => $q->selectRaw('1')

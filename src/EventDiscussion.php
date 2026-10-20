@@ -108,9 +108,7 @@ class EventDiscussion
     /** @return int[] */
     private function tagIds(): array
     {
-        $ids = json_decode((string) $this->settings->get('ernestdefoe-calendar.event_discussion_tags'), true);
-
-        return array_values(array_filter(array_map('intval', is_array($ids) ? $ids : [])));
+        return SettingIds::from($this->settings->get('ernestdefoe-calendar.event_discussion_tags'));
     }
 
     private function content(Event $event): string

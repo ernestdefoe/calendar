@@ -24,6 +24,56 @@ function options(type: string, label: (model: any) => string, keep: (model: any)
   return out;
 }
 
+/**
+ * The ids saved in a list setting, as strings. Reads a JSON list, and also a
+ * single id or a comma-separated string, so a value saved by hand or by an
+ * older build still shows ticked instead of crashing the page.
+ */
+function savedIds(raw: string | null | undefined): string[] {
+  let v: any = raw;
+  try {
+    v = JSON.parse(String(raw ?? ''));
+  } catch (e) {
+    // not JSON: a bare "4,5" — split it below
+  }
+  const list = Array.isArray(v) ? v : String(v ?? '').split(',');
+  return list.map((x: any) => String(x).trim()).filter((x: string) => x && x !== 'null');
+}
+
+/**
+ * A ticked list for "these groups" / "these tags" settings. Core's
+ * multi-select is a dropdown, which reads as pick-one (RelicSystem,
+ * discuss.flarum.org/d/39377/56); a row of checkboxes says "pick any".
+ * Called with `this` = the settings page, so Save and dirty-tracking work
+ * through its own setting stream. Saved as a JSON list, like before.
+ */
+function checkboxList(key: string, label: any, help: any, opts: () => Record<string, string>) {
+  const id = key.replace(/\W/g, '-');
+
+  return function (this: any) {
+    const stream = this.setting(key, '[]');
+    const selected = savedIds(stream());
+    const set = (v: string, on: boolean) => stream(JSON.stringify(on ? [...selected, v] : selected.filter((x) => x !== v)));
+
+    // Plain `label.checkbox` rows, as core draws its radio settings; core's
+    // Checkbox component is a ✕/✓ toggle, which reads as on/off, not pick-any.
+    return m('.Form-group.CalCheckList', { role: 'group', 'aria-labelledby': id }, [
+      m('label', { id }, label),
+      m('.helpText', help),
+      m(
+        '.CalCheckList-items',
+        Object.entries(opts()).map(([value, name]) =>
+          m('label.checkbox', { key: value }, [
+            m('input', { type: 'checkbox', checked: selected.includes(value), onchange: (e: any) => set(value, e.target.checked) }),
+            ' ',
+            name,
+          ])
+        )
+      ),
+    ]);
+  };
+}
+
 /*
  * With fof/forum-widgets-core enabled, its widget manager decides where each
  * calendar widget goes (or whether it shows at all), and the sidebar mounts
@@ -88,16 +138,7 @@ export default [
     }))
     .setting(() =>
       'flarum-tags' in (flarum?.extensions ?? {})
-        ? {
-            setting: 'ernestdefoe-calendar.event_discussion_tags',
-            type: 'select',
-            multiple: true,
-            json: true,
-            label: t('event_discussion_tags'),
-            help: t('event_discussion_tags_help'),
-            options: tagOptions(),
-            default: '[]',
-          }
+        ? checkboxList('ernestdefoe-calendar.event_discussion_tags', t('event_discussion_tags'), t('event_discussion_tags_help'), tagOptions)
         : null
     )
     .setting(() => ({
@@ -130,22 +171,17 @@ export default [
         default: true,
       })
     )
-    .setting(() => ({
-      setting: 'ernestdefoe-calendar.pulse_exclude_groups',
-      type: 'select',
-      multiple: true,
-      json: true,
-      label: t('pulse_exclude_groups'),
-      help: t('pulse_exclude_groups_help'),
+    .setting(() =>
       // Guests and Members are not stored as memberships, so they cannot be
       // matched — and leaving out every member would empty the pulse anyway.
-      options: options(
-        'groups',
-        (g: any) => g.namePlural(),
-        (g: any) => !['2', '3'].includes(g.id())
-      ),
-      default: '[]',
-    }))
+      checkboxList('ernestdefoe-calendar.pulse_exclude_groups', t('pulse_exclude_groups'), t('pulse_exclude_groups_help'), () =>
+        options(
+          'groups',
+          (g: any) => g.namePlural(),
+          (g: any) => !['2', '3'].includes(g.id())
+        )
+      )
+    )
     .setting(() => ({
       setting: 'ernestdefoe-calendar.pulse_exclude_users',
       type: 'text',
@@ -163,16 +199,7 @@ export default [
     )
     .setting(() =>
       'flarum-tags' in (flarum?.extensions ?? {})
-        ? {
-            setting: 'ernestdefoe-calendar.onthisday_exclude_tags',
-            type: 'select',
-            multiple: true,
-            json: true,
-            label: t('onthisday_exclude_tags'),
-            help: t('onthisday_exclude_tags_help'),
-            options: tagOptions(),
-            default: '[]',
-          }
+        ? checkboxList('ernestdefoe-calendar.onthisday_exclude_tags', t('onthisday_exclude_tags'), t('onthisday_exclude_tags_help'), tagOptions)
         : null
     )
     .setting(() =>

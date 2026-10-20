@@ -4,6 +4,7 @@ namespace ErnestDefoe\Calendar\Api\Controller;
 
 use ErnestDefoe\Calendar\Activity\ActivityRepository;
 use ErnestDefoe\Calendar\BasicUser;
+use ErnestDefoe\Calendar\SettingIds;
 use Flarum\Http\RequestUtil;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\User;
@@ -67,9 +68,10 @@ class PulseController implements RequestHandlerInterface
      */
     private function exclusions(string $groups, string $users): array
     {
-        $groupIds = array_values(array_filter(array_map('intval', (array) json_decode($groups, true))));
+        $groupIds = SettingIds::from($groups);
 
-        $names = array_values(array_filter(array_map('trim', explode(',', $users))));
+        // "@newsbot, rss-feed" — a leading @ is how members write a username.
+        $names = array_values(array_filter(array_map(fn ($n) => ltrim(trim($n), '@'), explode(',', $users))));
         $userIds = $names ? User::query()->whereIn('username', $names)->pluck('id')->map(fn ($id) => (int) $id)->all() : [];
 
         return ['groups' => $groupIds, 'users' => $userIds];

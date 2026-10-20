@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Flarum\Discussion\Discussion;
 use Flarum\Group\Group;
 use Flarum\Post\Post;
+use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
 use Flarum\Testing\integration\TestCase;
 use Flarum\User\User;
@@ -40,9 +41,11 @@ class EngagementTest extends TestCase
             ],
             Group::class => [
                 ['id' => 5, 'name_singular' => 'Organiser', 'name_plural' => 'Organisers'],
+                ['id' => 6, 'name_singular' => 'Bot', 'name_plural' => 'Bots'],
             ],
             'group_user' => [
                 ['user_id' => 5, 'group_id' => 5],
+                ['user_id' => 4, 'group_id' => 6],
             ],
             'group_permission' => [
                 ['permission' => 'calendar.create', 'group_id' => 5],
@@ -174,6 +177,65 @@ class EngagementTest extends TestCase
             'The Organiser group and the named member are both gone'
         );
         $this->assertSame(3, $body['data']['total'], 'Their posts leave the activity chart too');
+    }
+
+    private function settings(): SettingsRepositoryInterface
+    {
+        return $this->app()->getContainer()->make(SettingsRepositoryInterface::class);
+    }
+
+    /** The pulse leaders' usernames, and how many queries the request ran. */
+    private function pulseWith(string $groups): array
+    {
+        $this->settings()->set('ernestdefoe-calendar.pulse_exclude_groups', $groups);
+        $this->freshCache();
+
+        $db = $this->database();
+        $db->flushQueryLog();
+        $db->enableQueryLog();
+        [$status, $body] = $this->get('/api/calendar/pulse');
+        $queries = count($db->getQueryLog());
+        $db->disableQueryLog();
+
+        $this->assertSame(200, $status);
+
+        return [array_column($body['data']['leaders'], 'username'), $queries, $body['data']['total']];
+    }
+
+    #[Test]
+    public function the_pulse_leaves_out_every_picked_group_in_one_query()
+    {
+        $this->pulseWith('[]'); // the first request also boots what every request shares
+
+        [$one, $oneQueries] = $this->pulseWith(json_encode([5]));
+        [$two, $twoQueries, $total] = $this->pulseWith(json_encode([5, 6]));
+
+        $this->assertSame(['normal', 'veteran'], $one);
+        $this->assertSame(['normal'], $two, 'Both picked groups are left out');
+        $this->assertSame(3, $total);
+        $this->assertSame($oneQueries, $twoQueries, 'A second group adds no queries');
+    }
+
+    #[Test]
+    public function a_group_setting_saved_as_one_id_or_a_comma_list_still_works()
+    {
+        $this->assertSame(['normal', 'veteran'], $this->pulseWith('5')[0], 'A single id, as a one-group picker saved it');
+        $this->assertSame(['normal'], $this->pulseWith('5, 6')[0], 'A comma-separated list');
+        $this->assertSame(['normal', 'organiser', 'veteran'], $this->pulseWith('')[0], 'Nothing saved leaves nobody out');
+    }
+
+    #[Test]
+    public function the_migration_rewrites_a_single_group_id_as_a_list()
+    {
+        $this->settings()->set('ernestdefoe-calendar.pulse_exclude_groups', '5');
+        $this->settings()->set('ernestdefoe-calendar.onthisday_exclude_tags', '[1,2]');
+
+        $migration = require __DIR__.'/../../../migrations/2026_10_20_000000_list_id_settings.php';
+        $migration['up']($this->database()->getSchemaBuilder());
+
+        $value = fn (string $key) => $this->database()->table('settings')->where('key', $key)->value('value');
+        $this->assertSame('[5]', $value('ernestdefoe-calendar.pulse_exclude_groups'));
+        $this->assertSame('[1,2]', $value('ernestdefoe-calendar.onthisday_exclude_tags'), 'A list is left alone');
     }
 
     #[Test]
