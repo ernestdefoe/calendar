@@ -13,6 +13,7 @@ import CelebrationsWidget from './components/CelebrationsWidget';
 import BirthdayField from './components/BirthdayField';
 import { registerIntegrations } from './integrations';
 import registerFofWidget, { hasFofWidgets } from '../common/registerFofWidget';
+import { peek } from '../common/widgetData';
 import { startCountdowns } from './countdowns';
 
 declare const m: any;
@@ -118,12 +119,23 @@ app.initializers.add('ernestdefoe/calendar', () => {
 
   // fof/forum-widgets-core (optional): register each widget as a managed
   // widget. Its modules live in the main bundle, so this is safe at init time.
-  registerFofWidget(app, {
-    calendarUpcoming: () => m(UpcomingEvents, { count: app.forum.attribute('ernestdefoe-calendar.indexWidgetCount') || 5 }),
-    calendarPulse: () => m(PulseWidget, { count: 5 }),
-    calendarCelebrations: () => m(CelebrationsWidget),
-    calendarMemories: () => m(OnThisDayWidget, { count: 6 }),
-  });
+  registerFofWidget(
+    app,
+    {
+      calendarUpcoming: () => m(UpcomingEvents, { count: app.forum.attribute('ernestdefoe-calendar.indexWidgetCount') || 5 }),
+      calendarPulse: () => m(PulseWidget, { count: 5 }),
+      calendarCelebrations: () => m(CelebrationsWidget),
+      calendarMemories: () => m(OnThisDayWidget, { count: 6 }),
+    },
+    {
+      // Celebrations draws nothing on a day with nobody to celebrate; until the
+      // day's answer is in, it shows its skeleton (and that is what asks).
+      calendarCelebrations: () => {
+        const people = peek<unknown[]>('celebrations');
+        return !(Array.isArray(people) && people.length === 0);
+      },
+    }
+  );
 
   // Defer so sibling extensions (Bespoke / Page Builder) have run their own
   // initializers and created app.bespoke / app.pageBuilder before we register our

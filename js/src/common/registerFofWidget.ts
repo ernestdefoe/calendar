@@ -1,4 +1,6 @@
-declare const flarum: any;
+import { fof, hasFofWidgets, placed } from './fofWidgets';
+
+export { hasFofWidgets };
 
 /** The calendar's widgets, keyed as fof/forum-widgets-core stores them. */
 export type FofWidgetKey = 'calendarUpcoming' | 'calendarPulse' | 'calendarCelebrations' | 'calendarMemories';
@@ -10,10 +12,11 @@ const WIDGETS: { key: FofWidgetKey; title: string; icon: string; position: numbe
   { key: 'calendarMemories', title: 'memories_title', icon: 'fas fa-clock-rotate-left', position: 4 },
 ];
 
-/** Whether fof/forum-widgets-core is enabled, so it places the widgets instead of the sidebar. */
-export function hasFofWidgets(): boolean {
-  return typeof flarum !== 'undefined' && !!flarum?.extensions && 'fof-forum-widgets-core' in flarum.extensions;
-}
+export const EXTENSION = 'ernestdefoe-calendar';
+
+/** The widgets as FoF's layout editor lists them (admin side). */
+export const EDITOR_WIDGETS = (app: any) =>
+  WIDGETS.map(({ key, icon }) => ({ key, icon, title: () => app.translator.trans('ernestdefoe-calendar.lib.widgets.' + key) }));
 
 /**
  * Optional fof/forum-widgets-core integration. When that extension is enabled,
@@ -24,16 +27,20 @@ export function hasFofWidgets(): boolean {
  * at runtime — no build-time dependency, so the bundle never breaks when the
  * core is absent.
  *
- * Registered from BOTH frontends (the widget manager's admin UI lists widgets
- * by their class metadata); the admin side passes no content renderers.
+ * 🚨 OPT-IN (see fofWidgets.ts): a widget shows only where the admin placed it
+ * in FoF's layout editor, and only when it has something to show — FoF draws
+ * its section for any widget it is given, so one that would render nothing is
+ * not given. The admin side registers through registerEditorWidgets.
  */
-export default function registerFofWidget(app: any, render: Partial<Record<FofWidgetKey, () => any>> = {}): void {
-  if (!hasFofWidgets()) return;
+export default function registerFofWidget(
+  app: any,
+  render: Record<FofWidgetKey, () => any>,
+  hasContent: Partial<Record<FofWidgetKey, () => boolean>> = {}
+): void {
+  if (!hasFofWidgets() || !app.widgets) return;
 
-  const widgetsMod = flarum.reg?.get?.('fof-forum-widgets-core', 'common/extend/Widgets');
-  const widgetMod = flarum.reg?.get?.('fof-forum-widgets-core', 'common/components/Widget');
-  const Widgets = widgetsMod?.default ?? widgetsMod;
-  const WidgetBase = (widgetMod?.default ?? widgetMod) as { new (...args: any[]): any } | undefined;
+  const Widgets = fof('common/extend/Widgets');
+  const WidgetBase = fof('common/components/Widget') as { new (...args: any[]): any } | undefined;
   if (!Widgets || !WidgetBase) return;
 
   const widgets = new Widgets();
@@ -61,7 +68,7 @@ export default function registerFofWidget(app: any, render: Partial<Record<FofWi
       }
 
       content() {
-        return render[key] ? render[key]!() : null;
+        return render[key]();
       }
     }
 
@@ -73,12 +80,12 @@ export default function registerFofWidget(app: any, render: Partial<Record<FofWi
       // extension's name. A callback, so only the editor ever translates it.
       title: () => app.translator.trans('ernestdefoe-calendar.lib.widgets.' + key),
       icon,
-      isDisabled: false,
+      isDisabled: () => !placed(app, EXTENSION, key) || (hasContent[key] ? !hasContent[key]!() : false),
       isUnique: true,
       placement: 'end',
       position,
     });
   });
 
-  widgets.extend(app, 'ernestdefoe-calendar');
+  widgets.extend(app, EXTENSION);
 }

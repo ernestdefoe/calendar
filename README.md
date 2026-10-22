@@ -115,6 +115,8 @@ your theme supports it:
 - **Default theme** — appears in the index sidebar (toggle in admin).
 - **FoF Widgets Core** — Upcoming events, Forum pulse, Today's celebrations and
   On this day are each a separate widget, placed independently in its widget manager.
+  Each shows only once you drag it into a section and save (Today's celebrations
+  only on a day with someone to celebrate).
 - **Bespoke** — available in the widget tray as **Upcoming events**.
 - **Page Builder** — available as an **Events** block.
 
