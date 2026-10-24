@@ -5,6 +5,8 @@ import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 
 declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.admin.' + k, p);
+// Plain-text form, for attributes (aria-label, title).
+const tx = (k: string, p: any = {}): string => app.translator.trans('ernestdefoe-calendar.admin.' + k, p, true);
 
 interface Cat {
   id?: number;
@@ -70,17 +72,30 @@ export default class CategoryManager extends Component {
   }
 
   row(c: Cat) {
+    // Icon-only buttons: the label is what a screen reader announces and what
+    // the tooltip shows (a bare tick did not say "save").
+    const save = tx('category_save');
+    const del = tx('category_delete');
+
     return m('.CalendarAdmin-category', { key: c.id }, [
       this.swatch(c),
-      m('input.FormControl', { value: c.name, oninput: (e: any) => (c.name = e.target.value) }),
+      m('input.FormControl', { value: c.name, 'aria-label': tx('category_name'), oninput: (e: any) => (c.name = e.target.value) }),
       Button.component({
         className: 'Button Button--icon',
         icon: 'fas fa-check',
+        'aria-label': save,
+        title: save,
         loading: !!this.saving[c.id!],
         disabled: !c.name.trim(),
         onclick: () => this.save(c),
       }),
-      Button.component({ className: 'Button Button--icon CalendarAdmin-del', icon: 'fas fa-trash', onclick: () => this.remove(c) }),
+      Button.component({
+        className: 'Button Button--icon CalendarAdmin-del',
+        icon: 'fas fa-trash',
+        'aria-label': del,
+        title: del,
+        onclick: () => this.remove(c),
+      }),
     ]);
   }
 
@@ -107,10 +122,23 @@ export default class CategoryManager extends Component {
   swatch(c: Cat) {
     return m('.CalendarAdmin-swatchWrap', [
       m('span.CalendarAdmin-swatch', { style: { background: c.color } }),
-      m('input.CalendarAdmin-color', { type: 'color', value: c.color, oninput: (e: any) => (c.color = e.target.value) }),
+      m('input.CalendarAdmin-color', {
+        type: 'color',
+        value: c.color,
+        'aria-label': tx('category_color'),
+        oninput: (e: any) => (c.color = e.target.value),
+      }),
       m(
         '.CalendarAdmin-presets',
-        PRESETS.map((p) => m('button.CalendarAdmin-preset', { type: 'button', style: { background: p }, onclick: () => (c.color = p) }))
+        PRESETS.map((p) =>
+          m('button.CalendarAdmin-preset', {
+            type: 'button',
+            style: { background: p },
+            'aria-label': tx('category_preset', { color: p }),
+            title: p,
+            onclick: () => (c.color = p),
+          })
+        )
       ),
     ]);
   }
