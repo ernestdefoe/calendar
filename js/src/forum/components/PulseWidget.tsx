@@ -2,6 +2,7 @@ import app from 'flarum/forum/app';
 import { CalWidgetSkeleton, measure } from './CalSkeleton';
 import { forumPulse, type ForumPulse, type PulseLeader } from '../../common/api';
 import { bind } from '../../common/widgetData';
+import { num } from '../../common/dates';
 import { asUser } from '../../common/users';
 import Avatar from 'flarum/common/components/Avatar';
 
@@ -68,7 +69,7 @@ const PulseWidget = {
     const weeks = Math.max(6, Math.min(20, Number(a.weeks) || 14));
 
     return m('.CalPulse', measure('CalPulse'), [
-      m('.CalPulse-head', [m('h4.CalPulse-title', title), d ? m('span.CalPulse-total', t('pulse_total', { count: d.total })) : null]),
+      m('.CalPulse-head', [m('h4.CalPulse-title', title), d ? m('span.CalPulse-total', t('pulse_total', { count: num(d.total) })) : null]),
 
       !d
         ? m(CalWidgetSkeleton, { block: 'CalPulse', bar: 'CalPulse-skel', rows: 4, fallback: 176 })
@@ -98,7 +99,7 @@ function leaderRow(l: PulseLeader, i: number) {
   const user = asUser(l.userId, l);
 
   return m('li.CalPulse-leader', [
-    m('span.CalPulse-rank', '#' + (i + 1)),
+    m('span.CalPulse-rank', '#' + num(i + 1)),
     m('a.CalPulse-user', { href: app.route.user(user), oncreate: m.route.Link }, [
       // Core's Avatar on a real User model: the same face the member has
       // everywhere else on the forum. notranslate keeps a browser translating
@@ -106,7 +107,7 @@ function leaderRow(l: PulseLeader, i: number) {
       m(Avatar, { user, className: 'CalPulse-avatar notranslate' }),
       m('span.CalPulse-name', user.displayName()),
     ]),
-    m('span.CalPulse-count', l.count),
+    m('span.CalPulse-count', num(l.count)),
   ]);
 }
 

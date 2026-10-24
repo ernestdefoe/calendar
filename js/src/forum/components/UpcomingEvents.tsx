@@ -2,7 +2,7 @@ import app from 'flarum/forum/app';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import { listEvents, type CalEvent } from '../../common/api';
 import { load as loadShared, peek } from '../../common/widgetData';
-import { shortTime, loc, dateLoc, sameDay, dateRange, eventDate, endsAt } from '../../common/dates';
+import { shortTime, loc, dateLoc, sameDay, dateRange, eventDate, endsAt, num } from '../../common/dates';
 
 declare const m: any;
 const t = (k: string, p?: any) => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
@@ -114,7 +114,7 @@ function eventRow(ev: CalEvent) {
     [
       m('.CalendarWidget-date', { style: ev.category ? { '--cal-accent': ev.category.color } : undefined }, [
         m('span.CalendarWidget-mon', start.toLocaleDateString(loc(), { month: 'short' })),
-        m('span.CalendarWidget-day', start.getDate()),
+        m('span.CalendarWidget-day', num(start.getDate())),
       ]),
       m('.CalendarWidget-body', [
         m('span.CalendarWidget-name', ev.title),

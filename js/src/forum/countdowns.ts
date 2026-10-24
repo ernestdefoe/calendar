@@ -1,4 +1,5 @@
 import app from 'flarum/forum/app';
+import { num } from '../common/dates';
 
 /**
  * Live countdowns. The formatter renders `[countdown=…]` as an inert
@@ -63,7 +64,7 @@ function build(el: HTMLElement): void {
   if (label) el.setAttribute('data-label', label);
 
   const unit = (u: string, lbl: string) =>
-    `<span class="CalCountdown-unit"><b class="CalCountdown-num" data-u="${u}">0</b><i class="CalCountdown-lbl">${escapeHtml(lbl)}</i></span>`;
+    `<span class="CalCountdown-unit"><b class="CalCountdown-num" data-u="${u}">${num(0)}</b><i class="CalCountdown-lbl">${escapeHtml(lbl)}</i></span>`;
 
   el.innerHTML =
     (label ? `<span class="CalCountdown-caption">${escapeHtml(label)}</span>` : '') +
@@ -77,7 +78,7 @@ function build(el: HTMLElement): void {
 
 function setNum(el: HTMLElement, u: string, v: number): void {
   const n = el.querySelector('.CalCountdown-num[data-u="' + u + '"]');
-  if (n) n.textContent = u === 'd' ? String(v) : String(v).padStart(2, '0');
+  if (n) n.textContent = num(v, u === 'd' ? 1 : 2);
 }
 
 function setDone(el: HTMLElement): void {

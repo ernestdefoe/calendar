@@ -1,6 +1,6 @@
 import app from 'flarum/forum/app';
 import Button from 'flarum/common/components/Button';
-import { loc } from '../../common/dates';
+import { loc, num } from '../../common/dates';
 
 declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
@@ -38,7 +38,7 @@ const BirthdayField = {
         ]),
         m('select.FormControl.CalBirthday-day', { value: this.dd, onchange: (e: any) => (this.dd = e.target.value) }, [
           m('option', { value: '' }, t('birthday_day')),
-          ...days.map((d) => m('option', { value: d }, d)),
+          ...days.map((d) => m('option', { value: d }, num(+d))),
         ]),
         Button.component(
           { className: 'Button', loading: this.saving, disabled: !dirty || !!this.mm !== !!this.dd, onclick: () => this.save() },

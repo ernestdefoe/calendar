@@ -21,9 +21,34 @@ export function loc(): string | undefined {
   try {
     const l = (app as any)?.data?.locale || (app as any)?.translator?.locale;
 
-    return typeof l === 'string' && l ? l : undefined;
+    // `_` → `-`: Intl throws a RangeError on "pt_BR". The Gregorian calendar
+    // is pinned because the grid IS Gregorian — left to the locale, Persian
+    // ("fa") headed an October grid with a Solar Hijri month name.
+    return typeof l === 'string' && l ? l.replace(/_/g, '-') + GREGORY : undefined;
   } catch (e) {
     return undefined;
+  }
+}
+
+const GREGORY = '-u-ca-gregory';
+const NF: Record<string, Intl.NumberFormat> = {};
+
+/**
+ * A number in the forum's own numerals: "۱۲" in Persian, "١٢" in Arabic,
+ * "1,234" / "1.234" by locale. Day numbers, counts and countdown digits used
+ * to be printed raw, so a Persian forum showed Western digits on the grid
+ * beside Persian ones in every Intl-formatted date (ClaudiusH, #11).
+ * `minDigits` zero-pads (countdown "05"). One cached formatter per locale.
+ */
+export function num(n: number, minDigits = 1): string {
+  const l = loc();
+  const k = (l || '') + '|' + minDigits;
+  try {
+    const f = NF[k] || (NF[k] = new Intl.NumberFormat(l, { minimumIntegerDigits: minDigits }));
+
+    return f.format(n);
+  } catch (e) {
+    return String(n).padStart(minDigits, '0');
   }
 }
 
@@ -46,7 +71,7 @@ export function dateLoc(): string | undefined {
 
   const lang = (loc() || (typeof navigator !== 'undefined' && navigator.language) || 'en').split('-')[0];
 
-  return lang + (order === 'dmy' ? '-GB' : '-US');
+  return lang + (order === 'dmy' ? '-GB' : '-US') + GREGORY;
 }
 
 /** A 6×7 grid of Dates covering the month, padded to whole weeks. */

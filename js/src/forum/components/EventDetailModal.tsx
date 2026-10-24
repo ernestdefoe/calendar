@@ -2,7 +2,7 @@ import app from 'flarum/forum/app';
 import Modal, { IInternalModalAttrs } from 'flarum/common/components/Modal';
 import Button from 'flarum/common/components/Button';
 import { rsvp, deleteEvent, showEvent, startDiscussion, abs, type CalEvent, type RsvpAttendee } from '../../common/api';
-import { formatRange } from '../../common/dates';
+import { formatRange, num } from '../../common/dates';
 import Avatar from 'flarum/common/components/Avatar';
 import { asUser } from '../../common/users';
 
@@ -261,7 +261,7 @@ function rsvpButton(modal: EventDetailModal, status: string, icon: string, label
     m('i.icon.' + icon),
     ' ',
     label,
-    count ? m('span.CalendarRsvp-count', count) : null,
+    count ? m('span.CalendarRsvp-count', num(count)) : null,
   ]);
 }
 

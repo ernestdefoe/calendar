@@ -2,7 +2,7 @@ import app from 'flarum/forum/app';
 import { CalWidgetSkeleton, measure } from './CalSkeleton';
 import { userActivity, type UserActivity } from '../../common/api';
 import { load, peek } from '../../common/widgetData';
-import { loc } from '../../common/dates';
+import { loc, dateLoc, num } from '../../common/dates';
 
 declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
@@ -42,6 +42,8 @@ function buildWeeks(days: Record<string, number>, weekStart: number, max: number
   let cur = new Date(today.getTime() - 364 * DAY_MS);
   cur = new Date(cur.getTime() - ((cur.getDay() - weekStart + 7) % 7) * DAY_MS); // back to week start
 
+  // One formatter for the ~365 cell tooltips, in the forum's date order.
+  const df = new Intl.DateTimeFormat(dateLoc(), { day: 'numeric', month: 'short', year: 'numeric' });
   const weeks: any[] = [];
   const months: any[] = [];
   let lastMonth = -1;
@@ -55,7 +57,7 @@ function buildWeeks(days: Record<string, number>, weekStart: number, max: number
         const key = ymd(cur);
         const count = days[key] || 0;
         if (weekMonth < 0) weekMonth = cur.getMonth();
-        week.push({ date: key, count, lvl: level(count, max) });
+        week.push({ date: df.format(cur), count, lvl: level(count, max) });
       }
       cur = new Date(cur.getTime() + DAY_MS);
     }
@@ -125,7 +127,7 @@ const ActivityHeatmap = {
     return m('.CalHeat', measure('CalHeat'), [
       m('.CalHeat-head', [
         stat(d.total, t('heat_contributions')),
-        stat([d.streak.current, m('span.CalHeat-fire', ' 🔥')], t('heat_current_streak')),
+        stat([num(d.streak.current), m('span.CalHeat-fire', ' 🔥')], t('heat_current_streak')),
         stat(d.streak.longest, t('heat_longest_streak')),
         stat(d.activeDays, t('heat_active_days')),
       ]),
@@ -144,7 +146,7 @@ const ActivityHeatmap = {
                 '.CalHeat-week',
                 week.map((cell: any) =>
                   cell
-                    ? m('span.CalHeat-cell', { 'data-lvl': cell.lvl, title: t('heat_cell', { count: cell.count, date: cell.date }) })
+                    ? m('span.CalHeat-cell', { 'data-lvl': cell.lvl, title: t('heat_cell', { count: num(cell.count), date: cell.date }) })
                     : m('span.CalHeat-cell.is-future')
                 )
               )
@@ -171,7 +173,7 @@ const ActivityHeatmap = {
 };
 
 function stat(value: any, label: string) {
-  return m('.CalHeat-stat', [m('span.CalHeat-statNum', value), m('span.CalHeat-statLbl', label)]);
+  return m('.CalHeat-stat', [m('span.CalHeat-statNum', typeof value === 'number' ? num(value) : value), m('span.CalHeat-statLbl', label)]);
 }
 
 export default ActivityHeatmap;

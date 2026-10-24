@@ -1,5 +1,5 @@
 import Component from 'flarum/common/Component';
-import { monthMatrix, weekdayNames, eventOnDay, isToday, shortTime, sameDay, dayTitle, formatRange } from '../../common/dates';
+import { monthMatrix, weekdayNames, eventOnDay, isToday, shortTime, sameDay, dayTitle, formatRange, num } from '../../common/dates';
 import { type CalEvent } from '../../common/api';
 import { measure } from './CalSkeleton';
 import app from 'flarum/forum/app';
@@ -92,7 +92,7 @@ export default class MonthGrid extends Component {
         ondblclick: a.canCreate ? () => a.onCreate(day) : undefined,
       },
       [
-        m('span.CalendarGrid-num', day.getDate()),
+        m('span.CalendarGrid-num', num(day.getDate())),
         m(
           '.CalendarGrid-events',
           dayEvents.map((ev) =>

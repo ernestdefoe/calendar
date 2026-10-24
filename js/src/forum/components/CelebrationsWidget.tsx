@@ -2,6 +2,7 @@ import app from 'flarum/forum/app';
 import { CalWidgetSkeleton, measure } from './CalSkeleton';
 import { celebrations, type Celebrant } from '../../common/api';
 import { bind } from '../../common/widgetData';
+import { num } from '../../common/dates';
 import { asUser } from '../../common/users';
 import Avatar from 'flarum/common/components/Avatar';
 
@@ -40,7 +41,7 @@ const CelebrationsWidget = {
 
 function row(p: Celebrant) {
   const emoji = p.type === 'birthday' ? '🎂' : '🎈';
-  const note = p.type === 'birthday' ? t('celebrations_birthday') : t('celebrations_anniversary', { years: p.years });
+  const note = p.type === 'birthday' ? t('celebrations_birthday') : t('celebrations_anniversary', { years: num(p.years || 0) });
 
   const user = asUser(p.userId, p);
 

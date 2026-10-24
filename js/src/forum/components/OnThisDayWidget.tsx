@@ -2,6 +2,7 @@ import app from 'flarum/forum/app';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import { onThisDay, type Memory } from '../../common/api';
 import { bind } from '../../common/widgetData';
+import { num } from '../../common/dates';
 
 declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
@@ -40,9 +41,9 @@ function row(mem: Memory) {
   return m('li.CalMemories-item', [
     m('a.CalMemories-link', { href: app.route('discussion', { id: mem.id + (mem.slug ? '-' + mem.slug : '') }), oncreate: m.route.Link }, mem.title),
     m('span.CalMemories-meta', [
-      m('span.CalMemories-years', t('memories_years_ago', { years: mem.yearsAgo })),
+      m('span.CalMemories-years', t('memories_years_ago', { years: num(mem.yearsAgo) })),
       ' · ',
-      t('memories_replies', { count: mem.commentCount }),
+      t('memories_replies', { count: num(mem.commentCount) }),
     ]),
   ]);
 }
