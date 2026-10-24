@@ -92,6 +92,9 @@ class EngagementTest extends TestCase
     #[Test]
     public function the_forum_says_what_the_actor_may_do()
     {
+        // A fresh install lets Members create events; this forum took that away.
+        $this->database()->table('group_permission')->where(['group_id' => Group::MEMBER_ID, 'permission' => 'calendar.create'])->delete();
+
         $attributes = fn (?int $actor) => $this->get('/api', $actor)[1]['data']['attributes'];
 
         $guest = $attributes(null);

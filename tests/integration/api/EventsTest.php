@@ -189,6 +189,9 @@ class EventsTest extends TestCase
     #[Test]
     public function only_members_with_the_create_permission_can_create()
     {
+        // A fresh install lets Members create events; this forum took that away.
+        $this->database()->table('group_permission')->where(['group_id' => Group::MEMBER_ID, 'permission' => 'calendar.create'])->delete();
+
         $event = ['data' => ['attributes' => ['title' => 'New', 'start' => '2030-06-01T10:00:00Z']]];
 
         $this->assertSame(401, $this->json('POST', '/api/calendar/events', null, $event)[0], 'Guest');

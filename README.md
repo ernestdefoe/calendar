@@ -104,6 +104,10 @@ Two permissions are added under **Admin → Permissions**:
 - **Create calendar events** — who can add events.
 - **Manage all calendar events** — who can edit/delete events they don't own.
 
+A fresh install lets Members create events (unless a group already has the
+permission); managing stays with admins until you grant it. Updating a forum
+that already runs Calendar never changes what it has set.
+
 ## The Upcoming Events widget
 
 Events already under way are listed under **Happening now** with the date they
