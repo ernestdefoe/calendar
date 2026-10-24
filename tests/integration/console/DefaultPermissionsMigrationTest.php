@@ -65,6 +65,7 @@ class DefaultPermissionsMigrationTest extends ConsoleTestCase
     public function a_permission_another_group_holds_is_left_alone()
     {
         $this->runCommand(['command' => 'migrate:reset', '--extension' => 'ernestdefoe-calendar']);
+        $this->database()->table('group_permission')->where('permission', 'like', 'calendar.%')->delete();
         $this->database()->table('group_permission')->insert(['group_id' => Group::MODERATOR_ID, 'permission' => 'calendar.create']);
 
         $this->migrate(false);
