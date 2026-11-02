@@ -122,6 +122,10 @@ class ActivityRepository
     {
         $from = Carbon::now()->subDays($days - 1)->startOfDay();
 
+        // DATE() + GROUP BY the alias is portable: MySQL, PostgreSQL (date() is a
+        // function-style cast, and GROUP BY accepts output-column names) and
+        // SQLite all run it, proved on PostgreSQL 16. CAST(... AS DATE) is NOT:
+        // SQLite turns '2026-11-02 10:00:00' into 2026.
         $q = Post::query()
             ->selectRaw('DATE(created_at) as d, COUNT(*) as c')
             ->where('type', 'comment')

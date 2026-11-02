@@ -98,6 +98,25 @@ class RsvpAndCategoriesTest extends TestCase
     }
 
     #[Test]
+    public function the_event_page_shows_counts_and_each_viewers_own_rsvp()
+    {
+        $this->rsvp(1, 2, 'going');
+        $this->rsvp(1, 3, 'interested');
+
+        [, $body] = $this->json('GET', '/api/calendar/events/1', 2);
+        $this->assertSame(1, $body['data']['rsvp']['going']);
+        $this->assertSame(1, $body['data']['rsvp']['interested']);
+        $this->assertSame('going', $body['data']['rsvp']['mine']);
+
+        [, $body] = $this->json('GET', '/api/calendar/events/1', 3);
+        $this->assertSame('interested', $body['data']['rsvp']['mine']);
+
+        [, $body] = $this->json('GET', '/api/calendar/events/1', null);
+        $this->assertNull($body['data']['rsvp']['mine'], 'A guest has no RSVP of their own');
+        $this->assertSame(1, $body['data']['rsvp']['going']);
+    }
+
+    #[Test]
     public function only_the_author_can_rsvp_to_a_draft()
     {
         $this->assertSame(404, $this->rsvp(2, 2, 'going')[0]);

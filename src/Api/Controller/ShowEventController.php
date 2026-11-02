@@ -35,13 +35,15 @@ class ShowEventController implements RequestHandlerInterface
             }
         }
 
+        // Counts and the actor's own status in ONE grouped query: `mine` flags the
+        // status group holding the actor's row (a guest's id 0 never matches).
         $rows = EventRsvp::query()->where('event_id', $id)
-            ->selectRaw('status, COUNT(*) as c')->groupBy('status')->pluck('c', 'status');
+            ->selectRaw('status, COUNT(*) as c, MAX(CASE WHEN user_id = ? THEN 1 ELSE 0 END) as mine', [(int) $actor->id])
+            ->groupBy('status')->toBase()->get()->keyBy('status');
         $rsvp = [
-            'going' => (int) ($rows[EventRsvp::GOING] ?? 0),
-            'interested' => (int) ($rows[EventRsvp::INTERESTED] ?? 0),
-            'mine' => $actor->isGuest() ? null
-                : EventRsvp::query()->where('event_id', $id)->where('user_id', $actor->id)->value('status'),
+            'going' => (int) ($rows[EventRsvp::GOING]->c ?? 0),
+            'interested' => (int) ($rows[EventRsvp::INTERESTED]->c ?? 0),
+            'mine' => $rows->first(fn ($r) => (int) $r->mine === 1)?->status,
             'attendees' => \ErnestDefoe\Calendar\Attendees::build($id),
         ];
 
