@@ -18,12 +18,7 @@ class ListCategoriesController implements RequestHandlerInterface
         RequestUtil::getActor($request)->assertCan('viewForum');
 
         $data = EventCategory::query()->orderBy('position')->orderBy('name')->get()
-            ->map(fn (EventCategory $c) => [
-                'id' => (int) $c->id,
-                'name' => $c->name,
-                'slug' => $c->slug,
-                'color' => $c->color,
-            ])->values()->all();
+            ->map(fn (EventCategory $c) => $c->toPayload())->values()->all();
 
         return new JsonResponse(['data' => $data]);
     }

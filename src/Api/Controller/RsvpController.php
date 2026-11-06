@@ -5,6 +5,7 @@ namespace ErnestDefoe\Calendar\Api\Controller;
 use ErnestDefoe\Calendar\Event;
 use ErnestDefoe\Calendar\EventRsvp;
 use Flarum\Http\RequestUtil;
+use Flarum\User\Exception\PermissionDeniedException;
 use Illuminate\Support\Arr;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
@@ -31,6 +32,11 @@ class RsvpController implements RequestHandlerInterface
         $event = Event::query()
             ->where(fn ($q) => $q->where('is_published', true)->orWhere('user_id', $actor->id))
             ->findOrFail($id);
+
+        // A category can have its RSVP buttons switched off ("game releases").
+        if ($event->category && ! $event->category->rsvp_enabled) {
+            throw new PermissionDeniedException();
+        }
 
         $status = (string) Arr::get((array) $request->getParsedBody(), 'data.status', '');
 

@@ -1,6 +1,7 @@
 import app from 'flarum/forum/app';
 import Modal, { IInternalModalAttrs } from 'flarum/common/components/Modal';
 import Button from 'flarum/common/components/Button';
+import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import { saveEvent, listCategories, type CalEvent, type CalCategory } from '../../common/api';
 import { toLocalInput, eventDate } from '../../common/dates';
 
@@ -20,6 +21,11 @@ export default class EventFormModal extends Modal<FormAttrs> {
   data!: Record<string, any>;
   categories: CalCategory[] = [];
   uploading = false;
+  // "Choose from my uploads": the member's own fof/upload images.
+  browsing = false;
+  uploads: { url: string; name: string }[] | null = null;
+  uploadsNext: string | null = null;
+  uploadsError = false;
 
   oninit(vnode: any) {
     super.oninit(vnode);
@@ -229,13 +235,86 @@ export default class EventFormModal extends Modal<FormAttrs> {
               m('input', { type: 'file', accept: 'image/*', disabled: this.uploading, onchange: (e: any) => this.uploadCover(e) }),
             ])
           : null,
+        canUpload
+          ? m(
+              'button.Button.CalendarForm-browse',
+              { type: 'button', 'aria-expanded': this.browsing ? 'true' : 'false', onclick: () => this.toggleBrowse() },
+              [m('i.Button-icon.fas.fa-images'), m('span.Button-label', this.browsing ? t('cover_browse_close') : t('cover_browse'))]
+            )
+          : null,
         m('input.FormControl', {
           value: d.coverUrl,
           placeholder: canUpload ? t('cover_or_url') : 'https://…/cover.jpg',
           oninput: (e: any) => (d.coverUrl = e.target.value),
         }),
       ]),
+      this.browsing ? this.uploadsPanel() : null,
     ]);
+  }
+
+  uploadsPanel() {
+    const list = this.uploads;
+    if (this.uploadsError) return m('.CalendarForm-uploads', m('p.CalendarForm-uploadsNote', t('cover_browse_error')));
+    if (!list) return m('.CalendarForm-uploads', m(LoadingIndicator, { size: 'small' }));
+
+    return m('.CalendarForm-uploads', [
+      list.length
+        ? m(
+            '.CalendarForm-uploadsGrid',
+            list.map((f) =>
+              m(
+                'button.CalendarForm-uploadsItem' + (f.url === this.data.coverUrl ? '.is-active' : ''),
+                {
+                  key: f.url,
+                  type: 'button',
+                  title: f.name,
+                  'aria-label': f.name,
+                  onclick: () => {
+                    this.data.coverUrl = f.url;
+                    this.browsing = false;
+                  },
+                },
+                m('img', { src: f.url, alt: '', loading: 'lazy' })
+              )
+            )
+          )
+        : this.uploadsNext
+          ? null
+          : m('p.CalendarForm-uploadsNote', t('cover_browse_empty')),
+      this.uploadsNext
+        ? Button.component(
+            { className: 'Button Button--link', type: 'button', onclick: () => this.loadUploads(this.uploadsNext!) },
+            t('cover_browse_more')
+          )
+        : null,
+    ]);
+  }
+
+  toggleBrowse() {
+    this.browsing = !this.browsing;
+    if (this.browsing && !this.uploads) {
+      this.loadUploads(app.forum.attribute('apiUrl') + '/fof/uploads?filter[user]=' + app.session.user!.id());
+    }
+  }
+
+  /** One page of the member's fof/upload files; only images are offered. */
+  loadUploads(url: string) {
+    this.uploadsNext = null;
+    this.uploadsError = false;
+    app
+      .request<any>({ method: 'GET', url, errorHandler: () => {} })
+      .then(
+        (res: any) => {
+          const images = (res?.data || [])
+            .map((f: any) => f.attributes || {})
+            .filter((a: any) => String(a.type || '').startsWith('image/') && a.url)
+            .map((a: any) => ({ url: a.url, name: a.baseName || '' }));
+          this.uploads = [...(this.uploads || []), ...images];
+          this.uploadsNext = res?.links?.next || null;
+        },
+        () => (this.uploadsError = true)
+      )
+      .then(() => m.redraw());
   }
 
   uploadCover(e: any) {

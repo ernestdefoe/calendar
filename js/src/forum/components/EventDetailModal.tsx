@@ -112,6 +112,8 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
 
   content() {
     const ev = this.event;
+    const cat = ev.category;
+    const rsvpOn = cat?.rsvp !== false;
     const row = (icon: string, content: any) => (content ? m('.CalendarDetail-row', [m('i.icon.' + icon), m('span', content)]) : null);
 
     return m('.Modal-body.CalendarDetail', [
@@ -132,15 +134,19 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
 
       ev.description ? m('.CalendarDetail-desc', m.trust(safe(ev.description))) : null,
 
-      // RSVP
-      m('.CalendarRsvp', [
-        rsvpButton(this, 'going', 'fas fa-check', t('rsvp_going'), ev.rsvp.going),
-        rsvpButton(this, 'interested', 'far fa-star', t('rsvp_interested'), ev.rsvp.interested),
-      ]),
-
-      // Who's coming — with main-character class/spec/ilvl when armory is installed.
-      attendeeGroup(t('attendees_going'), ev.rsvp.attendees?.going),
-      attendeeGroup(t('attendees_interested'), ev.rsvp.attendees?.interested),
+      // RSVP — unless the event's category has it off; a category can also
+      // word the buttons its own way (then the lists use that wording too).
+      rsvpOn
+        ? [
+            m('.CalendarRsvp', [
+              rsvpButton(this, 'going', 'fas fa-check', cat?.goingLabel || t('rsvp_going'), ev.rsvp.going),
+              rsvpButton(this, 'interested', 'far fa-star', cat?.interestedLabel || t('rsvp_interested'), ev.rsvp.interested),
+            ]),
+            // Who's coming — with main-character class/spec/ilvl when armory is installed.
+            attendeeGroup(cat?.goingLabel || t('attendees_going'), ev.rsvp.attendees?.going),
+            attendeeGroup(cat?.interestedLabel || t('attendees_interested'), ev.rsvp.attendees?.interested),
+          ]
+        : null,
 
       // Export + links
       m('.CalendarDetail-actions', [

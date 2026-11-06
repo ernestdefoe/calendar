@@ -13,6 +13,9 @@ interface Cat {
   name: string;
   slug?: string;
   color: string;
+  rsvp?: boolean;
+  goingLabel?: string | null;
+  interestedLabel?: string | null;
 }
 
 const api = (path: string) => app.forum.attribute('apiUrl') + path;
@@ -96,6 +99,31 @@ export default class CategoryManager extends Component {
         title: del,
         onclick: () => this.remove(c),
       }),
+      this.rsvpOptions(c),
+    ]);
+  }
+
+  /** RSVP buttons on or off for the category, and their wording (blank = the default). */
+  rsvpOptions(c: Cat) {
+    const on = c.rsvp !== false;
+    const label = (key: 'goingLabel' | 'interestedLabel', placeholder: string) =>
+      m('input.FormControl', {
+        value: c[key] || '',
+        placeholder,
+        maxlength: 50,
+        disabled: !on,
+        'aria-label': tx('category_label_aria', { label: placeholder }),
+        oninput: (e: any) => (c[key] = e.target.value),
+      });
+
+    return m('.CalendarAdmin-rsvp', [
+      m('label.checkbox', [
+        m('input', { type: 'checkbox', checked: on, onchange: (e: any) => (c.rsvp = e.target.checked) }),
+        ' ',
+        t('category_rsvp'),
+      ]),
+      label('goingLabel', tx('category_going_label')),
+      label('interestedLabel', tx('category_interested_label')),
     ]);
   }
 
@@ -146,7 +174,21 @@ export default class CategoryManager extends Component {
   save(c: Cat) {
     this.saving[c.id!] = true;
     app
-      .request({ method: 'PATCH', url: api('/calendar/categories/' + c.id), body: { data: { attributes: { name: c.name, color: c.color } } } })
+      .request({
+        method: 'PATCH',
+        url: api('/calendar/categories/' + c.id),
+        body: {
+          data: {
+            attributes: {
+              name: c.name,
+              color: c.color,
+              rsvp: c.rsvp !== false,
+              goingLabel: c.goingLabel || '',
+              interestedLabel: c.interestedLabel || '',
+            },
+          },
+        },
+      })
       .then(() => {
         this.saving[c.id!] = false;
         app.alerts.show({ type: 'success' }, t('category_saved'));

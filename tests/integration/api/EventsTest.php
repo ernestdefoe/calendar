@@ -110,7 +110,10 @@ class EventsTest extends TestCase
         $this->assertSame(3, $weekly[0]['id'], 'Each occurrence keeps the series id');
 
         $published = $body['data'][array_search('Published', $titles)];
-        $this->assertSame(['id' => 1, 'name' => 'Meetups', 'color' => '#ff0000'], $published['category']);
+        $this->assertSame(
+            ['id' => 1, 'name' => 'Meetups', 'slug' => 'meetups', 'color' => '#ff0000', 'rsvp' => true, 'goingLabel' => null, 'interestedLabel' => null],
+            $published['category']
+        );
         $this->assertSame('organiser', $published['author']['username']);
         $this->assertFalse($published['canEdit'], 'A guest can edit nothing');
     }

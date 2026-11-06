@@ -8,7 +8,15 @@
   &-category {
     display: flex; align-items: center; gap: 10px;
     padding: 8px; border: 1px solid var(--control-bg); border-radius: 8px;
-    input.FormControl { flex: 1; min-width: 0; }
+    flex-wrap: wrap;
+    // Wraps under the colors on a phone instead of shrinking to a few letters.
+    input.FormControl { flex: 1 1 160px; min-width: 0; }
+  }
+  // A second line of the row: the category's RSVP buttons.
+  &-rsvp {
+    flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+    .checkbox { margin: 0; display: inline-flex; align-items: center; gap: 6px; font-weight: normal; white-space: nowrap; }
+    input.FormControl { flex: 1 1 140px; min-width: 0; }
   }
   &-new { border-style: dashed; }
 

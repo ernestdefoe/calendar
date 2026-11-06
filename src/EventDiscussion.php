@@ -51,9 +51,12 @@ class EventDiscussion
      */
     public function start(Event $event, User $actor, ServerRequestInterface $request): Discussion
     {
-        $actor->assertCan('startDiscussion');
+        // The admin can have every thread posted by one account (a bot, say)
+        // instead of by the member who made the event.
+        $author = $this->author() ?? $actor;
+        $author->assertCan('startDiscussion');
 
-        $data = ['attributes' => ['title' => $event->title, 'content' => $this->content($event)]];
+        $data = ['attributes' => ['title' => $event->title, 'content' => $this->content($event, $author)]];
 
         // With the tags extension on, a member's new discussion must carry a
         // tag — an empty list is refused too — so without one configured the
@@ -62,7 +65,7 @@ class EventDiscussion
             $tags = $this->tagIds();
             if ($tags) {
                 $data['relationships']['tags']['data'] = array_map(fn (int $id) => ['type' => 'tags', 'id' => (string) $id], $tags);
-            } elseif (! $actor->hasPermission('bypassTagCounts')) {
+            } elseif (! $author->hasPermission('bypassTagCounts')) {
                 throw new ValidationException(['discussion' => $this->translator->trans('ernestdefoe-calendar.api.discussion_needs_tag')]);
             }
         }
@@ -73,7 +76,7 @@ class EventDiscussion
             // The incoming request carries the EVENT's body; process() merges
             // the base request's data in, so start from an empty one.
             ->withRequest($request->withParsedBody([])->withQueryParams([]))
-            ->process(['data' => $data], [], ['actor' => $actor]);
+            ->process(['data' => $data], [], ['actor' => $author]);
 
         $event->discussion_id = $discussion->id;
         $event->save();
@@ -105,13 +108,30 @@ class EventDiscussion
         }
     }
 
+    /**
+     * The account set under "Post event discussions as": a user ID or a
+     * username. Empty, or an account that no longer exists, means the
+     * member who made the event.
+     */
+    private function author(): ?User
+    {
+        $value = trim((string) $this->settings->get('ernestdefoe-calendar.event_discussion_author'));
+        if ($value === '') {
+            return null;
+        }
+
+        return ctype_digit($value)
+            ? User::query()->find((int) $value)
+            : User::query()->where('username', $value)->first();
+    }
+
     /** @return int[] */
     private function tagIds(): array
     {
         return SettingIds::from($this->settings->get('ernestdefoe-calendar.event_discussion_tags'));
     }
 
-    private function content(Event $event): string
+    private function content(Event $event, User $author): string
     {
         // The admin's date order, applied as the calendar applies it: to the
         // date only, so the clock stays the language's own 12 or 24 hours.
@@ -130,13 +150,47 @@ class EventDiscussion
             $when .= ', '.$start->copy()->locale($locale)->isoFormat('LT').' ('.$tz.')';
         }
 
+        $organiser = $event->user_id && (int) $event->user_id !== (int) $author->id ? $event->user : null;
+
         $lines = array_filter([
+            // The cover goes first, so it is the post's first picture: themes
+            // and link previews that use a discussion's first image (Masthead's
+            // banner, for one) show it, not the 📅 emoji further down.
+            $this->image($event->cover_url),
             trim((string) $event->description),
             '📅 '.$when,
             $event->location ? '📍 '.$event->location : null,
+            // Posted by another account, the thread would not say who runs it.
+            $organiser ? '👤 '.($organiser->display_name ?: $organiser->username) : null,
             '🗓️ '.$this->url->to('forum')->route('calendar').'?event='.$event->id,
         ]);
 
         return implode("\n\n", $lines);
+    }
+
+    /**
+     * The cover as an image in whichever markup the forum parses: Markdown,
+     * else BBCode, else none (a bare address would only show as text).
+     * EventInput only stores http(s) and same-site addresses.
+     */
+    private function image(?string $url): ?string
+    {
+        if (! $url) {
+            return null;
+        }
+        // Whitespace, brackets, quotes and backslashes would end the Markdown
+        // address early (a same-site path is stored without validation).
+        $url = (string) preg_replace_callback('/[\s\x00-\x1f()\[\]<>"\\\\]/', fn ($m) => rawurlencode($m[0]), $url);
+        // A same-site path is from the site's root, not the forum's folder.
+        if (str_starts_with($url, '/')) {
+            $base = parse_url($this->url->to('forum')->base());
+            $url = ($base['scheme'] ?? 'https').'://'.($base['host'] ?? '').(isset($base['port']) ? ':'.$base['port'] : '').$url;
+        }
+
+        if ($this->extensions->isEnabled('flarum-markdown')) {
+            return '![]('.$url.')';
+        }
+
+        return $this->extensions->isEnabled('flarum-bbcode') ? '[img]'.$url.'[/img]' : null;
     }
 }

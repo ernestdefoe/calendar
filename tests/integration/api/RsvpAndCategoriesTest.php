@@ -160,6 +160,29 @@ class RsvpAndCategoriesTest extends TestCase
     }
 
     #[Test]
+    public function a_category_can_reword_or_switch_off_its_rsvp_buttons()
+    {
+        [$status, $body] = $this->json('PATCH', '/api/calendar/categories/1', 1, ['data' => ['attributes' => [
+            'goingLabel' => '  Playing  ', 'interestedLabel' => str_repeat('x', 80),
+        ]]]);
+        $this->assertSame(200, $status);
+        $this->assertSame('Playing', $body['data']['goingLabel']);
+        $this->assertSame(50, mb_strlen($body['data']['interestedLabel']));
+        $this->assertTrue($body['data']['rsvp'], 'Untouched, RSVP stays on');
+
+        [, $body] = $this->json('GET', '/api/calendar/events/1');
+        $this->assertSame('Playing', $body['data']['category']['goingLabel'], 'The event carries its category\'s wording');
+
+        [$status, $body] = $this->json('PATCH', '/api/calendar/categories/1', 1, ['data' => ['attributes' => ['rsvp' => false, 'goingLabel' => '']]]);
+        $this->assertFalse($body['data']['rsvp']);
+        $this->assertNull($body['data']['goingLabel'], 'A blank label goes back to the default');
+
+        [$status] = $this->rsvp(1, 2, 'going');
+        $this->assertSame(403, $status, 'No RSVPs in a category that has them off');
+        $this->assertSame(0, $this->database()->table('calendar_event_rsvps')->count());
+    }
+
+    #[Test]
     public function deleting_a_category_keeps_its_events()
     {
         $this->assertSame(204, $this->json('DELETE', '/api/calendar/categories/1', 1)[0]);

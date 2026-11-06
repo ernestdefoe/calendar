@@ -136,6 +136,13 @@ export default [
       help: t('event_discussions_help'),
       default: false,
     }))
+    .setting(() => ({
+      setting: 'ernestdefoe-calendar.event_discussion_author',
+      type: 'text',
+      label: t('event_discussion_author'),
+      help: t('event_discussion_author_help'),
+      placeholder: t('event_discussion_author_placeholder'),
+    }))
     .setting(() =>
       'flarum-tags' in (flarum?.extensions ?? {})
         ? checkboxList('ernestdefoe-calendar.event_discussion_tags', t('event_discussion_tags'), t('event_discussion_tags_help'), tagOptions)

@@ -18,7 +18,7 @@ export interface CalEvent {
   rrule?: string | null;
   recurring: boolean;
   occurrence?: string | null;
-  category?: { id: number; name: string; color: string } | null;
+  category?: CalCategory | null;
   author?: { id: number; username: string; displayName: string; avatarUrl: string } | null;
   discussionId?: number | null;
   rsvp: { going: number; interested: number; mine: string | null; attendees?: RsvpAttendees };
@@ -43,6 +43,10 @@ export interface CalCategory {
   name: string;
   slug: string;
   color: string;
+  /** RSVP buttons on (the default) or off for this category's events. */
+  rsvp?: boolean;
+  goingLabel?: string | null;
+  interestedLabel?: string | null;
 }
 
 export interface UserActivity {

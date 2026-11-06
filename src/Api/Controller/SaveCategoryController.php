@@ -45,6 +45,15 @@ class SaveCategoryController implements RequestHandlerInterface
             $color = (string) $attrs['color'];
             $category->color = preg_match('/^#[0-9a-fA-F]{3,8}$/', $color) ? $color : '#3b5bdb';
         }
+        if (array_key_exists('rsvp', $attrs)) {
+            $category->rsvp_enabled = (bool) $attrs['rsvp'];
+        }
+        foreach (['goingLabel' => 'going_label', 'interestedLabel' => 'interested_label'] as $key => $column) {
+            if (array_key_exists($key, $attrs)) {
+                $label = trim((string) $attrs[$key]);
+                $category->$column = $label === '' ? null : mb_substr($label, 0, 50);
+            }
+        }
         if (array_key_exists('position', $attrs)) {
             $category->position = (int) $attrs['position'];
         }
@@ -68,12 +77,7 @@ class SaveCategoryController implements RequestHandlerInterface
             }
         }
 
-        return new JsonResponse(['data' => [
-            'id' => (int) $category->id,
-            'name' => $category->name,
-            'slug' => $category->slug,
-            'color' => $category->color,
-        ]], $id ? 200 : 201);
+        return new JsonResponse(['data' => $category->toPayload()], $id ? 200 : 201);
     }
 
     private static function uniqueSlug(string $name, ?int $ignoreId = null): string

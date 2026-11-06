@@ -32,7 +32,7 @@ class EventSerializer
 
         $category = null;
         if ($event->category_id && $event->relationLoaded('category') && $event->category) {
-            $category = ['id' => (int) $event->category->id, 'name' => $event->category->name, 'color' => $event->category->color];
+            $category = $event->category->toPayload();
         }
 
         $author = null;

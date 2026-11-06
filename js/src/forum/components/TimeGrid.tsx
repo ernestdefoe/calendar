@@ -16,6 +16,19 @@ interface TimeGridAttrs {
 }
 
 /**
+ * The ISO 8601 week number, read from the row's Wednesday or Thursday: with
+ * the week starting on Sunday or Monday, both fall in the ISO week of that
+ * row's Monday.
+ */
+function weekNumber(days: Date[]) {
+  const thu = new Date(Date.UTC(days[3].getFullYear(), days[3].getMonth(), days[3].getDate()));
+  thu.setUTCDate(thu.getUTCDate() + 3 - ((thu.getUTCDay() + 6) % 7));
+  // Week 1 is the week with the year's first Thursday.
+  const week = 1 + Math.floor((thu.getTime() - Date.UTC(thu.getUTCFullYear(), 0, 1)) / 604800000);
+  return m('span.CalendarTime-week', { title: t('week_number_title', { number: week }) }, t('week_number', { number: num(week) }));
+}
+
+/**
  * Shared week/day time grid (1 day = day view, 7 days = week view). Pure
  * presentation; double-click on a column asks CalendarPage to open the create
  * form pre-filled at the clicked time slot.
@@ -25,7 +38,7 @@ export default class TimeGrid extends Component {
     const { days } = this.attrs as TimeGridAttrs;
     return m('.CalendarTime' + (days.length === 1 ? '.CalendarTime--day' : '.CalendarTime--week'), [
       m('.CalendarTime-head', [
-        m('.CalendarTime-gutter'),
+        m('.CalendarTime-gutter', days.length === 7 ? weekNumber(days) : null),
         m(
           '.CalendarTime-heads',
           days.map((d) =>

@@ -9,6 +9,7 @@ use Flarum\Tags\Tag;
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
 use Flarum\Testing\integration\TestCase;
 use Flarum\User\User;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 
 class EventDiscussionsTest extends TestCase
@@ -103,6 +104,42 @@ class EventDiscussionsTest extends TestCase
         $content = $discussion->firstPost->content;
         $this->assertStringContainsString('The Old Mill', $content);
         $this->assertStringContainsString('/calendar?event='.$body['data']['id'], $content);
+    }
+
+    /** Settings are read once per app boot, so each value is its own run. */
+    public static function authors(): array
+    {
+        return ['a user ID' => ['2', 2], 'a username' => ['normal', 2], 'an account that is gone' => ['999', 3], 'empty' => ['', 3]];
+    }
+
+    #[Test]
+    #[DataProvider('authors')]
+    public function the_admin_can_have_every_thread_posted_by_one_account(string $setting, int $expected)
+    {
+        $this->setting('ernestdefoe-calendar.event_discussions', '1');
+        $this->setting('ernestdefoe-calendar.event_discussion_author', $setting);
+
+        [, $body] = $this->create();
+
+        $discussion = Discussion::query()->find($body['data']['discussionId']);
+        $this->assertSame($expected, (int) $discussion->user_id);
+        // Posted by another account, the post still names the organiser.
+        $expected === 3
+            ? $this->assertStringNotContainsString('👤', $discussion->firstPost->content)
+            : $this->assertStringContainsString('👤 organiser', $discussion->firstPost->content);
+    }
+
+    #[Test]
+    public function the_cover_is_the_first_picture_in_the_post()
+    {
+        $this->extension('flarum-markdown');
+        $this->setting('ernestdefoe-calendar.event_discussions', '1');
+
+        [, $body] = $this->create(['coverUrl' => 'https://example.com/cover(1).jpg', 'description' => 'Bring snacks.']);
+
+        $post = Discussion::query()->find($body['data']['discussionId'])->firstPost;
+        $this->assertStringStartsWith('![](https://example.com/cover%281%29.jpg)', $post->content);
+        $this->assertMatchesRegularExpression('/^<r><p><IMG [^>]*src="https:\/\/example\.com\/cover%281%29\.jpg"/', $post->getParsedContentAttribute());
     }
 
     #[Test]
