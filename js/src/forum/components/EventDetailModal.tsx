@@ -160,7 +160,7 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
               m('i.Button-icon.fas.fa-comments'),
               m('span.Button-label', t('view_discussion')),
             ])
-          : ev.canEdit && app.forum.attribute('canStartDiscussion')
+          : ev.canEdit && (app.forum.attribute('canStartDiscussion') || app.forum.attribute('ernestdefoe-calendar.postsAs'))
             ? Button.component(
                 { className: 'Button Button--icon', icon: 'fas fa-comments', loading: this.starting, onclick: () => this.startThread() },
                 t('start_discussion')

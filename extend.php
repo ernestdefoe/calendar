@@ -60,6 +60,9 @@ $extenders = [
     (new Extend\Settings())
         ->serializeToForum('ernestdefoe-calendar.dateOrder', 'ernestdefoe-calendar.date_order', fn ($v) => in_array($v, ['dmy', 'mdy'], true) ? $v : 'auto')
         ->serializeToForum('ernestdefoe-calendar.locationMode', 'ernestdefoe-calendar.location_mode', fn ($v) => in_array($v, ['apple', 'osm', 'text', 'off'], true) ? $v : 'google')
+        // Whether one account starts every event thread: the "Start a discussion"
+        // button then depends on that account, not on the viewer.
+        ->serializeToForum('ernestdefoe-calendar.postsAs', 'ernestdefoe-calendar.event_discussion_author', fn ($v) => trim((string) $v) !== '')
         ->serializeToForum('ernestdefoe-calendar.hideNavLink', 'ernestdefoe-calendar.hide_nav_link', fn ($v) => filter_var($v, FILTER_VALIDATE_BOOLEAN))
         ->serializeToForum('ernestdefoe-calendar.defaultView', 'ernestdefoe-calendar.default_view', fn ($v) => $v ?: 'month')
         ->serializeToForum('ernestdefoe-calendar.weekStartsOn', 'ernestdefoe-calendar.week_starts_on', fn ($v) => (int) ($v ?? 0))
@@ -97,6 +100,10 @@ $extenders = [
                     ->get(fn ($model, Context $context) => $coverUploadsEnabled && $context->getActor()->hasPermission('fof-upload.upload')),
             ];
         }),
+
+    // "Post event discussions as" is checked when the settings are saved.
+    (new Extend\Event())
+        ->listen(\Flarum\Settings\Event\Saving::class, \ErnestDefoe\Calendar\Listener\ValidateDiscussionAuthor::class),
 
     // ---- Opt-in birthday (MM-DD only) on the user resource; self-editable. ----
     (new Extend\ApiResource(UserResource::class))

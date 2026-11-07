@@ -129,6 +129,82 @@ class EventDiscussionsTest extends TestCase
             : $this->assertStringContainsString('👤 organiser', $discussion->firstPost->content);
     }
 
+    /** A restricted tag, and the bot (user 2) allowed only to skip approval there. */
+    private function restrictedTag(bool $canStart): void
+    {
+        $this->prepareDatabase([
+            Tag::class => [['id' => 2, 'name' => 'Calendar', 'slug' => 'calendar', 'position' => 1, 'is_restricted' => true]],
+            Group::class => [['id' => 6, 'name_singular' => 'Bot', 'name_plural' => 'Bots']],
+            'group_user' => [['user_id' => 2, 'group_id' => 6]],
+            'group_permission' => array_merge(
+                [['permission' => 'tag2.viewForum', 'group_id' => 6], ['permission' => 'tag2.discussion.startWithoutApproval', 'group_id' => 6]],
+                $canStart ? [['permission' => 'tag2.startDiscussion', 'group_id' => 6]] : []
+            ),
+        ]);
+        $this->setting('ernestdefoe-calendar.event_discussion_tags', '[2]');
+        $this->setting('ernestdefoe-calendar.event_discussion_author', '2');
+    }
+
+    #[Test]
+    public function an_account_that_may_only_skip_approval_is_told_what_is_missing()
+    {
+        $this->restrictedTag(false);
+
+        // An event from before threads were on, started by hand.
+        [$status, $error] = $this->json('POST', '/api/calendar/events/1/discussion', 3);
+
+        $this->assertSame(422, $status);
+        // The test app has no English strings loaded: the key comes back, with the tag filled in.
+        $this->assertStringContainsString('discussion_author_cannot_start_in_Calendar', $error['errors'][0]['detail']);
+        $this->assertSame(0, Discussion::query()->count());
+    }
+
+    #[Test]
+    public function an_older_event_gets_its_thread_from_the_post_as_account()
+    {
+        $this->restrictedTag(true);
+
+        [$status, $body] = $this->json('POST', '/api/calendar/events/1/discussion', 3);
+
+        $this->assertSame(200, $status);
+        $discussion = Discussion::query()->find($body['data']['discussionId']);
+        $this->assertSame(2, (int) $discussion->user_id);
+        $this->assertSame([2], $discussion->tags()->pluck('id')->map(fn ($id) => (int) $id)->all());
+    }
+
+    private function saveSettings(array $settings): array
+    {
+        $response = $this->send($this->request('POST', '/api/settings', ['authenticatedAs' => 1, 'json' => $settings]));
+
+        return [$response->getStatusCode(), json_decode((string) $response->getBody(), true)];
+    }
+
+    #[Test]
+    public function saving_an_account_that_does_not_exist_is_refused()
+    {
+        [$status, $error] = $this->saveSettings(['ernestdefoe-calendar.event_discussion_author' => 'nobody-here']);
+
+        $this->assertSame(422, $status);
+        $this->assertSame('/data/attributes/ernestdefoe-calendar.event_discussion_author', $error['errors'][0]['source']['pointer']);
+        $this->assertStringContainsString('discussion_author_not_found', $error['errors'][0]['detail']);
+    }
+
+    #[Test]
+    public function saving_an_account_that_cannot_post_in_the_tags_is_refused_while_threads_are_on()
+    {
+        $this->restrictedTag(false);
+
+        [$status] = $this->saveSettings(['ernestdefoe-calendar.event_discussion_author' => 'normal']);
+        $this->assertSame(204, $status, 'With threads off, only the account itself is checked');
+
+        [$status, $error] = $this->saveSettings(['ernestdefoe-calendar.event_discussions' => '1']);
+        $this->assertSame(422, $status);
+        $this->assertStringContainsString('cannot_start_in_Calendar', $error['errors'][0]['detail']);
+
+        [$status] = $this->saveSettings(['ernestdefoe-calendar.event_discussions' => '1', 'ernestdefoe-calendar.event_discussion_tags' => '[1]']);
+        $this->assertSame(204, $status, 'An open tag is fine');
+    }
+
     #[Test]
     public function the_cover_is_the_first_picture_in_the_post()
     {

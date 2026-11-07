@@ -36,6 +36,7 @@ class EventDiscussion
         private UrlGenerator $url,
         private TranslatorInterface $translator,
         private LoggerInterface $log,
+        private DiscussionAuthor $author,
     ) {
     }
 
@@ -53,14 +54,14 @@ class EventDiscussion
     {
         // The admin can have every thread posted by one account (a bot, say)
         // instead of by the member who made the event.
-        $author = $this->author() ?? $actor;
-        $author->assertCan('startDiscussion');
+        $author = $this->author->configured() ?? $actor;
 
         $data = ['attributes' => ['title' => $event->title, 'content' => $this->content($event, $author)]];
 
         // With the tags extension on, a member's new discussion must carry a
         // tag — an empty list is refused too — so without one configured the
         // organiser is told what is missing instead of "tags is required".
+        $tags = null;
         if ($this->extensions->isEnabled('flarum-tags')) {
             $tags = $this->tagIds();
             if ($tags) {
@@ -68,6 +69,11 @@ class EventDiscussion
             } elseif (! $author->hasPermission('bypassTagCounts')) {
                 throw new ValidationException(['discussion' => $this->translator->trans('ernestdefoe-calendar.api.discussion_needs_tag')]);
             }
+        }
+
+        // Said in words an admin can act on, not core's bare 403.
+        if ($problem = $this->author->problem($author, $tags ?? [])) {
+            throw new ValidationException(['discussion' => $problem]);
         }
 
         /** @var Discussion $discussion */
@@ -90,7 +96,7 @@ class EventDiscussion
         try {
             $this->start($event, $actor, $request);
         } catch (\Throwable $e) {
-            $this->log->info('[calendar] event '.$event->id.' discussion not started: '.$e->getMessage());
+            $this->log->warning('[calendar] event '.$event->id.' discussion not started: '.$e->getMessage());
         }
     }
 
@@ -106,23 +112,6 @@ class EventDiscussion
             $discussion->rename($event->title);
             $discussion->save();
         }
-    }
-
-    /**
-     * The account set under "Post event discussions as": a user ID or a
-     * username. Empty, or an account that no longer exists, means the
-     * member who made the event.
-     */
-    private function author(): ?User
-    {
-        $value = trim((string) $this->settings->get('ernestdefoe-calendar.event_discussion_author'));
-        if ($value === '') {
-            return null;
-        }
-
-        return ctype_digit($value)
-            ? User::query()->find((int) $value)
-            : User::query()->where('username', $value)->first();
     }
 
     /** @return int[] */
