@@ -3,6 +3,7 @@ import { extend, override } from 'flarum/common/extend';
 import Select from 'flarum/common/components/Select';
 
 declare const m: any;
+declare const flarum: any;
 
 /**
  * Calendar's two FoF Badges metrics in its trigger builder. The builder's
@@ -10,7 +11,7 @@ declare const m: any;
  * server registers the metrics themselves (src/Badges). Without fof/badges
  * the module never loads and none of this runs.
  */
-const BUILDER = 'ext:fof/badges/admin/components/TriggerBuilder';
+const BUILDER = 'admin/components/TriggerBuilder';
 const METRICS = ['calendar_events_attended', 'calendar_events_organized'];
 const t = (k: string): string => app.translator.trans('ernestdefoe-calendar.admin.badges.' + k, {}, true);
 
@@ -27,41 +28,57 @@ function loadCategories() {
     .catch(() => {});
 }
 
-const usesCalendar = (builder: any) => builder.config.conditions.some((c: any) => METRICS.includes(c.metric));
+const usesCalendar = (builder: any): boolean =>
+  Array.isArray(builder?.config?.conditions) && builder.config.conditions.some((c: any) => METRICS.includes(c?.metric));
+
+function categoryField(builder: any) {
+  return m('.TriggerBuilder-calendarCategory', [
+    m('.Form-group', [
+      m('label', t('category')),
+      m(Select, {
+        // Keys like "c4": a plain "4" sorts ahead of "" in an object, which
+        // put "Any category" last.
+        value: builder.config.calendar_category_id ? 'c' + builder.config.calendar_category_id : '',
+        options: { '': t('category_any'), ...Object.fromEntries((categories || []).map((c) => ['c' + c.id, c.name])) },
+        onchange: (val: string) => {
+          builder.config.calendar_category_id = val ? parseInt(val.slice(1), 10) : undefined;
+          builder.emitChange();
+        },
+      }),
+      m('p.helpText', t('category_help')),
+    ]),
+  ]);
+}
 
 export default function registerBadges() {
-  extend(BUILDER, 'getAvailableMetrics', function (metrics: { value: string; label: string }[]) {
-    metrics.push({ value: METRICS[0], label: t('events_attended') }, { value: METRICS[1], label: t('events_organized') });
-  });
+  // Only once fof/badges' builder has loaded, and only the methods it still
+  // has: if a later fof/badges renames or drops one, Calendar's part simply
+  // doesn't appear instead of throwing on the badge form.
+  flarum.reg.onLoad('fof-badges', BUILDER, (Builder: any) => {
+    const proto = Builder?.prototype;
+    if (!proto) return;
 
-  // An optional category, under the conditions, while a Calendar metric is used.
-  extend(BUILDER, 'view', function (this: any, vdom: any) {
-    if (!usesCalendar(this) || !Array.isArray(vdom?.children)) return;
-    loadCategories();
+    if (typeof proto.getAvailableMetrics === 'function') {
+      extend(proto, 'getAvailableMetrics', function (metrics: { value: string; label: string }[]) {
+        if (!Array.isArray(metrics)) return;
+        metrics.push({ value: METRICS[0], label: t('events_attended') }, { value: METRICS[1], label: t('events_organized') });
+      });
+    }
 
-    vdom.children.push(
-      m('.TriggerBuilder-calendarCategory', [
-        m('.Form-group', [
-          m('label', t('category')),
-          m(Select, {
-            // Keys like "c4": a plain "4" sorts ahead of "" in an object, which
-            // put "Any category" last.
-            value: this.config.calendar_category_id ? 'c' + this.config.calendar_category_id : '',
-            options: { '': t('category_any'), ...Object.fromEntries((categories || []).map((c) => ['c' + c.id, c.name])) },
-            onchange: (val: string) => {
-              this.config.calendar_category_id = val ? parseInt(val.slice(1), 10) : undefined;
-              this.emitChange();
-            },
-          }),
-          m('p.helpText', t('category_help')),
-        ]),
-      ])
-    );
-  });
+    // An optional category, under the conditions, while a Calendar metric is used.
+    if (typeof proto.view === 'function' && typeof proto.emitChange === 'function') {
+      extend(proto, 'view', function (this: any, vdom: any) {
+        if (!usesCalendar(this) || !Array.isArray(vdom?.children)) return;
+        loadCategories();
 
-  // Never leave a category behind once no condition uses a Calendar metric.
-  override(BUILDER, 'emitChange', function (this: any, original: () => void) {
-    if (!usesCalendar(this) || !this.config.calendar_category_id) delete this.config.calendar_category_id;
-    original();
+        vdom.children.push(categoryField(this));
+      });
+
+      // Never leave a category behind once no condition uses a Calendar metric.
+      override(proto, 'emitChange', function (this: any, original: () => void) {
+        if (this.config && (!usesCalendar(this) || !this.config.calendar_category_id)) delete this.config.calendar_category_id;
+        original();
+      });
+    }
   });
 }
