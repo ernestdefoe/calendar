@@ -4,8 +4,10 @@ namespace ErnestDefoe\Calendar\Api\Controller;
 
 use ErnestDefoe\Calendar\Event;
 use ErnestDefoe\Calendar\EventRsvp;
+use ErnestDefoe\Calendar\Events\RsvpChanged;
 use Flarum\Http\RequestUtil;
 use Flarum\User\Exception\PermissionDeniedException;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Arr;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
@@ -20,6 +22,10 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 class RsvpController implements RequestHandlerInterface
 {
+    public function __construct(private Dispatcher $events)
+    {
+    }
+
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $actor = RequestUtil::getActor($request);
@@ -41,6 +47,7 @@ class RsvpController implements RequestHandlerInterface
         $status = (string) Arr::get((array) $request->getParsedBody(), 'data.status', '');
 
         $existing = EventRsvp::query()->where('event_id', $event->id)->where('user_id', $actor->id)->first();
+        $before = $existing?->status;
 
         if ($status === 'none' || $status === '') {
             $existing?->delete();
@@ -59,6 +66,10 @@ class RsvpController implements RequestHandlerInterface
             $mine = $status;
         } else {
             $mine = $existing?->status;
+        }
+
+        if ($mine !== $before) {
+            $this->events->dispatch(new RsvpChanged($event, $actor, $mine));
         }
 
         $rows = EventRsvp::query()->where('event_id', $event->id)

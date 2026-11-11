@@ -6,6 +6,8 @@ use ErnestDefoe\Calendar\Api\EventInput;
 use ErnestDefoe\Calendar\Api\EventSerializer;
 use ErnestDefoe\Calendar\Event;
 use ErnestDefoe\Calendar\EventDiscussion;
+use ErnestDefoe\Calendar\Events\EventSaved;
+use Illuminate\Contracts\Events\Dispatcher;
 use Flarum\Http\RequestUtil;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Arr;
@@ -18,7 +20,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 /** POST /api/calendar/events — create an event (requires calendar.create). */
 class CreateEventController implements RequestHandlerInterface
 {
-    public function __construct(private EventDiscussion $discussions)
+    public function __construct(private EventDiscussion $discussions, private Dispatcher $events)
     {
     }
 
@@ -55,6 +57,8 @@ class CreateEventController implements RequestHandlerInterface
         if ($event->is_published !== false && $this->discussions->automatic()) {
             $this->discussions->startQuietly($event, $actor, $request);
         }
+
+        $this->events->dispatch(new EventSaved($event, $actor));
 
         $event->load(['user', 'category']);
 

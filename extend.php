@@ -102,8 +102,16 @@ $extenders = [
         }),
 
     // "Post event discussions as" is checked when the settings are saved.
+    // RSVPs and saved events are checked against FoF Badges triggers (the
+    // listener does nothing without fof/badges).
     (new Extend\Event())
-        ->listen(\Flarum\Settings\Event\Saving::class, \ErnestDefoe\Calendar\Listener\ValidateDiscussionAuthor::class),
+        ->listen(\Flarum\Settings\Event\Saving::class, \ErnestDefoe\Calendar\Listener\ValidateDiscussionAuthor::class)
+        ->listen(\ErnestDefoe\Calendar\Events\RsvpChanged::class, \ErnestDefoe\Calendar\Badges\EvaluateCalendarBadges::class)
+        ->listen(\ErnestDefoe\Calendar\Events\EventSaved::class, \ErnestDefoe\Calendar\Badges\EvaluateCalendarBadges::class),
+
+    // Two FoF Badges metrics: events attended and events organized.
+    (new Extend\ServiceProvider())
+        ->register(\ErnestDefoe\Calendar\Badges\BadgesServiceProvider::class),
 
     // ---- Opt-in birthday (MM-DD only) on the user resource; self-editable. ----
     (new Extend\ApiResource(UserResource::class))

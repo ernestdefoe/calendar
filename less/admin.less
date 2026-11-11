@@ -50,3 +50,18 @@
   padding: 8px 12px; border: 1px solid var(--control-bg); border-radius: var(--border-radius);
   .checkbox { margin: 0; display: inline-flex; align-items: center; gap: 6px; font-weight: normal; }
 }
+
+// The category under a FoF Badges trigger that counts Calendar events,
+// spaced like fof/badges' own tag filter and stacked on a phone.
+.TriggerBuilder-calendarCategory {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--control-bg);
+
+  // Three classes: fof/badges lays the modal's last .Form-group out in a row
+  // (`.BadgeEditModal .Form-group:last-child`), which put label, select and
+  // help side by side.
+  .TriggerBuilder & .Form-group { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+  .Select { max-width: 320px; }
+  .helpText { margin: 0; }
+}

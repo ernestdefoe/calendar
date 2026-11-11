@@ -1,6 +1,7 @@
 import app from 'flarum/admin/app';
 import { EDITOR_WIDGETS, EXTENSION } from '../common/registerFofWidget';
 import { registerEditorWidgets } from '../common/fofWidgets';
+import registerBadges from './badges';
 
 /**
  * Admin entry. Scalar settings, permissions, and the custom category manager
@@ -11,6 +12,7 @@ import { registerEditorWidgets } from '../common/fofWidgets';
  */
 app.initializers.add('ernestdefoe/calendar-widgets', () => {
   registerEditorWidgets(app, EXTENSION, EDITOR_WIDGETS(app));
+  registerBadges();
 });
 
 export { default as extend } from './extend';
