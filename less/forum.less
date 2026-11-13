@@ -559,3 +559,14 @@
 .CalendarGrid.CalSkeleton {
   animation: cal-pulse 1.2s ease-in-out infinite;
 }
+
+/*
+ * 🚨 A native dropdown's list is drawn by the browser, and an <option> has no
+ * background of its own: on dark themes the list came up white (or the theme's
+ * light-scheme default) under the select's light text, so the categories could
+ * not be read. Give every option the page's own colours. Reported by vimo
+ * (discuss.flarum.org/d/39377/71).
+ */
+.CalendarPage, .CalendarEventModal, .CalBirthday {
+  select option { color: var(--text-color); background-color: var(--body-bg); }
+}
