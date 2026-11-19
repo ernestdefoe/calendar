@@ -2,6 +2,7 @@ import Extend from 'flarum/common/extenders';
 import app from 'flarum/admin/app';
 import CategoryManager from './components/CategoryManager';
 import { hasFofWidgets } from '../common/registerFofWidget';
+import commonExtend from '../common/extend';
 
 const t = (k: string) => app.translator.trans('ernestdefoe-calendar.admin.' + k);
 
@@ -90,6 +91,7 @@ function tagOptions(): Record<string, string> {
 }
 
 export default [
+  ...commonExtend,
   new Extend.Admin()
     .setting(() => ({
       setting: 'ernestdefoe-calendar.default_view',

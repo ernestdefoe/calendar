@@ -3,6 +3,7 @@
 namespace ErnestDefoe\Calendar;
 
 use Carbon\Carbon;
+use ErnestDefoe\Calendar\Tags\TagSupport;
 use Flarum\Api\JsonApi;
 use Flarum\Api\Resource\DiscussionResource;
 use Flarum\Discussion\Discussion;
@@ -32,6 +33,7 @@ class EventDiscussion
         private JsonApi $api,
         private SettingsRepositoryInterface $settings,
         private Integrations $integrations,
+        private TagSupport $tags,
         private UrlGenerator $url,
         private TranslatorInterface $translator,
         private LoggerInterface $log,
@@ -62,7 +64,7 @@ class EventDiscussion
         // tag — an empty list is refused too — so without one configured the
         // organiser is told what is missing instead of "tags is required".
         $tags = null;
-        if ($this->integrations->tags()) {
+        if ($this->tags->inUse()) {
             $tags = $this->tagIds();
             if ($tags) {
                 $data['relationships']['tags']['data'] = array_map(fn (int $id) => ['type' => 'tags', 'id' => (string) $id], $tags);
@@ -176,10 +178,6 @@ class EventDiscussion
             $url = ($base['scheme'] ?? 'https').'://'.($base['host'] ?? '').(isset($base['port']) ? ':'.$base['port'] : '').$url;
         }
 
-        if ($this->integrations->markdown()) {
-            return '![]('.$url.')';
-        }
-
-        return $this->integrations->bbcode() ? '[img]'.$url.'[/img]' : null;
+        return $this->integrations->image($url);
     }
 }

@@ -36,6 +36,11 @@ return [
 
     (new Extend\ApiResource(ForumResource::class))
         ->fields(Api\ForumFields::class),
+    (new Extend\Conditional())
+        ->whenExtensionEnabled('fof-upload', fn () => [
+            (new Extend\ApiResource(ForumResource::class))
+                ->fields(Api\UploadFields::class),
+        ]),
 
     // The opt-in birthday (MM-DD only), self-editable.
     (new Extend\ApiResource(UserResource::class))
@@ -84,6 +89,15 @@ return [
     (new Extend\Event())
         ->listen(\Flarum\Settings\Event\Saving::class, \ErnestDefoe\Calendar\Listener\ValidateDiscussionAuthor::class)
         ->subscribe(\ErnestDefoe\Calendar\Listener\EventThreads::class),
+
+    // ---- Tags on event threads and memories: none, or flarum/tags while it is enabled ----
+    (new Extend\ServiceProvider())
+        ->register(\ErnestDefoe\Calendar\Tags\TagsServiceProvider::class),
+    (new Extend\Conditional())
+        ->whenExtensionEnabled('flarum-tags', fn () => [
+            (new Extend\ServiceProvider())
+                ->register(\ErnestDefoe\Calendar\Tags\FlarumTagsServiceProvider::class),
+        ]),
 
     // ---- Attendees' game characters: none, or Armory's while it is enabled ----
     (new Extend\ServiceProvider())

@@ -11,12 +11,10 @@ namespace ErnestDefoe\Calendar;
 use Flarum\Extension\ExtensionManager;
 
 /**
- * Which of the optional extensions Calendar works with are enabled right now.
- * These change what a request does (a tag on an event thread, the markup a
- * cover image is written in), not what Calendar registers, so they are asked
- * at request time; anything Calendar registers for another extension sits in
- * Extend\Conditional in extend.php instead. Every id is listed in
- * composer.json's optional-dependencies.
+ * The markup a post is written in depends on which formatter extension is on
+ * right now, so it is asked at request time; everything Calendar registers for
+ * another extension sits in Extend\Conditional in extend.php instead. Both ids
+ * are listed in composer.json's optional-dependencies.
  */
 class Integrations
 {
@@ -24,24 +22,14 @@ class Integrations
     {
     }
 
-    public function tags(): bool
+    /** An image in the post formatter's markup: Markdown, else BBCode; null when neither is enabled. */
+    public function image(string $url): ?string
     {
-        return $this->enabled('flarum-tags');
-    }
+        if ($this->enabled('flarum-markdown')) {
+            return '![]('.$url.')';
+        }
 
-    public function markdown(): bool
-    {
-        return $this->enabled('flarum-markdown');
-    }
-
-    public function bbcode(): bool
-    {
-        return $this->enabled('flarum-bbcode');
-    }
-
-    public function uploads(): bool
-    {
-        return $this->enabled('fof-upload');
+        return $this->enabled('flarum-bbcode') ? '[img]'.$url.'[/img]' : null;
     }
 
     private function enabled(string $id): bool

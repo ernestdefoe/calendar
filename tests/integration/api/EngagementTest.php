@@ -106,12 +106,29 @@ class EngagementTest extends TestCase
         $guest = $attributes(null);
         $this->assertFalse($guest['canCreateEvent']);
         $this->assertFalse($guest['canManageCalendar']);
-        $this->assertFalse($guest['calendarCoverUploads'], 'No uploads without fof/upload');
+        $this->assertArrayNotHasKey('calendarCoverUploads', $guest, 'Without fof/upload the forum says nothing about uploads');
 
         $this->assertFalse($attributes(2)['canCreateEvent']);
         $this->assertTrue($attributes(5)['canCreateEvent']);
         $this->assertFalse($attributes(5)['canManageCalendar']);
         $this->assertTrue($attributes(1)['canManageCalendar']);
+    }
+
+    #[Test]
+    public function a_birthday_is_read_on_the_members_own_page_only()
+    {
+        $this->database()->table('calendar_birthdays')->insert(['user_id' => 2, 'birthday' => '07-04']);
+
+        [, $forum] = $this->get('/api', 2);
+        $me = current(array_filter($forum['included'] ?? [], fn ($r) => $r['type'] === 'users' && $r['id'] === '2'));
+        $this->assertIsArray($me);
+        $this->assertArrayNotHasKey('calendarBirthday', $me['attributes'], 'Not with the user every page carries');
+
+        [, $own] = $this->get('/api/users/2', 2);
+        $this->assertSame('07-04', $own['data']['attributes']['calendarBirthday']);
+
+        [, $other] = $this->get('/api/users/2', 1);
+        $this->assertArrayNotHasKey('calendarBirthday', $other['data']['attributes'], 'Not to anyone else');
     }
 
     #[Test]

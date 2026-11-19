@@ -34,12 +34,10 @@ class IcalFeedController implements RequestHandlerInterface
         $actor = RequestUtil::getActor($request);
         $actor->assertCan('viewForum');
 
-        // Eager-load category + user so per-event serialisation below doesn't
-        // lazy-load them one row at a time (N+1). The 2000-row ceiling bounds
-        // peak memory for forums with long event histories / many recurrences.
+        // The 2000-row ceiling bounds peak memory for forums with long event
+        // histories; IcalGenerator reads only the events' own columns.
         $events = Event::query()
             ->whereVisibleTo($actor)
-            ->with(['category', 'user'])
             ->where('is_published', true)
             // Anything not over before last month: series still repeating included.
             ->where(fn ($q) => $q->whereNull('finishes_at')->orWhere('finishes_at', '>=', Carbon::now()->subMonth()))

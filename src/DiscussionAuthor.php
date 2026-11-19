@@ -8,6 +8,7 @@
 
 namespace ErnestDefoe\Calendar;
 
+use ErnestDefoe\Calendar\Tags\TagSupport;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\User;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -25,7 +26,7 @@ class DiscussionAuthor
 {
     public function __construct(
         private SettingsRepositoryInterface $settings,
-        private Integrations $integrations,
+        private TagSupport $tags,
         private TranslatorInterface $translator,
     ) {
     }
@@ -61,18 +62,11 @@ class DiscussionAuthor
             return $this->translator->trans('ernestdefoe-calendar.api.discussion_author_cannot_start', $account);
         }
 
-        if (! $tagIds || ! $this->integrations->tags()) {
-            return null;
-        }
+        $refused = $this->tags->refused($author, $tagIds);
 
-        $refused = \Flarum\Tags\Tag::query()->whereIn('id', $tagIds)->get()
-            // A restricted tag must also be visible to it, or core answers 404.
-            ->reject(fn ($tag) => $author->can('viewForum', $tag) && $author->can('startDiscussion', $tag))
-            ->pluck('name');
-
-        return $refused->isEmpty() ? null : $this->translator->trans(
+        return $refused ? $this->translator->trans(
             'ernestdefoe-calendar.api.discussion_author_cannot_start_in_tags',
-            $account + ['tags' => $refused->implode(', ')]
-        );
+            $account + ['tags' => implode(', ', $refused)]
+        ) : null;
     }
 }

@@ -26,6 +26,8 @@ use Laminas\Diactoros\Response\JsonResponse;
  */
 class CalendarWidgetResource extends AbstractResource
 {
+    use ReadsFilters;
+
     public function __construct(
         private Pulse $pulse,
         private Memories $memories,
@@ -44,13 +46,13 @@ class CalendarWidgetResource extends AbstractResource
         return [
             $this->widget('pulse', fn (Context $context) => $this->pulse->for(
                 $context->getActor(),
-                self::clamp(self::option($context, 'days'), 14, 365, 120),
-                self::clamp(self::option($context, 'leaderDays'), 1, 365, 30),
-                self::clamp(self::option($context, 'limit'), 1, 25, 10),
+                self::clamp(self::filterValue($context, 'days'), 14, 365, 120),
+                self::clamp(self::filterValue($context, 'leaderDays'), 1, 365, 30),
+                self::clamp(self::filterValue($context, 'limit'), 1, 25, 10),
             )),
             $this->widget('memories', fn (Context $context) => $this->memories->for(
                 $context->getActor(),
-                self::clamp(self::option($context, 'limit'), 1, 20, 6),
+                self::clamp(self::filterValue($context, 'limit'), 1, 20, 6),
             )),
             $this->widget('celebrations', fn () => $this->celebrations->today()),
             $this->widget('activity', fn (Context $context) => $this->userActivity($context)),
@@ -73,7 +75,7 @@ class CalendarWidgetResource extends AbstractResource
     /** One member's comments per day over the last year, with their streaks. */
     private function userActivity(Context $context): array
     {
-        $userId = (int) self::option($context, 'user');
+        $userId = (int) self::filterValue($context, 'user');
         $daily = $this->activity->userDaily($context->getActor(), $userId, 365);
 
         return [
@@ -84,13 +86,6 @@ class CalendarWidgetResource extends AbstractResource
             'activeDays' => count($daily),
             'max' => $daily ? max($daily) : 0, // peak day, for color scaling
         ];
-    }
-
-    private static function option(Context $context, string $name): mixed
-    {
-        $filters = $context->queryParam('filter');
-
-        return is_array($filters) ? ($filters[$name] ?? null) : null;
     }
 
     private static function clamp(mixed $value, int $min, int $max, int $default): int

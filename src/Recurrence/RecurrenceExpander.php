@@ -93,7 +93,6 @@ class RecurrenceExpander
     {
         $out = [];
         $emitted = 0;
-        $i = 0;
         // Anchor on the Sunday of the series-start week; step whole weeks by
         // $interval, jumping straight to the window when there's no COUNT.
         $weekStart = $start->copy()->startOfWeek(Carbon::SUNDAY);
@@ -101,29 +100,39 @@ class RecurrenceExpander
             $weekStart = self::fastForward('WEEKLY', $weekStart, $from->copy()->startOfWeek(Carbon::SUNDAY), $interval);
         }
 
-        while ($i++ < self::MAX_ITERATIONS) {
-            foreach ($days as $dow) {
-                $occ = $weekStart->copy()->addDays($dow)->setTime($start->hour, $start->minute, $start->second);
-                if ($occ->lt($start)) {
-                    continue;
-                }                 // never before the series anchor
-                if ($until && $occ->gt($until)) {
-                    return $out;
-                }
-                if ($count !== null && $emitted >= $count) {
+        for ($i = 0; $i < self::MAX_ITERATIONS && $weekStart->lte($to); $i++) {
+            foreach (self::weekOccurrences($weekStart, $days, $start) as $occ) {
+                if (($until && $occ->gt($until)) || ($count !== null && $emitted >= $count)) {
                     return $out;
                 }
                 $emitted++;
-                if ($occ->gte($from) && $occ->lte($to)) {
+                if ($occ->between($from, $to)) {
                     $out[] = $occ;
-                    if (count($out) >= $cap) {
-                        return $out;
-                    }
+                }
+                if (count($out) >= $cap) {
+                    return $out;
                 }
             }
             $weekStart->addWeeks($interval);
-            if ($weekStart->gt($to)) {
-                break;
+        }
+
+        return $out;
+    }
+
+    /**
+     * The series' days in the week starting $weekStart, at the series' time,
+     * never before the series anchor.
+     *
+     * @param int[] $days
+     * @return Carbon[]
+     */
+    private static function weekOccurrences(Carbon $weekStart, array $days, Carbon $start): array
+    {
+        $out = [];
+        foreach ($days as $dow) {
+            $occ = $weekStart->copy()->addDays($dow)->setTime($start->hour, $start->minute, $start->second);
+            if ($occ->gte($start)) {
+                $out[] = $occ;
             }
         }
 

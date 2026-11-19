@@ -1,6 +1,10 @@
 import app from 'flarum/common/app';
 import { invalidate } from './widgetData';
 import type { BasicUser } from './users';
+import type Model from 'flarum/common/Model';
+import type { ApiPayloadSingle } from 'flarum/common/Store';
+import type CalendarEvent from './models/CalendarEvent';
+import type CalendarCategory from './models/CalendarCategory';
 
 /** An event as the views use it: one occurrence of a calendar-events resource (EventResource). */
 export interface CalEvent {
@@ -90,60 +94,50 @@ export interface Celebrant extends BasicUser {
 const api = (path: string) => app.forum.attribute('apiUrl') + path;
 export const base = () => app.forum.attribute<string>('baseUrl');
 
-/** A JSON:API resource object, as the calendar resources send them. */
-interface ApiResource {
-  type: string;
-  id: string;
-  attributes: Record<string, any>;
-  relationships?: Record<string, { data: { type: string; id: string } | null }>;
-}
+/** A store model's attributes, copied, so the views get the same plain object the resource sent. */
+const attrsOf = (model: Model): Record<string, any> => ({ ...(model.data.attributes || {}) });
 
-interface ApiDocument {
-  data: ApiResource | ApiResource[];
-  included?: ApiResource[];
-}
+const toCategory = (model: CalendarCategory): CalCategory => ({ ...(attrsOf(model) as Omit<CalCategory, 'id'>), id: Number(model.id()) });
 
-const toCategory = (r: ApiResource): CalCategory => ({ id: Number(r.id), ...(r.attributes as Omit<CalCategory, 'id'>) });
-
-/** Turn one calendar-events resource into the CalEvent the views use. */
-function toEvent(r: ApiResource, included: ApiResource[] = []): CalEvent {
-  const find = (rel: string) => {
-    const ref = r.relationships?.[rel]?.data;
-    return ref ? included.find((i) => i.type === ref.type && i.id === ref.id) : undefined;
-  };
-  const user = find('user');
-  const category = find('category');
-  const { occurrences, ...attrs } = r.attributes;
+/** Turn one calendar-events model into the CalEvent the views use. */
+function toEvent(model: CalendarEvent): CalEvent {
+  const { occurrences, ...attrs } = attrsOf(model);
+  const user = model.user();
+  const category = model.category();
 
   return {
     ...(attrs as Omit<CalEvent, 'id' | 'category' | 'author' | 'occurrence'>),
-    id: Number(r.id),
+    id: Number(model.id()),
     occurrence: null,
     category: category ? toCategory(category) : null,
     author: user
       ? {
-          id: Number(user.id),
-          username: user.attributes.username,
-          displayName: user.attributes.displayName,
-          avatarUrl: user.attributes.avatarUrl,
+          id: Number(user.id()),
+          username: user.attribute<string>('username'),
+          displayName: user.attribute<string>('displayName'),
+          avatarUrl: user.attribute<string>('avatarUrl'),
         }
       : null,
   };
 }
 
 /** A listed series becomes one CalEvent per occurrence inside the window, sorted by start. */
-function toOccurrences(doc: ApiDocument): CalEvent[] {
-  const rows = doc.data as ApiResource[];
+function toOccurrences(models: CalendarEvent[]): CalEvent[] {
   const events: CalEvent[] = [];
 
-  rows.forEach((r) => {
-    const event = toEvent(r, doc.included);
-    (r.attributes.occurrences || []).forEach((o: { occurrence: string | null; start: string; end: string | null; googleUrl: string }) => {
+  models.forEach((model) => {
+    const event = toEvent(model);
+    (model.occurrences() || []).forEach((o) => {
       events.push({ ...event, occurrence: o.occurrence, start: o.start, end: o.end, googleUrl: o.googleUrl });
     });
   });
 
   return events.sort((a, b) => a.start.localeCompare(b.start));
+}
+
+/** The store's copy of a record we only know by id (pushed as existing, so save() PATCHes and delete() DELETEs). */
+function known<M extends Model>(type: string, id: number): M {
+  return app.store.getById<M>(type, String(id)) ?? app.store.pushObject<M>({ type, id: String(id), attributes: {} })!;
 }
 
 const widget = <T>(name: string, query: Record<string, string | number | undefined> = {}): Promise<T> => {
@@ -176,69 +170,67 @@ export function forumPulse(opts: { days?: number; leaderDays?: number; limit?: n
 }
 
 export function listEvents(from: Date, to: Date, category?: string): Promise<{ data: CalEvent[]; categories: CalCategory[] }> {
-  const qs = new URLSearchParams({ 'filter[from]': from.toISOString(), 'filter[to]': to.toISOString() });
-  if (category) qs.set('filter[category]', category);
+  const filter: Record<string, string> = { from: from.toISOString(), to: to.toISOString() };
+  if (category) filter.category = category;
 
-  return Promise.all([app.request<ApiDocument>({ method: 'GET', url: api('/calendar-events?' + qs.toString()) }), listCategories()]).then(
-    ([doc, categories]) => ({ data: toOccurrences(doc), categories })
-  );
+  // The store passes the filter as request params, which Mithril encodes — so the ':' in the ISO dates is safe.
+  return Promise.all([app.store.find<CalendarEvent[]>('calendar-events', { filter }), listCategories()]).then(([models, categories]) => ({
+    data: toOccurrences(models),
+    categories,
+  }));
 }
 
 export function showEvent(id: number): Promise<CalEvent> {
-  return app.request<ApiDocument>({ method: 'GET', url: api('/calendar-events/' + id) }).then((doc) => toEvent(doc.data as ApiResource, doc.included));
+  return app.store.find<CalendarEvent>('calendar-events', String(id)).then(toEvent);
 }
 
 export function saveEvent(attrs: Record<string, unknown>, id?: number): Promise<CalEvent> {
+  const model = id ? known<CalendarEvent>('calendar-events', id) : app.store.createRecord<CalendarEvent>('calendar-events');
+
+  return model.save(attrs).then((saved) => {
+    invalidate('events:');
+    return toEvent(saved);
+  });
+}
+
+/** POST to one of an event's own endpoints (rsvp, discussion) and store the event it answers with. */
+function eventAction(id: number, action: string, body?: unknown): Promise<CalendarEvent> {
   return app
-    .request<ApiDocument>({
-      method: id ? 'PATCH' : 'POST',
-      url: api('/calendar-events' + (id ? '/' + id : '')),
-      body: { data: { type: 'calendar-events', ...(id ? { id: String(id) } : {}), attributes: attrs } },
-    })
-    .then((doc) => {
+    .request<ApiPayloadSingle>({ method: 'POST', url: api('/calendar-events/' + id + '/' + action), ...(body ? { body } : {}) })
+    .then((payload) => {
       invalidate('events:');
-      return toEvent(doc.data as ApiResource, doc.included);
+      return app.store.pushPayload<CalendarEvent>(payload);
     });
 }
 
 /** Start the comment thread for an event that has none. */
 export function startDiscussion(id: number): Promise<CalEvent> {
-  return app.request<ApiDocument>({ method: 'POST', url: api('/calendar-events/' + id + '/discussion') }).then((doc) => {
-    invalidate('events:');
-    return toEvent(doc.data as ApiResource, doc.included);
-  });
+  return eventAction(id, 'discussion').then(toEvent);
 }
 
 export function deleteEvent(id: number): Promise<unknown> {
-  return app.request({ method: 'DELETE', url: api('/calendar-events/' + id) }).then((r) => {
-    invalidate('events:');
-    return r;
-  });
-}
-
-export function rsvp(id: number, status: string): Promise<CalEvent['rsvp']> {
-  return app
-    .request<ApiDocument>({ method: 'POST', url: api('/calendar-events/' + id + '/rsvp'), body: { data: { attributes: { status } } } })
-    .then((doc) => {
+  return known<CalendarEvent>('calendar-events', id)
+    .delete()
+    .then((r) => {
       invalidate('events:');
-      return (doc.data as ApiResource).attributes.rsvp;
+      return r;
     });
 }
 
+export function rsvp(id: number, status: string): Promise<CalEvent['rsvp']> {
+  return eventAction(id, 'rsvp', { data: { attributes: { status } } }).then((model) => model.rsvp());
+}
+
 export function listCategories(): Promise<CalCategory[]> {
-  return app.request<ApiDocument>({ method: 'GET', url: api('/calendar-categories') }).then((doc) => (doc.data as ApiResource[]).map(toCategory));
+  return app.store.find<CalendarCategory[]>('calendar-categories').then((models) => models.map(toCategory));
 }
 
 export function saveCategory(attrs: Record<string, unknown>, id?: number): Promise<CalCategory> {
-  return app
-    .request<ApiDocument>({
-      method: id ? 'PATCH' : 'POST',
-      url: api('/calendar-categories' + (id ? '/' + id : '')),
-      body: { data: { type: 'calendar-categories', ...(id ? { id: String(id) } : {}), attributes: attrs } },
-    })
-    .then((doc) => toCategory(doc.data as ApiResource));
+  const model = id ? known<CalendarCategory>('calendar-categories', id) : app.store.createRecord<CalendarCategory>('calendar-categories');
+
+  return model.save(attrs).then(toCategory);
 }
 
 export function deleteCategory(id: number): Promise<unknown> {
-  return app.request({ method: 'DELETE', url: api('/calendar-categories/' + id) });
+  return known<CalendarCategory>('calendar-categories', id).delete();
 }

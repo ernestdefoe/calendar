@@ -44,6 +44,7 @@ use Tobyz\JsonApiServer\Exception\ForbiddenException;
  */
 class EventResource extends AbstractDatabaseResource
 {
+    use ReadsFilters;
     use UniqueSlugs;
 
     /** A list never loads more series than this. */
@@ -93,7 +94,7 @@ class EventResource extends AbstractDatabaseResource
             // The calendar lists published events only; drafts open from their link.
             $query->where('calendar_events.is_published', true)->inWindow($from, $to);
 
-            if ($category = trim((string) $this->filter($context, 'category'))) {
+            if ($category = trim((string) self::filterValue($context, 'category'))) {
                 $query->whereHas('category', fn (Builder $q) => $q->where('slug', $category)->orWhere('id', (int) $category));
             }
 
@@ -127,12 +128,12 @@ class EventResource extends AbstractDatabaseResource
                 ->route('POST', '/{id}/rsvp')
                 ->authenticated()
                 ->action(fn (Context $context) => $this->rsvp($context))
-                ->response(fn (Context $context, Event $event) => $this->respond($context, $event)),
+                ->defaultInclude(['user', 'category']),
             Endpoint\Endpoint::make('discussion')
                 ->route('POST', '/{id}/discussion')
                 ->authenticated()
                 ->action(fn (Context $context) => $this->startDiscussion($context))
-                ->response(fn (Context $context, Event $event) => $this->respond($context, $event)),
+                ->defaultInclude(['user', 'category']),
         ];
     }
 
@@ -275,7 +276,8 @@ class EventResource extends AbstractDatabaseResource
     private function rsvp(Context $context): Event
     {
         $actor = $context->getActor();
-        $event = $this->findVisible($context);
+        /** @var Event $event found through scope(), so only if the actor may see it */
+        $event = $context->model;
 
         if (! $actor->can('rsvp', $event)) {
             throw new ForbiddenException();
@@ -296,7 +298,7 @@ class EventResource extends AbstractDatabaseResource
             }
         }
 
-        $event = $this->findVisible($context); // fresh counts and answer
+        $event = $this->reload($context);
         if ($event->my_rsvp !== $before) {
             $this->events->dispatch(new RsvpChanged($event, $actor, $event->my_rsvp));
         }
@@ -316,7 +318,8 @@ class EventResource extends AbstractDatabaseResource
 
     private function startDiscussion(Context $context): Event
     {
-        $event = $this->findVisible($context);
+        /** @var Event $event found through scope(), so only if the actor may see it */
+        $event = $context->model;
 
         if (! $context->getActor()->can('edit', $event)) {
             throw new ForbiddenException();
@@ -329,28 +332,20 @@ class EventResource extends AbstractDatabaseResource
 
         $this->events->dispatch(new DiscussionRequested($event, $context->getActor(), $context->request));
 
-        return $this->findVisible($context); // with the new thread's id
+        return $this->reload($context);
     }
 
-    private function findVisible(Context $context): Event
+    /** The event again, for the RSVP counts, the actor's answer and the thread id as just saved. */
+    private function reload(Context $context): Event
     {
-        return $this->query($context)->with('category')->findOrFail($context->modelId);
-    }
-
-    private function respond(Context $context, Event $event): mixed
-    {
-        $serializer = new \Flarum\Api\Serializer($context);
-        $serializer->addPrimary($context->resource($this->type()), $event, ['user' => [], 'category' => []]);
-        [$primary, $included] = $serializer->serialize();
-
-        return \Tobyz\JsonApiServer\json_api_response(['data' => $primary[0]] + ($included ? ['included' => $included] : []));
+        return $this->query($context)->findOrFail($context->modelId);
     }
 
     /** @return array{0: Carbon, 1: Carbon} */
     private function window(OriginalContext $context): array
     {
-        $from = $this->date($this->filter($context, 'from')) ?? Carbon::now()->startOfMonth();
-        $to = $this->date($this->filter($context, 'to')) ?? (clone $from)->addMonths(2);
+        $from = $this->date(self::filterValue($context, 'from')) ?? Carbon::now()->startOfMonth();
+        $to = $this->date(self::filterValue($context, 'to')) ?? (clone $from)->addMonths(2);
 
         if ($to->lt($from)) {
             $to = (clone $from)->addMonth();
@@ -360,13 +355,6 @@ class EventResource extends AbstractDatabaseResource
         }
 
         return [$from, $to];
-    }
-
-    private function filter(OriginalContext $context, string $name): mixed
-    {
-        $filters = $context->queryParam('filter');
-
-        return is_array($filters) ? ($filters[$name] ?? null) : null;
     }
 
     private function date(mixed $value): ?Carbon

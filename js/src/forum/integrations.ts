@@ -76,6 +76,7 @@ function bespokeWidgets(): any[] {
 /** ernestdefoe/bespoke — register as a placeable theme widget. */
 function registerBespoke(): void {
   try {
+    if (!('ernestdefoe-bespoke' in (flarum?.extensions ?? {}))) return;
     const bespoke = (app as any).bespoke;
     if (!bespoke?.widgets?.add) return;
 
@@ -97,6 +98,7 @@ function registerBespoke(): void {
  */
 function registerPageBuilder(): void {
   try {
+    if (!('ernestdefoe-page-builder' in (flarum?.extensions ?? {}))) return;
     const pb = (app as any).pageBuilder;
     if (!pb?.registerBlock) return;
 

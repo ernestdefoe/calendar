@@ -8,9 +8,9 @@
 
 namespace ErnestDefoe\Calendar\Widgets;
 
-use ErnestDefoe\Calendar\Integrations;
 use Carbon\Carbon;
 use ErnestDefoe\Calendar\SettingIds;
+use ErnestDefoe\Calendar\Tags\TagSupport;
 use Flarum\Discussion\Discussion;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\User;
@@ -22,7 +22,7 @@ class Memories
     public function __construct(
         private Repository $cache,
         private SettingsRepositoryInterface $settings,
-        private Integrations $integrations,
+        private TagSupport $tags,
     ) {
     }
 
@@ -71,16 +71,9 @@ class Memories
     {
         $query = Discussion::whereVisibleTo($viewer)->whereIn('discussions.id', $ids);
 
-        /*
-         * Tags the admin left out: typically a read-only one (announcements, an
-         * archive), where a memory invites a reply nobody can post. Only with
-         * flarum/tags enabled: without it the pivot table may not exist.
-         */
-        $excludedTags = SettingIds::from($this->settings->get('ernestdefoe-calendar.onthisday_exclude_tags'));
-
-        if ($excludedTags && $this->integrations->tags()) {
-            $query->whereDoesntHave('tags', fn ($q) => $q->whereIn('tags.id', $excludedTags));
-        }
+        // Tags the admin left out: typically a read-only one (announcements, an
+        // archive), where a memory invites a reply nobody can post.
+        $this->tags->exclude($query, SettingIds::from($this->settings->get('ernestdefoe-calendar.onthisday_exclude_tags')));
 
         return $query
             ->whereNull('hidden_at')

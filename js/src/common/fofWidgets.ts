@@ -91,9 +91,7 @@ function leaveUnplaced(extension: string, widgets: EditorWidget[]): void {
 
     const disabled: string[] = Array.isArray(config.disabled) ? config.disabled : [];
     const instances: any[] = Array.isArray(config.instances) ? config.instances : [];
-    const unplaced = widgets
-      .map((w) => `${extension}:${w.key}`)
-      .filter((id) => !disabled.includes(id) && !instances.some((i: any) => i?.id === id));
+    const unplaced = widgets.map((w) => `${extension}:${w.key}`).filter((id) => !disabled.includes(id) && !instances.some((i: any) => i?.id === id));
     config.disabled = [...disabled, ...unplaced];
   });
 }
