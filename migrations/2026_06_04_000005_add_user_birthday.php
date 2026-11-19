@@ -32,10 +32,19 @@ return [
     'down' => function (Builder $schema) {
         $schema->dropIfExists('calendar_birthdays');
 
-        if ($schema->hasColumn('users', 'cal_birthday')) {
-            $schema->table('users', function (Blueprint $table) {
-                $table->dropColumn('cal_birthday');
-            });
+        if (! $schema->hasColumn('users', 'cal_birthday')) {
+            return;
         }
+
+        // Its index first (SQLite refuses to drop an indexed column), under the
+        // fixed name older versions gave it or the one Laravel generates.
+        foreach (['users_cal_birthday_index', ['cal_birthday']] as $index) {
+            if ($schema->hasIndex('users', $index)) {
+                $schema->table('users', fn (Blueprint $table) => $table->dropIndex($index));
+            }
+        }
+        $schema->table('users', function (Blueprint $table) {
+            $table->dropColumn('cal_birthday');
+        });
     },
 ];

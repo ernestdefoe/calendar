@@ -31,7 +31,11 @@ return [
         });
     },
 
+    // The index first: SQLite refuses to drop an indexed column.
     'down' => function (Builder $schema) {
+        $schema->table('calendar_events', function (Blueprint $table) {
+            $table->dropIndex(['finishes_at']);
+        });
         $schema->table('calendar_events', function (Blueprint $table) {
             $table->dropColumn('finishes_at');
         });
