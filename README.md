@@ -148,11 +148,12 @@ Authenticate the way you would with any Flarum endpoint: a
 **Create calendar events** permission.
 
 ```bash
-curl -X POST https://your-forum.example/api/calendar/events \
+curl -X POST https://your-forum.example/api/calendar-events \
   -H 'Authorization: Token YOUR_API_KEY; userId=1' \
   -H 'Content-Type: application/json' \
   -d '{
         "data": {
+          "type": "calendar-events",
           "attributes": {
             "title":    "Raid night",
             "start":    "2026-10-04T19:00:00Z",
@@ -180,20 +181,28 @@ event is returned with `"location": null`.
 
 The rest of the surface:
 
-| Method   | Route                             | Purpose                          |
-| -------- | --------------------------------- | -------------------------------- |
-| `GET`    | `/api/calendar/events`            | List (accepts `from` / `to`)     |
-| `GET`    | `/api/calendar/events/{id}`       | One event                        |
-| `POST`   | `/api/calendar/events`            | Create                           |
-| `PATCH`  | `/api/calendar/events/{id}`       | Update                           |
-| `DELETE` | `/api/calendar/events/{id}`       | Delete                           |
-| `POST`   | `/api/calendar/events/{id}/rsvp`  | Set the actor's RSVP             |
-| `GET`    | `/api/calendar/categories`        | List categories                  |
+| Method   | Route                                         | Purpose                                   |
+| -------- | --------------------------------------------- | ----------------------------------------- |
+| `GET`    | `/api/calendar-events`                        | List (`filter[from]`, `filter[to]`, `filter[category]`) |
+| `GET`    | `/api/calendar-events/{id}`                   | One event, with its attendees             |
+| `POST`   | `/api/calendar-events`                        | Create                                    |
+| `PATCH`  | `/api/calendar-events/{id}`                   | Update                                    |
+| `DELETE` | `/api/calendar-events/{id}`                   | Delete                                    |
+| `POST`   | `/api/calendar-events/{id}/rsvp`              | Set the actor's RSVP (`attributes.status`: `going`, `interested` or `none`) |
+| `POST`   | `/api/calendar-events/{id}/discussion`        | Start the event's comment thread          |
+| `GET`    | `/api/calendar-categories`                    | List categories (admins also create, update and delete) |
+| `GET`    | `/api/calendar-widgets/pulse`                 | The forum pulse widget's data             |
+| `GET`    | `/api/calendar-widgets/memories`              | On-this-day discussions                   |
+| `GET`    | `/api/calendar-widgets/celebrations`          | Today's birthdays and join anniversaries  |
+| `GET`    | `/api/calendar-widgets/activity?filter[user]=` | One member's activity heatmap             |
 
-Requests take the JSON:API envelope (`{"data": {"attributes": {…}}}`); responses
-come back as `{"data": {…}}` with the event flattened into one object — id, slug,
-resolved category, author, RSVP counts and the export links — rather than as
-JSON:API `included` relationships you have to stitch together.
+Events and categories are standard Flarum JSON:API resources (`calendar-events`,
+`calendar-categories`): a write sends `{"data": {"type": …, "attributes": {…}}}`,
+and a read returns attributes with the author (`user`) and `category` as
+relationships, both included by default. In a list, each event carries the
+`occurrences` that fall inside the window, so a recurring series is one resource
+however often it repeats. The widget routes answer `{"data": …}` in each
+widget's own shape. Calendar 2.8 and older served these under `/api/calendar/…`.
 
 A rejected save is a `422` carrying `errors[]` with a `source.pointer` per field,
 the same shape Flarum uses everywhere else, so existing error handling works
