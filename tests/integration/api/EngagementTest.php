@@ -2,6 +2,7 @@
 
 namespace ErnestDefoe\Calendar\Tests\integration\api;
 
+use ErnestDefoe\Calendar\Tests\integration\CalendarApi;
 use Carbon\Carbon;
 use Flarum\Discussion\Discussion;
 use Flarum\Group\Group;
@@ -15,6 +16,7 @@ use PHPUnit\Framework\Attributes\Test;
 
 class EngagementTest extends TestCase
 {
+    use CalendarApi;
     use RetrievesAuthorizedUsers;
 
     protected function setUp(): void
@@ -35,9 +37,13 @@ class EngagementTest extends TestCase
         $this->prepareDatabase([
             User::class => [
                 $this->normalUser(),
-                ['id' => 3, 'username' => 'birthday', 'email' => 'birthday@machine.local', 'is_email_confirmed' => 1, 'cal_birthday' => $now->format('m-d'), 'joined_at' => $now],
+                ['id' => 3, 'username' => 'birthday', 'email' => 'birthday@machine.local', 'is_email_confirmed' => 1, 'joined_at' => $now],
                 ['id' => 4, 'username' => 'veteran', 'email' => 'veteran@machine.local', 'is_email_confirmed' => 1, 'joined_at' => $then],
-                ['id' => 5, 'username' => 'organiser', 'email' => 'organiser@machine.local', 'is_email_confirmed' => 1, 'cal_birthday' => $now->copy()->addDays(2)->format('m-d')],
+                ['id' => 5, 'username' => 'organiser', 'email' => 'organiser@machine.local', 'is_email_confirmed' => 1],
+            ],
+            'calendar_birthdays' => [
+                ['user_id' => 3, 'birthday' => $now->format('m-d')],
+                ['user_id' => 5, 'birthday' => $now->copy()->addDays(2)->format('m-d')],
             ],
             Group::class => [
                 ['id' => 5, 'name_singular' => 'Organiser', 'name_plural' => 'Organisers'],
@@ -78,9 +84,9 @@ class EngagementTest extends TestCase
 
     private function get(string $path, ?int $actor = null): array
     {
-        $response = $this->send($this->request('GET', $path, $actor ? ['authenticatedAs' => $actor] : []));
+        $response = $this->send($this->calendarRequest('GET', $path, $actor ? ['authenticatedAs' => $actor] : []));
 
-        return [$response->getStatusCode(), json_decode((string) $response->getBody(), true)];
+        return [$response->getStatusCode(), $this->flatten(json_decode((string) $response->getBody(), true))];
     }
 
     /** The day's lists are cached; a run of this suite must not read another test's. */
@@ -111,7 +117,7 @@ class EngagementTest extends TestCase
     #[Test]
     public function a_member_sets_their_own_birthday_and_only_theirs()
     {
-        $patch = fn (int $user, int $actor, string $birthday) => $this->send($this->request('PATCH', "/api/users/$user", [
+        $patch = fn (int $user, int $actor, string $birthday) => $this->send($this->calendarRequest('PATCH', "/api/users/$user", [
             'authenticatedAs' => $actor,
             'json' => ['data' => ['type' => 'users', 'id' => (string) $user, 'attributes' => ['calendarBirthday' => $birthday]]],
         ]));
@@ -121,19 +127,19 @@ class EngagementTest extends TestCase
         $this->assertSame('07-04', json_decode((string) $response->getBody(), true)['data']['attributes']['calendarBirthday']);
 
         $patch(2, 2, '13-40');
-        $this->assertNull($this->database()->table('users')->where('id', 2)->value('cal_birthday'), 'An impossible date clears it');
+        $this->assertNull($this->database()->table('calendar_birthdays')->where('user_id', 2)->value('birthday'), 'An impossible date clears it');
 
         $this->assertSame(403, $patch(4, 2, '01-01')->getStatusCode());
-        $this->assertNull($this->database()->table('users')->where('id', 4)->value('cal_birthday'));
+        $this->assertNull($this->database()->table('calendar_birthdays')->where('user_id', 4)->value('birthday'));
 
         $this->assertSame(200, $patch(4, 1, '01-01')->getStatusCode(), 'An admin may edit any member');
-        $this->assertSame('01-01', $this->database()->table('users')->where('id', 4)->value('cal_birthday'));
+        $this->assertSame('01-01', $this->database()->table('calendar_birthdays')->where('user_id', 4)->value('birthday'));
     }
 
     #[Test]
     public function a_members_activity_counts_only_their_visible_comments()
     {
-        [$status, $body] = $this->get('/api/calendar/activity/2');
+        [$status, $body] = $this->get('/api/calendar-widgets/activity?filter[user]=2');
 
         $this->assertSame(200, $status);
         $today = Carbon::now()->toDateString();
@@ -142,7 +148,7 @@ class EngagementTest extends TestCase
         $this->assertSame(3, $body['data']['total'], 'Hidden and private comments, and those over a year old, are left out');
         $this->assertSame(['current' => 2, 'longest' => 2], $body['data']['streak']);
 
-        [, $body] = $this->get('/api/calendar/activity/5');
+        [, $body] = $this->get('/api/calendar-widgets/activity?filter[user]=5');
         $this->assertSame(['current' => 2, 'longest' => 2], $body['data']['streak'], 'A streak stays alive until a whole day passes');
     }
 
@@ -151,7 +157,7 @@ class EngagementTest extends TestCase
     {
         $this->freshCache();
 
-        [$status, $body] = $this->get('/api/calendar/pulse');
+        [$status, $body] = $this->get('/api/calendar-widgets/pulse');
 
         $this->assertSame(200, $status);
         $this->assertSame(6, $body['data']['total']);
@@ -171,7 +177,7 @@ class EngagementTest extends TestCase
         $this->setting('ernestdefoe-calendar.pulse_exclude_users', ' veteran , nobody-by-this-name');
         $this->freshCache();
 
-        [$status, $body] = $this->get('/api/calendar/pulse');
+        [$status, $body] = $this->get('/api/calendar-widgets/pulse');
 
         $this->assertSame(200, $status);
         $this->assertSame(
@@ -196,7 +202,7 @@ class EngagementTest extends TestCase
         $db = $this->database();
         $db->flushQueryLog();
         $db->enableQueryLog();
-        [$status, $body] = $this->get('/api/calendar/pulse');
+        [$status, $body] = $this->get('/api/calendar-widgets/pulse');
         $queries = count($db->getQueryLog());
         $db->disableQueryLog();
 
@@ -246,14 +252,14 @@ class EngagementTest extends TestCase
     {
         $this->freshCache();
 
-        [$status, $body] = $this->get('/api/calendar/onthisday');
+        [$status, $body] = $this->get('/api/calendar-widgets/memories');
 
         $this->assertSame(200, $status);
         $this->assertSame(['Years ago today'], array_column($body['data'], 'title'), 'Not hidden, private, or from this year');
         $this->assertSame(4, $body['data'][0]['yearsAgo']);
 
         // An admin can see hidden and private discussions, but they are still no memory to share.
-        [, $body] = $this->get('/api/calendar/onthisday', 1);
+        [, $body] = $this->get('/api/calendar-widgets/memories', 1);
         $this->assertSame(['Years ago today', 'No comments'], array_column($body['data'], 'title'));
     }
 
@@ -262,7 +268,7 @@ class EngagementTest extends TestCase
     {
         $this->freshCache();
 
-        [$status, $body] = $this->get('/api/calendar/celebrations');
+        [$status, $body] = $this->get('/api/calendar-widgets/celebrations');
 
         $this->assertSame(200, $status);
         $this->assertSame(

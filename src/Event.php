@@ -4,8 +4,8 @@ namespace ErnestDefoe\Calendar;
 
 use Carbon\Carbon;
 use Flarum\Database\AbstractModel;
+use Flarum\Database\ScopeVisibilityTrait;
 use Flarum\Discussion\Discussion;
-use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -36,9 +36,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool $is_published
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
+ * @property int|null $going_count     selected by EventResource::scope()
+ * @property int|null $interested_count selected by EventResource::scope()
+ * @property string|null $my_rsvp       selected by EventResource::scope()
  */
 class Event extends AbstractModel
 {
+    use ScopeVisibilityTrait;
+
     protected $table = 'calendar_events';
 
     protected $casts = [
@@ -55,22 +60,6 @@ class Event extends AbstractModel
         'timezone' => 'UTC',
         'is_published' => true,
     ];
-
-    /**
-     * The admin can switch the location field off (`location_mode` = off) for
-     * forums whose events all happen online. The stored value is kept, so
-     * switching it back on restores it, but while it is off every reader — the
-     * API, the .ics feed, Google Calendar links, event threads — sees none.
-     */
-    public function getLocationAttribute(?string $value): ?string
-    {
-        return $value !== null && ! self::locationEnabled() ? null : $value;
-    }
-
-    public static function locationEnabled(): bool
-    {
-        return resolve(SettingsRepositoryInterface::class)->get('ernestdefoe-calendar.location_mode') !== 'off';
-    }
 
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo

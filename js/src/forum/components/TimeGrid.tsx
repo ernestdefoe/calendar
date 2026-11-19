@@ -3,7 +3,6 @@ import Component from 'flarum/common/Component';
 import { isToday, hourLabel, layoutDay, startOfDay, shortTime, eventOnDay, loc, num } from '../../common/dates';
 import { type CalEvent } from '../../common/api';
 
-declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 

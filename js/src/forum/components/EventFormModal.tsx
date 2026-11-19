@@ -5,7 +5,6 @@ import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 import { saveEvent, listCategories, type CalEvent, type CalCategory } from '../../common/api';
 import { toLocalInput, eventDate } from '../../common/dates';
 
-declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
 // The admin can switch the location field off; it is then neither shown nor sent.
 const locationOn = () => app.forum.attribute('ernestdefoe-calendar.locationMode') !== 'off';
@@ -30,56 +29,16 @@ export default class EventFormModal extends Modal<FormAttrs> {
   oninit(vnode: any) {
     super.oninit(vnode);
     const ev: CalEvent | undefined = this.attrs.event;
-    // Default start: a clicked day/slot if provided, else the next whole hour.
-    /*
-     * 🚨 A bare 'YYYY-MM-DD' string is parsed as UTC midnight by the spec, which
-     * is the PREVIOUS day for anybody west of UTC. The month grid passes a real
-     * Date so this is safe today, but a caller passing a date string would seed
-     * the form a day out with nothing to show for it.
-     */
-    const now = this.attrs.day ? asLocalDate(this.attrs.day) : new Date();
-    if (!this.attrs.day) {
-      now.setMinutes(0, 0, 0);
-      now.setHours(now.getHours() + 1);
-    }
-    const later = new Date(now.getTime() + 60 * 60 * 1000);
-
-    this.data = ev
-      ? {
-          title: ev.title,
-          description: ev.description || '',
-          // eventDate: an all-day date read locally loaded a day early west
-          // of Greenwich, and saving moved the event back a day each time.
-          start: toLocalInput(eventDate(ev, ev.start)),
-          end: ev.end ? toLocalInput(eventDate(ev, ev.end)) : '',
-          allDay: ev.allDay,
-          timezone: ev.timezone || guessTz(),
-          location: ev.location || '',
-          url: ev.url || '',
-          coverUrl: ev.coverUrl || '',
-          categoryId: ev.category?.id || '',
-          repeat: freqOf(ev.rrule),
-        }
-      : {
-          title: '',
-          description: '',
-          start: toLocalInput(now),
-          end: toLocalInput(later),
-          allDay: false,
-          timezone: guessTz(),
-          location: '',
-          url: '',
-          coverUrl: '',
-          categoryId: '',
-          repeat: '',
-        };
+    this.data = ev ? fromEvent(ev) : blankEvent(this.attrs.day);
 
     listCategories()
       .then((c) => {
         this.categories = c;
         m.redraw();
       })
-      .catch(() => {});
+      .catch(() => {
+        // app.request already showed the alert; the form still works without a category.
+      });
   }
 
   className() {
@@ -91,7 +50,6 @@ export default class EventFormModal extends Modal<FormAttrs> {
 
   content() {
     const d = this.data;
-    const field = (label: string, input: any) => m('.CalendarForm-field', [m('label.CalendarForm-label', label), input]);
 
     // Flarum 2's Modal does NOT wrap content() in a form (unlike 1.x), so we must
     // render our own <form> — otherwise the type="submit" button submits nothing
@@ -106,105 +64,124 @@ export default class EventFormModal extends Modal<FormAttrs> {
           autofocus: true,
           oninput: (e: any) => (d.title = e.target.value),
         }),
-
-        // ---- When ----
-        m('.CalendarForm-section', [
-          m('.CalendarForm-sectionTitle', [m('i.icon.fas.fa-clock'), ' ', t('section_when')]),
-          m('label.CalendarForm-toggle', [
-            m('input', {
-              type: 'checkbox',
-              checked: d.allDay,
-              // 🚨 Switching All-day on must clear the time from the STORED value,
-              // not just from what the inputs display. It used to set the flag
-              // alone: the fields showed a bare date while d.start still held
-              // '…T12:00' and d.end '…T10:00', so an end that looked equal to the
-              // start was still an hour earlier underneath. Reported by ClaudiusH
-              // as "on the UI the timestamp is removed, but internally still kept".
-              onchange: (e: any) => {
-                d.allDay = e.target.checked;
-                if (d.allDay) {
-                  d.start = d.start.slice(0, 10) + 'T00:00';
-                  d.end = d.end ? d.end.slice(0, 10) + 'T00:00' : '';
-                }
-              },
-            }),
-            m('span.CalendarForm-toggleTrack'),
-            m('span.CalendarForm-toggleLabel', t('field_all_day')),
-          ]),
-          m('.CalendarForm-grid', [
-            field(
-              t('field_start'),
-              m('input.FormControl', {
-                type: d.allDay ? 'date' : 'datetime-local',
-                value: d.allDay ? d.start.slice(0, 10) : d.start,
-                oninput: (e: any) => (d.start = d.allDay ? e.target.value + 'T00:00' : e.target.value),
-              })
-            ),
-            field(
-              t('field_end'),
-              m('input.FormControl', {
-                type: d.allDay ? 'date' : 'datetime-local',
-                value: d.allDay ? (d.end || '').slice(0, 10) : d.end,
-                oninput: (e: any) => (d.end = d.allDay ? (e.target.value ? e.target.value + 'T00:00' : '') : e.target.value),
-              })
-            ),
-          ]),
-          field(
-            t('field_repeat'),
-            m('select.FormControl', { value: d.repeat, onchange: (e: any) => (d.repeat = e.target.value) }, [
-              m('option', { value: '' }, t('repeat_none')),
-              m('option', { value: 'DAILY' }, t('repeat_daily')),
-              m('option', { value: 'WEEKLY' }, t('repeat_weekly')),
-              m('option', { value: 'MONTHLY' }, t('repeat_monthly')),
-              m('option', { value: 'YEARLY' }, t('repeat_yearly')),
-            ])
-          ),
-        ]),
-
-        // ---- Details ----
-        m('.CalendarForm-section', [
-          m('.CalendarForm-sectionTitle', [m('i.icon.fas.fa-circle-info'), ' ', t('section_details')]),
-          locationOn()
-            ? field(
-                t('field_location'),
-                m('input.FormControl', {
-                  value: d.location,
-                  placeholder: app.translator.trans('ernestdefoe-calendar.forum.location_placeholder', {}, true),
-                  oninput: (e: any) => (d.location = e.target.value),
-                })
-              )
-            : null,
-          field(
-            t('field_category'),
-            // 🚨 `selected` on the options, not `value` on the select: the
-            // categories arrive after the form opens, and Mithril sets a
-            // select's value BEFORE it adds the options — so editing an event
-            // showed "—" and saving wiped its category. Reported by RelicSystem.
-            m('select.FormControl', { onchange: (e: any) => (d.categoryId = e.target.value) }, [
-              m('option', { value: '', selected: !d.categoryId }, '—'),
-              ...this.categories.map((c) => m('option', { value: c.id, selected: String(c.id) === String(d.categoryId) }, c.name)),
-            ])
-          ),
-          field(t('field_url'), m('input.FormControl', { value: d.url, placeholder: 'https://…', oninput: (e: any) => (d.url = e.target.value) })),
-          this.coverField(),
-          field(
-            t('field_description'),
-            m('textarea.FormControl', {
-              rows: 4,
-              value: d.description,
-              placeholder: t('field_description'),
-              oninput: (e: any) => (d.description = e.target.value),
-            })
-          ),
-        ]),
-
-        // ---- Actions ----
-        m('.CalendarForm-actions', [
-          Button.component({ className: 'Button', type: 'button', onclick: () => app.modal.close() }, t('cancel')),
-          Button.component({ type: 'submit', className: 'Button Button--primary', icon: 'fas fa-check', loading: this.loading }, t('save')),
-        ]),
+        this.whenSection(),
+        this.detailsSection(),
+        this.actions(),
       ])
     );
+  }
+
+  /** ---- When ---- start, end, all-day and repeat. */
+  whenSection() {
+    const d = this.data;
+
+    return m('.CalendarForm-section', [
+      m('.CalendarForm-sectionTitle', [m('i.icon.fas.fa-clock'), ' ', t('section_when')]),
+      this.allDayToggle(),
+      m('.CalendarForm-grid', [
+        field(
+          t('field_start'),
+          m('input.FormControl', {
+            type: d.allDay ? 'date' : 'datetime-local',
+            value: d.allDay ? d.start.slice(0, 10) : d.start,
+            oninput: (e: any) => (d.start = d.allDay ? e.target.value + 'T00:00' : e.target.value),
+          })
+        ),
+        field(
+          t('field_end'),
+          m('input.FormControl', {
+            type: d.allDay ? 'date' : 'datetime-local',
+            value: d.allDay ? (d.end || '').slice(0, 10) : d.end,
+            oninput: (e: any) => (d.end = d.allDay ? (e.target.value ? e.target.value + 'T00:00' : '') : e.target.value),
+          })
+        ),
+      ]),
+      field(
+        t('field_repeat'),
+        m('select.FormControl', { value: d.repeat, onchange: (e: any) => (d.repeat = e.target.value) }, [
+          m('option', { value: '' }, t('repeat_none')),
+          m('option', { value: 'DAILY' }, t('repeat_daily')),
+          m('option', { value: 'WEEKLY' }, t('repeat_weekly')),
+          m('option', { value: 'MONTHLY' }, t('repeat_monthly')),
+          m('option', { value: 'YEARLY' }, t('repeat_yearly')),
+        ])
+      ),
+    ]);
+  }
+
+  allDayToggle() {
+    const d = this.data;
+
+    return m('label.CalendarForm-toggle', [
+      m('input', {
+        type: 'checkbox',
+        checked: d.allDay,
+        // 🚨 Switching All-day on must clear the time from the STORED value,
+        // not just from what the inputs display. It used to set the flag
+        // alone: the fields showed a bare date while d.start still held
+        // '…T12:00' and d.end '…T10:00', so an end that looked equal to the
+        // start was still an hour earlier underneath. Reported by ClaudiusH
+        // as "on the UI the timestamp is removed, but internally still kept".
+        onchange: (e: any) => {
+          d.allDay = e.target.checked;
+          if (d.allDay) {
+            d.start = d.start.slice(0, 10) + 'T00:00';
+            d.end = d.end ? d.end.slice(0, 10) + 'T00:00' : '';
+          }
+        },
+      }),
+      m('span.CalendarForm-toggleTrack'),
+      m('span.CalendarForm-toggleLabel', t('field_all_day')),
+    ]);
+  }
+
+  /** ---- Details ---- location, category, link, cover and description. */
+  detailsSection() {
+    const d = this.data;
+
+    return m('.CalendarForm-section', [
+      m('.CalendarForm-sectionTitle', [m('i.icon.fas.fa-circle-info'), ' ', t('section_details')]),
+      locationOn()
+        ? field(
+            t('field_location'),
+            m('input.FormControl', {
+              value: d.location,
+              placeholder: app.translator.trans('ernestdefoe-calendar.forum.location_placeholder', {}, true),
+              oninput: (e: any) => (d.location = e.target.value),
+            })
+          )
+        : null,
+      field(
+        t('field_category'),
+        // 🚨 `selected` on the options, not `value` on the select: the
+        // categories arrive after the form opens, and Mithril sets a
+        // select's value BEFORE it adds the options — so editing an event
+        // showed "—" and saving wiped its category. Reported by RelicSystem.
+        m('select.FormControl', { onchange: (e: any) => (d.categoryId = e.target.value) }, [
+          m('option', { value: '', selected: !d.categoryId }, '—'),
+          ...this.categories.map((c) => m('option', { value: c.id, selected: String(c.id) === String(d.categoryId) }, c.name)),
+        ])
+      ),
+      field(t('field_url'), m('input.FormControl', { value: d.url, placeholder: 'https://…', oninput: (e: any) => (d.url = e.target.value) })),
+      this.coverField(),
+      field(
+        t('field_description'),
+        m('textarea.FormControl', {
+          rows: 4,
+          value: d.description,
+          placeholder: t('field_description'),
+          oninput: (e: any) => (d.description = e.target.value),
+        })
+      ),
+    ]);
+  }
+
+  /** ---- Actions ---- */
+  actions() {
+    return m('.CalendarForm-actions', [
+      Button.component({ className: 'Button', type: 'button', onclick: () => app.modal.close() }, t('cancel')),
+      Button.component({ type: 'submit', className: 'Button Button--primary', icon: 'fas fa-check', loading: this.loading }, t('save')),
+    ]);
   }
 
   /**
@@ -302,7 +279,13 @@ export default class EventFormModal extends Modal<FormAttrs> {
     this.uploadsNext = null;
     this.uploadsError = false;
     app
-      .request<any>({ method: 'GET', url, errorHandler: () => {} })
+      .request<any>({
+        method: 'GET',
+        url,
+        errorHandler: () => {
+          // No generic alert: the panel shows its own "couldn't load" note.
+        },
+      })
       .then(
         (res: any) => {
           const images = (res?.data || [])
@@ -337,7 +320,9 @@ export default class EventFormModal extends Modal<FormAttrs> {
         method: 'POST',
         url: app.forum.attribute('apiUrl') + '/fof/upload',
         body,
-        errorHandler: () => {},
+        errorHandler: () => {
+          // No generic alert: the cover-specific one is shown below.
+        },
       })
       .then(
         (res: any) => {
@@ -384,6 +369,61 @@ export default class EventFormModal extends Modal<FormAttrs> {
         m.redraw();
       });
   }
+}
+
+/** A labelled form field. */
+function field(label: string, input: any) {
+  return m('.CalendarForm-field', [m('label.CalendarForm-label', label), input]);
+}
+
+/** The form's values for an existing event. */
+function fromEvent(ev: CalEvent): Record<string, any> {
+  return {
+    title: ev.title,
+    description: ev.description || '',
+    // eventDate: an all-day date read locally loaded a day early west
+    // of Greenwich, and saving moved the event back a day each time.
+    start: toLocalInput(eventDate(ev, ev.start)),
+    end: ev.end ? toLocalInput(eventDate(ev, ev.end)) : '',
+    allDay: ev.allDay,
+    timezone: ev.timezone || guessTz(),
+    location: ev.location || '',
+    url: ev.url || '',
+    coverUrl: ev.coverUrl || '',
+    categoryId: ev.category?.id || '',
+    repeat: freqOf(ev.rrule),
+  };
+}
+
+/** The form's values for a new event: an hour long, on `day` if one was clicked. */
+function blankEvent(day?: Date): Record<string, any> {
+  // Default start: a clicked day/slot if provided, else the next whole hour.
+  /*
+   * 🚨 A bare 'YYYY-MM-DD' string is parsed as UTC midnight by the spec, which
+   * is the PREVIOUS day for anybody west of UTC. The month grid passes a real
+   * Date so this is safe today, but a caller passing a date string would seed
+   * the form a day out with nothing to show for it.
+   */
+  const now = day ? asLocalDate(day) : new Date();
+  if (!day) {
+    now.setMinutes(0, 0, 0);
+    now.setHours(now.getHours() + 1);
+  }
+  const later = new Date(now.getTime() + 60 * 60 * 1000);
+
+  return {
+    title: '',
+    description: '',
+    start: toLocalInput(now),
+    end: toLocalInput(later),
+    allDay: false,
+    timezone: guessTz(),
+    location: '',
+    url: '',
+    coverUrl: '',
+    categoryId: '',
+    repeat: '',
+  };
 }
 
 function guessTz(): string {

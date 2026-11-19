@@ -2,6 +2,7 @@
 
 namespace ErnestDefoe\Calendar\Tests\integration\api;
 
+use ErnestDefoe\Calendar\Tests\integration\CalendarApi;
 use Carbon\Carbon;
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
 use Flarum\Testing\integration\TestCase;
@@ -10,6 +11,7 @@ use PHPUnit\Framework\Attributes\Test;
 
 class RsvpAndCategoriesTest extends TestCase
 {
+    use CalendarApi;
     use RetrievesAuthorizedUsers;
 
     protected function setUp(): void
@@ -49,7 +51,7 @@ class RsvpAndCategoriesTest extends TestCase
             $options['json'] = $body;
         }
 
-        $request = $this->request($method, $path, $options);
+        $request = $this->calendarRequest($method, $path, $options);
         if (! $actor) {
             // Past the CSRF check, so a guest reaches the permission check itself.
             $request = $request->withAttribute('bypassCsrfToken', true);
@@ -57,12 +59,15 @@ class RsvpAndCategoriesTest extends TestCase
 
         $response = $this->send($request);
 
-        return [$response->getStatusCode(), json_decode((string) $response->getBody(), true)];
+        return [$response->getStatusCode(), $this->flatten(json_decode((string) $response->getBody(), true))];
     }
 
     private function rsvp(int $event, ?int $actor, string $status): array
     {
-        return $this->json('POST', "/api/calendar/events/$event/rsvp", $actor, ['data' => ['status' => $status]]);
+        [$code, $body] = $this->json('POST', "/api/calendar-events/$event/rsvp", $actor, ['data' => ['attributes' => ['status' => $status]]]);
+
+        // The event comes back; these tests look at its RSVP summary.
+        return [$code, isset($body['data']['rsvp']) ? ['data' => $body['data']['rsvp']] : $body];
     }
 
     #[Test]
@@ -93,7 +98,7 @@ class RsvpAndCategoriesTest extends TestCase
         $this->assertNull($body['data']['mine']);
         $this->assertSame(0, $this->database()->table('calendar_event_rsvps')->count());
 
-        [, $body] = $this->json('GET', '/api/calendar/events/1', 2);
+        [, $body] = $this->json('GET', '/api/calendar-events/1', 2);
         $this->assertNull($body['data']['rsvp']['mine']);
     }
 
@@ -103,15 +108,15 @@ class RsvpAndCategoriesTest extends TestCase
         $this->rsvp(1, 2, 'going');
         $this->rsvp(1, 3, 'interested');
 
-        [, $body] = $this->json('GET', '/api/calendar/events/1', 2);
+        [, $body] = $this->json('GET', '/api/calendar-events/1', 2);
         $this->assertSame(1, $body['data']['rsvp']['going']);
         $this->assertSame(1, $body['data']['rsvp']['interested']);
         $this->assertSame('going', $body['data']['rsvp']['mine']);
 
-        [, $body] = $this->json('GET', '/api/calendar/events/1', 3);
+        [, $body] = $this->json('GET', '/api/calendar-events/1', 3);
         $this->assertSame('interested', $body['data']['rsvp']['mine']);
 
-        [, $body] = $this->json('GET', '/api/calendar/events/1', null);
+        [, $body] = $this->json('GET', '/api/calendar-events/1', null);
         $this->assertNull($body['data']['rsvp']['mine'], 'A guest has no RSVP of their own');
         $this->assertSame(1, $body['data']['rsvp']['going']);
     }
@@ -129,7 +134,7 @@ class RsvpAndCategoriesTest extends TestCase
     #[Test]
     public function anyone_can_list_categories_in_order()
     {
-        [$status, $body] = $this->json('GET', '/api/calendar/categories');
+        [$status, $body] = $this->json('GET', '/api/calendar-categories');
 
         $this->assertSame(200, $status);
         $this->assertSame(['raids', 'meetups'], array_column($body['data'], 'slug'));
@@ -140,29 +145,29 @@ class RsvpAndCategoriesTest extends TestCase
     {
         $new = ['data' => ['attributes' => ['name' => 'Socials', 'color' => '#123456']]];
 
-        $this->assertSame(403, $this->json('POST', '/api/calendar/categories', null, $new)[0], 'Guest');
-        $this->assertSame(403, $this->json('POST', '/api/calendar/categories', 2, $new)[0], 'Member');
-        $this->assertSame(403, $this->json('PATCH', '/api/calendar/categories/1', 2, $new)[0], 'Member');
-        $this->assertSame(403, $this->json('DELETE', '/api/calendar/categories/1', 2)[0], 'Member');
+        $this->assertSame(403, $this->json('POST', '/api/calendar-categories', null, $new)[0], 'Guest');
+        $this->assertSame(403, $this->json('POST', '/api/calendar-categories', 2, $new)[0], 'Member');
+        $this->assertSame(403, $this->json('PATCH', '/api/calendar-categories/1', 2, $new)[0], 'Member');
+        $this->assertSame(403, $this->json('DELETE', '/api/calendar-categories/1', 2)[0], 'Member');
         $this->assertSame(2, $this->database()->table('calendar_categories')->count());
         $this->assertSame('Meetups', $this->database()->table('calendar_categories')->where('id', 1)->value('name'));
 
-        [$status, $body] = $this->json('POST', '/api/calendar/categories', 1, $new);
+        [$status, $body] = $this->json('POST', '/api/calendar-categories', 1, $new);
         $this->assertSame(201, $status);
         $this->assertSame(['name' => 'Socials', 'slug' => 'socials', 'color' => '#123456'], array_intersect_key($body['data'], ['name' => 0, 'slug' => 0, 'color' => 0]));
 
-        [$status, $body] = $this->json('PATCH', '/api/calendar/categories/1', 1, ['data' => ['attributes' => ['name' => 'Raids', 'color' => 'red;}']]]);
+        [$status, $body] = $this->json('PATCH', '/api/calendar-categories/1', 1, ['data' => ['attributes' => ['name' => 'Raids', 'color' => 'red;}']]]);
         $this->assertSame(200, $status);
         $this->assertSame('raids-2', $body['data']['slug'], 'A renamed category never takes another\'s slug');
         $this->assertSame('#3b5bdb', $body['data']['color'], 'Anything but a hex colour falls back to the default');
 
-        $this->assertSame(422, $this->json('POST', '/api/calendar/categories', 1, ['data' => ['attributes' => ['name' => ' ']]])[0]);
+        $this->assertSame(422, $this->json('POST', '/api/calendar-categories', 1, ['data' => ['attributes' => ['name' => ' ']]])[0]);
     }
 
     #[Test]
     public function a_category_can_reword_or_switch_off_its_rsvp_buttons()
     {
-        [$status, $body] = $this->json('PATCH', '/api/calendar/categories/1', 1, ['data' => ['attributes' => [
+        [$status, $body] = $this->json('PATCH', '/api/calendar-categories/1', 1, ['data' => ['attributes' => [
             'goingLabel' => '  Playing  ', 'interestedLabel' => str_repeat('x', 80),
         ]]]);
         $this->assertSame(200, $status);
@@ -170,10 +175,10 @@ class RsvpAndCategoriesTest extends TestCase
         $this->assertSame(50, mb_strlen($body['data']['interestedLabel']));
         $this->assertTrue($body['data']['rsvp'], 'Untouched, RSVP stays on');
 
-        [, $body] = $this->json('GET', '/api/calendar/events/1');
+        [, $body] = $this->json('GET', '/api/calendar-events/1');
         $this->assertSame('Playing', $body['data']['category']['goingLabel'], 'The event carries its category\'s wording');
 
-        [$status, $body] = $this->json('PATCH', '/api/calendar/categories/1', 1, ['data' => ['attributes' => ['rsvp' => false, 'goingLabel' => '']]]);
+        [$status, $body] = $this->json('PATCH', '/api/calendar-categories/1', 1, ['data' => ['attributes' => ['rsvp' => false, 'goingLabel' => '']]]);
         $this->assertFalse($body['data']['rsvp']);
         $this->assertNull($body['data']['goingLabel'], 'A blank label goes back to the default');
 
@@ -185,11 +190,11 @@ class RsvpAndCategoriesTest extends TestCase
     #[Test]
     public function deleting_a_category_keeps_its_events()
     {
-        $this->assertSame(204, $this->json('DELETE', '/api/calendar/categories/1', 1)[0]);
+        $this->assertSame(204, $this->json('DELETE', '/api/calendar-categories/1', 1)[0]);
 
         $this->assertFalse($this->database()->table('calendar_categories')->where('id', 1)->exists());
 
-        [$status, $body] = $this->json('GET', '/api/calendar/events/1');
+        [$status, $body] = $this->json('GET', '/api/calendar-events/1');
         $this->assertSame(200, $status, 'The event outlives its category');
         $this->assertNull($body['data']['category']);
     }
@@ -197,7 +202,7 @@ class RsvpAndCategoriesTest extends TestCase
     #[Test]
     public function the_ical_feed_lists_only_published_events()
     {
-        $response = $this->send($this->request('GET', '/calendar/feed.ics'));
+        $response = $this->send($this->calendarRequest('GET', '/calendar/feed.ics'));
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertStringStartsWith('text/calendar', $response->getHeaderLine('Content-Type'));
@@ -210,10 +215,10 @@ class RsvpAndCategoriesTest extends TestCase
     #[Test]
     public function a_draft_cannot_be_downloaded_as_ical()
     {
-        $response = $this->send($this->request('GET', '/calendar/events/1/ical'));
+        $response = $this->send($this->calendarRequest('GET', '/calendar/events/1/ical'));
         $this->assertSame(200, $response->getStatusCode());
         $this->assertStringContainsString("SUMMARY:Published\r\n", (string) $response->getBody());
 
-        $this->assertSame(404, $this->send($this->request('GET', '/calendar/events/2/ical'))->getStatusCode());
+        $this->assertSame(404, $this->send($this->calendarRequest('GET', '/calendar/events/2/ical'))->getStatusCode());
     }
 }

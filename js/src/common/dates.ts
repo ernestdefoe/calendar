@@ -193,10 +193,37 @@ export interface TimedSegment {
  * positioned segments, splitting overlapping events into side-by-side columns.
  */
 export function layoutDay(events: CalEvent[], day: Date): TimedSegment[] {
-  const dayStart = startOfDay(day).getTime();
+  const segs = daySegments(events, startOfDay(day).getTime());
+
+  // Group into overlap clusters, then assign columns greedily within each.
+  let cluster: DaySegment[] = [];
+  let clusterEnd = -Infinity;
+
+  for (const s of segs) {
+    if (cluster.length && s.startMs >= clusterEnd) {
+      assignColumns(cluster);
+      cluster = [];
+      clusterEnd = -Infinity;
+    }
+    cluster.push(s);
+    clusterEnd = Math.max(clusterEnd, s.endMs);
+  }
+  if (cluster.length) assignColumns(cluster);
+
+  return segs.map(({ ev, top, height, col, cols }) => ({ ev, top, height, col, cols }));
+}
+
+/** A TimedSegment plus the clipped times it is laid out by. */
+interface DaySegment extends TimedSegment {
+  startMs: number;
+  endMs: number;
+}
+
+/** The timed events that touch the day, clipped to it, earliest (then longest) first. */
+function daySegments(events: CalEvent[], dayStart: number): DaySegment[] {
   const dayEnd = dayStart + 86400000;
 
-  const segs = events
+  return events
     .filter((e) => !e.allDay)
     .map((e) => {
       const s = new Date(e.start).getTime();
@@ -218,40 +245,27 @@ export function layoutDay(events: CalEvent[], day: Date): TimedSegment[] {
       };
     })
     .sort((a, b) => a.startMs - b.startMs || b.endMs - a.endMs);
+}
 
-  // Group into overlap clusters, then assign columns greedily within each.
-  let cluster: typeof segs = [];
-  let clusterEnd = -Infinity;
-  const flush = () => {
-    const colEnds: number[] = [];
-    for (const it of cluster) {
-      let placed = false;
-      for (let c = 0; c < colEnds.length; c++) {
-        if (colEnds[c] <= it.startMs) {
-          it.col = c;
-          colEnds[c] = it.endMs;
-          placed = true;
-          break;
-        }
-      }
-      if (!placed) {
-        it.col = colEnds.length;
-        colEnds.push(it.endMs);
+/** Put each segment of one overlap cluster in the first column free at its start. */
+function assignColumns(cluster: DaySegment[]): void {
+  const colEnds: number[] = [];
+  for (const it of cluster) {
+    let placed = false;
+    for (let c = 0; c < colEnds.length; c++) {
+      if (colEnds[c] <= it.startMs) {
+        it.col = c;
+        colEnds[c] = it.endMs;
+        placed = true;
+        break;
       }
     }
-    cluster.forEach((it) => (it.cols = colEnds.length));
-    cluster = [];
-    clusterEnd = -Infinity;
-  };
-
-  for (const s of segs) {
-    if (cluster.length && s.startMs >= clusterEnd) flush();
-    cluster.push(s);
-    clusterEnd = Math.max(clusterEnd, s.endMs);
+    if (!placed) {
+      it.col = colEnds.length;
+      colEnds.push(it.endMs);
+    }
   }
-  if (cluster.length) flush();
-
-  return segs.map(({ ev, top, height, col, cols }) => ({ ev, top, height, col, cols }));
+  cluster.forEach((it) => (it.cols = colEnds.length));
 }
 
 /**

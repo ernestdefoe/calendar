@@ -24,7 +24,20 @@ return [
             }
         }
     },
-    'down' => function () {
-        // A JSON list is what every version reads; nothing to undo.
+    // Back to the comma-separated form older versions wrote.
+    'down' => function (Builder $schema) {
+        $db = $schema->getConnection();
+        $keys = [
+            'ernestdefoe-calendar.pulse_exclude_groups',
+            'ernestdefoe-calendar.event_discussion_tags',
+            'ernestdefoe-calendar.onthisday_exclude_tags',
+        ];
+
+        foreach ($db->table('settings')->whereIn('key', $keys)->get() as $row) {
+            $ids = json_decode((string) $row->value, true);
+            if (is_array($ids)) {
+                $db->table('settings')->where('key', $row->key)->update(['value' => implode(',', $ids)]);
+            }
+        }
     },
 ];

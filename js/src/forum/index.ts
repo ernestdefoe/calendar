@@ -16,18 +16,32 @@ import registerFofWidget, { hasFofWidgets } from '../common/registerFofWidget';
 import { peek } from '../common/widgetData';
 import { startCountdowns } from './countdowns';
 
-declare const m: any;
-
 /**
  * Forum entry point.
- *  - Registers the /calendar route + a nav link.
+ *  - Adds a nav link to the /calendar route (registered in ./extend).
  *  - On stock Flarum, mounts the "Upcoming events" widget in the index sidebar
  *    (no theme required). Bespoke / Page Builder get a proper widget/block via
  *    registerIntegrations().
  */
 app.initializers.add('ernestdefoe/calendar', () => {
-  app.routes.calendar = { path: '/calendar', component: () => import('./components/CalendarPage') };
+  addNavLink();
+  addSidebarWidgets();
+  addBirthdayField();
+  addProfileHeatmap();
+  registerManagedWidgets();
 
+  // Defer so sibling extensions (Bespoke / Page Builder) have run their own
+  // initializers and created app.bespoke / app.pageBuilder before we register our
+  // widgets into them — cross-extension initializer order isn't guaranteed, and a
+  // macrotask runs after Flarum's synchronous boot completes.
+  setTimeout(registerIntegrations, 0);
+
+  // Turn [countdown=…] placeholders (and event-modal countdowns) into live timers.
+  startCountdowns();
+});
+
+/** The nav link to /calendar. */
+function addNavLink(): void {
   // Nav link sits with "All Discussions" in the sidebar navigation (Flarum 2
   // exposes these via navItems, not items — items is the New Discussion button +
   // the nav dropdown itself). Admins can hide it — the widgets link to /calendar
@@ -40,7 +54,10 @@ app.initializers.add('ernestdefoe/calendar', () => {
       5
     );
   });
+}
 
+/** The stock-theme sidebar widgets. */
+function addSidebarWidgets(): void {
   // With fof/forum-widgets-core enabled, every calendar widget is a managed
   // widget (registered below) — the admin places each one there, so the
   // hardcoded sidebar mounts step aside to avoid showing anything twice.
@@ -82,7 +99,10 @@ app.initializers.add('ernestdefoe/calendar', () => {
       items.add('calendar-memories', m(OnThisDayWidget, { count: 6 }), -14);
     }
   });
+}
 
+/** The birthday picker in the account settings. */
+function addBirthdayField(): void {
   // Self-service birthday picker in the account settings page (opt-in, MM-DD only).
   // SettingsPage is a lazily loaded chunk in Flarum 2, so it is extended by path:
   // its route component is an async loader with no prototype to extend.
@@ -95,7 +115,10 @@ app.initializers.add('ernestdefoe/calendar', () => {
       5
     );
   });
+}
 
+/** The activity heatmap on member profiles. */
+function addProfileHeatmap(): void {
   /*
    * A contribution heatmap + streaks at the top of every member's profile.
    *
@@ -116,7 +139,10 @@ app.initializers.add('ernestdefoe/calendar', () => {
 
     return [heatmap, original()];
   });
+}
 
+/** The widgets as fof/forum-widgets-core managed widgets. */
+function registerManagedWidgets(): void {
   // fof/forum-widgets-core (optional): register each widget as a managed
   // widget. Its modules live in the main bundle, so this is safe at init time.
   registerFofWidget(
@@ -136,15 +162,7 @@ app.initializers.add('ernestdefoe/calendar', () => {
       },
     }
   );
+}
 
-  // Defer so sibling extensions (Bespoke / Page Builder) have run their own
-  // initializers and created app.bespoke / app.pageBuilder before we register our
-  // widgets into them — cross-extension initializer order isn't guaranteed, and a
-  // macrotask runs after Flarum's synchronous boot completes.
-  setTimeout(registerIntegrations, 0);
-
-  // Turn [countdown=…] placeholders (and event-modal countdowns) into live timers.
-  startCountdowns();
-});
-
+export { default as extend } from './extend';
 export { default as UpcomingEvents } from './components/UpcomingEvents';

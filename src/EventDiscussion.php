@@ -37,6 +37,7 @@ class EventDiscussion
         private TranslatorInterface $translator,
         private LoggerInterface $log,
         private DiscussionAuthor $author,
+        private LocationSetting $location,
     ) {
     }
 
@@ -148,7 +149,7 @@ class EventDiscussion
             $this->image($event->cover_url),
             trim((string) $event->description),
             '📅 '.$when,
-            $event->location ? '📍 '.$event->location : null,
+            ($location = $this->location->of($event)) ? '📍 '.$location : null,
             // Posted by another account, the thread would not say who runs it.
             $organiser ? '👤 '.($organiser->display_name ?: $organiser->username) : null,
             '🗓️ '.$this->url->to('forum')->route('calendar').'?event='.$event->id,

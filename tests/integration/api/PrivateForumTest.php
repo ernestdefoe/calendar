@@ -2,6 +2,7 @@
 
 namespace ErnestDefoe\Calendar\Tests\integration\api;
 
+use ErnestDefoe\Calendar\Tests\integration\CalendarApi;
 use Carbon\Carbon;
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
 use Flarum\Testing\integration\TestCase;
@@ -15,6 +16,7 @@ use PHPUnit\Framework\Attributes\Test;
  */
 class PrivateForumTest extends TestCase
 {
+    use CalendarApi;
     use RetrievesAuthorizedUsers;
 
     protected function setUp(): void
@@ -34,13 +36,13 @@ class PrivateForumTest extends TestCase
     public static function endpoints(): array
     {
         return [
-            'events' => ['/api/calendar/events'],
-            'event' => ['/api/calendar/events/1'],
-            'categories' => ['/api/calendar/categories'],
-            'activity' => ['/api/calendar/activity/2'],
-            'pulse' => ['/api/calendar/pulse'],
-            'on this day' => ['/api/calendar/onthisday'],
-            'celebrations' => ['/api/calendar/celebrations'],
+            'events' => ['/api/calendar-events'],
+            'event' => ['/api/calendar-events/1'],
+            'categories' => ['/api/calendar-categories'],
+            'activity' => ['/api/calendar-widgets/activity?filter[user]=2'],
+            'pulse' => ['/api/calendar-widgets/pulse'],
+            'on this day' => ['/api/calendar-widgets/memories'],
+            'celebrations' => ['/api/calendar-widgets/celebrations'],
             'iCal feed' => ['/calendar/feed.ics'],
             'iCal event' => ['/calendar/events/1/ical'],
         ];
@@ -60,9 +62,11 @@ class PrivateForumTest extends TestCase
     {
         $this->privateForum();
 
-        $response = $this->send($this->request('GET', $path));
+        $response = $this->send($this->calendarRequest('GET', $path));
 
-        $this->assertSame(403, $response->getStatusCode());
+        // A single event is looked up through the visibility scope, which hides
+        // every event from someone who can't view the forum: not found.
+        $this->assertSame($path === '/api/calendar-events/1' ? 404 : 403, $response->getStatusCode());
         $this->assertStringNotContainsString('Members only', (string) $response->getBody());
     }
 
@@ -72,13 +76,13 @@ class PrivateForumTest extends TestCase
     {
         $this->privateForum();
 
-        $this->assertSame(200, $this->send($this->request('GET', $path, ['authenticatedAs' => 2]))->getStatusCode());
+        $this->assertSame(200, $this->send($this->calendarRequest('GET', $path, ['authenticatedAs' => 2]))->getStatusCode());
     }
 
     #[Test]
     #[DataProvider('endpoints')]
     public function a_guest_can_read_a_public_forums_calendar(string $path)
     {
-        $this->assertSame(200, $this->send($this->request('GET', $path))->getStatusCode());
+        $this->assertSame(200, $this->send($this->calendarRequest('GET', $path))->getStatusCode());
     }
 }

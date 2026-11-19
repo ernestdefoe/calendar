@@ -2,9 +2,6 @@ import app from 'flarum/admin/app';
 import { extend, override } from 'flarum/common/extend';
 import Select from 'flarum/common/components/Select';
 
-declare const m: any;
-declare const flarum: any;
-
 /**
  * Calendar's two FoF Badges metrics in its trigger builder. The builder's
  * list of metrics is fixed in its own code, so they are added to it here; the
@@ -20,12 +17,14 @@ function loadCategories() {
   if (categories) return;
   categories = [];
   app
-    .request<any>({ method: 'GET', url: app.forum.attribute('apiUrl') + '/calendar/categories' })
+    .request<any>({ method: 'GET', url: app.forum.attribute('apiUrl') + '/calendar-categories' })
     .then((res: any) => {
-      categories = res.data || [];
+      categories = (res.data || []).map((r: any) => ({ id: Number(r.id), name: r.attributes.name }));
       m.redraw();
     })
-    .catch(() => {});
+    .catch(() => {
+      // app.request already showed the alert; the picker offers "Any category" only.
+    });
 }
 
 const usesCalendar = (builder: any): boolean =>

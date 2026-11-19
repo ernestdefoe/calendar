@@ -24,7 +24,6 @@ const CLASS_COLORS: Record<string, string> = {
   Warrior: '#C69B6D',
 };
 
-declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
 
 interface DetailAttrs extends IInternalModalAttrs {
@@ -77,7 +76,9 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
             m.redraw();
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          // app.request already showed the alert; the modal keeps the roster it was opened with.
+        });
     }
   }
 
@@ -88,7 +89,9 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
         this.event.discussionId = ev.discussionId;
         this.attrs.onchange?.();
       })
-      .catch(() => {})
+      .catch(() => {
+        // app.request already showed the alert; finally() re-enables the button.
+      })
       .finally(() => {
         this.starting = false;
         m.redraw();
@@ -112,9 +115,6 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
 
   content() {
     const ev = this.event;
-    const cat = ev.category;
-    const rsvpOn = cat?.rsvp !== false;
-    const row = (icon: string, content: any) => (content ? m('.CalendarDetail-row', [m('i.icon.' + icon), m('span', content)]) : null);
 
     return m('.Modal-body.CalendarDetail', [
       ev.coverUrl ? m('.CalendarDetail-cover', { style: { backgroundImage: `url("${ev.coverUrl.replace(/"/g, '%22')}")` } }) : null,
@@ -123,60 +123,85 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
       // countdowns.ts animates any .CalCountdown[data-deadline] it finds).
       new Date(ev.start).getTime() > Date.now() ? m('.CalCountdown.CalCountdown--event', { 'data-deadline': ev.start }, t('starts_in')) : null,
 
-      m('.CalendarDetail-meta', [
-        row('fas fa-clock', formatRange(ev) + (ev.recurring ? ' · ' + t('repeat_' + freqWord(ev.rrule)) : '')),
-        ev.location ? m('.CalendarDetail-row', [m('i.icon.fas.fa-location-dot'), locationLink(ev.location)]) : null,
-        ev.url && (/^https?:\/\//i.test(ev.url) || (ev.url.startsWith('/') && !ev.url.startsWith('//')))
-          ? m('.CalendarDetail-row', [m('i.icon.fas.fa-link'), m('a', { href: ev.url, target: '_blank', rel: 'noopener noreferrer' }, ev.url)])
-          : null,
-        ev.author ? row('fas fa-user', t('organizer') + ' ' + ev.author.displayName) : null,
-      ]),
+      this.meta(),
 
       ev.description ? m('.CalendarDetail-desc', m.trust(safe(ev.description))) : null,
 
-      // RSVP — unless the event's category has it off; a category can also
-      // word the buttons its own way (then the lists use that wording too).
-      rsvpOn
-        ? [
-            m('.CalendarRsvp', [
-              rsvpButton(this, 'going', 'fas fa-check', cat?.goingLabel || t('rsvp_going'), ev.rsvp.going),
-              rsvpButton(this, 'interested', 'far fa-star', cat?.interestedLabel || t('rsvp_interested'), ev.rsvp.interested),
-            ]),
-            // Who's coming — with main-character class/spec/ilvl when armory is installed.
-            attendeeGroup(cat?.goingLabel || t('attendees_going'), ev.rsvp.attendees?.going),
-            attendeeGroup(cat?.interestedLabel || t('attendees_interested'), ev.rsvp.attendees?.interested),
-          ]
-        : null,
+      this.rsvpBlock(),
+      this.exportActions(),
+      this.manage(),
+    ]);
+  }
 
-      // Export + links
-      m('.CalendarDetail-actions', [
-        m('a.Button.Button--icon', { href: ev.googleUrl, target: '_blank', rel: 'noopener' }, [
-          m('i.Button-icon.fab.fa-google'),
-          m('span.Button-label', t('add_to_google')),
-        ]),
-        m('a.Button.Button--icon', { href: abs(ev.icalUrl) }, [m('i.Button-icon.fas.fa-download'), m('span.Button-label', t('download_ics'))]),
-        ev.discussionId
-          ? m('a.Button.Button--icon', { href: app.route('discussion', { id: ev.discussionId }) }, [
-              m('i.Button-icon.fas.fa-comments'),
-              m('span.Button-label', t('view_discussion')),
-            ])
-          : ev.canEdit && (app.forum.attribute('canStartDiscussion') || app.forum.attribute('ernestdefoe-calendar.postsAs'))
-            ? Button.component(
-                { className: 'Button Button--icon', icon: 'fas fa-comments', loading: this.starting, onclick: () => this.startThread() },
-                t('start_discussion')
-              )
-            : null,
+  /** When, where, the link and the organizer. */
+  meta() {
+    const ev = this.event;
+    const row = (icon: string, content: any) => (content ? m('.CalendarDetail-row', [m('i.icon.' + icon), m('span', content)]) : null);
+
+    return m('.CalendarDetail-meta', [
+      row('fas fa-clock', formatRange(ev) + (ev.recurring ? ' · ' + t('repeat_' + freqWord(ev.rrule)) : '')),
+      ev.location ? m('.CalendarDetail-row', [m('i.icon.fas.fa-location-dot'), locationLink(ev.location)]) : null,
+      ev.url && (/^https?:\/\//i.test(ev.url) || (ev.url.startsWith('/') && !ev.url.startsWith('//')))
+        ? m('.CalendarDetail-row', [m('i.icon.fas.fa-link'), m('a', { href: ev.url, target: '_blank', rel: 'noopener noreferrer' }, ev.url)])
+        : null,
+      ev.author ? row('fas fa-user', t('organizer') + ' ' + ev.author.displayName) : null,
+    ]);
+  }
+
+  /**
+   * RSVP — unless the event's category has it off; a category can also
+   * word the buttons its own way (then the lists use that wording too).
+   */
+  rsvpBlock() {
+    const ev = this.event;
+    const cat = ev.category;
+    if (cat?.rsvp === false) return null;
+
+    return [
+      m('.CalendarRsvp', [
+        rsvpButton(this, 'going', 'fas fa-check', cat?.goingLabel || t('rsvp_going'), ev.rsvp.going),
+        rsvpButton(this, 'interested', 'far fa-star', cat?.interestedLabel || t('rsvp_interested'), ev.rsvp.interested),
       ]),
+      // Who's coming — with main-character class/spec/ilvl when armory is installed.
+      attendeeGroup(cat?.goingLabel || t('attendees_going'), ev.rsvp.attendees?.going),
+      attendeeGroup(cat?.interestedLabel || t('attendees_interested'), ev.rsvp.attendees?.interested),
+    ];
+  }
 
-      ev.canEdit
-        ? m('.CalendarDetail-manage', [
-            Button.component({ className: 'Button Button--link', icon: 'fas fa-pencil', onclick: () => this.edit() }, t('edit_event')),
-            Button.component(
-              { className: 'Button Button--link CalendarDetail-delete', icon: 'fas fa-trash', loading: this.busy, onclick: () => this.remove() },
-              t('delete_event')
-            ),
+  /** Export + links: Google Calendar, .ics, and the event's discussion. */
+  exportActions() {
+    const ev = this.event;
+
+    return m('.CalendarDetail-actions', [
+      m('a.Button.Button--icon', { href: ev.googleUrl, target: '_blank', rel: 'noopener' }, [
+        m('i.Button-icon.fab.fa-google'),
+        m('span.Button-label', t('add_to_google')),
+      ]),
+      m('a.Button.Button--icon', { href: abs(ev.icalUrl) }, [m('i.Button-icon.fas.fa-download'), m('span.Button-label', t('download_ics'))]),
+      ev.discussionId
+        ? m('a.Button.Button--icon', { href: app.route('discussion', { id: ev.discussionId }) }, [
+            m('i.Button-icon.fas.fa-comments'),
+            m('span.Button-label', t('view_discussion')),
           ])
-        : null,
+        : ev.canEdit && (app.forum.attribute('canStartDiscussion') || app.forum.attribute('ernestdefoe-calendar.postsAs'))
+          ? Button.component(
+              { className: 'Button Button--icon', icon: 'fas fa-comments', loading: this.starting, onclick: () => this.startThread() },
+              t('start_discussion')
+            )
+          : null,
+    ]);
+  }
+
+  /** Edit / delete, for whoever may edit the event. */
+  manage() {
+    if (!this.event.canEdit) return null;
+
+    return m('.CalendarDetail-manage', [
+      Button.component({ className: 'Button Button--link', icon: 'fas fa-pencil', onclick: () => this.edit() }, t('edit_event')),
+      Button.component(
+        { className: 'Button Button--link CalendarDetail-delete', icon: 'fas fa-trash', loading: this.busy, onclick: () => this.remove() },
+        t('delete_event')
+      ),
     ]);
   }
 
@@ -187,7 +212,9 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
         this.event.rsvp = r;
         m.redraw();
       })
-      .catch(() => {});
+      .catch(() => {
+        // app.request already showed the alert; the RSVP stays as it was.
+      });
   }
 
   edit() {

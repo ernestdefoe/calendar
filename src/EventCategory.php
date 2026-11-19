@@ -33,20 +33,6 @@ class EventCategory extends AbstractModel
         'rsvp_enabled' => true,
     ];
 
-    /** The fields the calendar's JSON carries for a category. */
-    public function toPayload(): array
-    {
-        return [
-            'id' => (int) $this->id,
-            'name' => $this->name,
-            'slug' => $this->slug,
-            'color' => $this->color,
-            'rsvp' => (bool) $this->rsvp_enabled,
-            'goingLabel' => $this->going_label,
-            'interestedLabel' => $this->interested_label,
-        ];
-    }
-
     /** @return HasMany<Event, $this> */
     public function events(): HasMany
     {

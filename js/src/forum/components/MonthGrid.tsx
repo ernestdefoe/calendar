@@ -4,7 +4,6 @@ import { type CalEvent } from '../../common/api';
 import { measure } from './CalSkeleton';
 import app from 'flarum/forum/app';
 
-declare const m: any;
 const addLabel = () => app.translator.trans('ernestdefoe-calendar.forum.add_event');
 const noneLabel = () => app.translator.trans('ernestdefoe-calendar.forum.no_events_day');
 

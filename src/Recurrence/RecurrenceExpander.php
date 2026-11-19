@@ -157,21 +157,22 @@ class RecurrenceExpander
         return $days;
     }
 
+    /**
+     * UNTIL may be a DATE (YYYYMMDD) or DATE-TIME (YYYYMMDDTHHMMSSZ); anything
+     * else means open-ended. The patterns guarantee createFromFormat a parseable
+     * string (an out-of-range digit rolls over rather than failing).
+     */
     private static function parseUntil(string $until, Carbon $start): ?Carbon
     {
-        try {
-            // UNTIL may be a DATE (YYYYMMDD) or DATE-TIME (YYYYMMDDTHHMMSSZ).
-            $clean = preg_replace('/[^0-9TZ]/', '', strtoupper($until));
-            if (preg_match('/^\d{8}$/', $clean)) {
-                return Carbon::createFromFormat('Ymd', $clean, $start->getTimezone())->endOfDay();
-            }
-            if (preg_match('/^\d{8}T\d{6}Z?$/', $clean)) {
-                $tz = str_ends_with($clean, 'Z') ? 'UTC' : $start->getTimezone();
+        $clean = preg_replace('/[^0-9TZ]/', '', strtoupper($until));
 
-                return Carbon::createFromFormat('Ymd\THis', rtrim($clean, 'Z'), $tz);
-            }
-        } catch (\Throwable $e) {
-            // bad UNTIL → treat as open-ended
+        if (preg_match('/^\d{8}$/', $clean)) {
+            return Carbon::createFromFormat('Ymd', $clean, $start->getTimezone())->endOfDay();
+        }
+        if (preg_match('/^\d{8}T\d{6}Z?$/', $clean)) {
+            $tz = str_ends_with($clean, 'Z') ? 'UTC' : $start->getTimezone();
+
+            return Carbon::createFromFormat('Ymd\THis', rtrim($clean, 'Z'), $tz);
         }
 
         return null;

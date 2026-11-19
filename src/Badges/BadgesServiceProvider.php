@@ -9,19 +9,19 @@
 namespace ErnestDefoe\Calendar\Badges;
 
 use Flarum\Foundation\AbstractServiceProvider;
+use FoF\Badges\Trigger\MetricManager;
 
 /**
  * Adds Calendar's two metrics to FoF Badges' trigger builder.
  *
- * 🚨 Nothing here may load a fof/badges class when fof/badges is not
- * installed: `::class` only names a class, and the callback runs only when
- * fof/badges builds its MetricManager, which a forum without it never does.
+ * Registered only while fof/badges is enabled (Extend\Conditional in
+ * extend.php), so its classes are always there when this runs.
  */
 class BadgesServiceProvider extends AbstractServiceProvider
 {
     public function register(): void
     {
-        $this->container->resolving('FoF\Badges\Trigger\MetricManager', function ($metrics, $container) {
+        $this->container->resolving(MetricManager::class, function (MetricManager $metrics, $container) {
             $metrics->register($container->make(EventsAttendedMetric::class));
             $metrics->register($container->make(EventsOrganizedMetric::class));
         });

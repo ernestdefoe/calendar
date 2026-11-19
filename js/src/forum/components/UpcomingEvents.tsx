@@ -4,7 +4,6 @@ import { listEvents, type CalEvent } from '../../common/api';
 import { load as loadShared, peek } from '../../common/widgetData';
 import { shortTime, loc, dateLoc, sameDay, dateRange, eventDate, endsAt, num } from '../../common/dates';
 
-declare const m: any;
 const t = (k: string, p?: any) => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
 
 /**
@@ -25,7 +24,7 @@ const UpcomingEvents = {
       const now = Date.now();
       return all.filter((e: CalEvent) => endsAt(e) >= now).slice(0, Math.max(1, Number(attrs.count) || 5));
     };
-    const fetch = () => {
+    const request = () => {
       // A day back, so an all-day event on its last day (stored as that
       // day's UTC midnight) is still in the window; pick() trims the rest.
       const from = new Date(Date.now() - 86400000);
@@ -40,7 +39,7 @@ const UpcomingEvents = {
       this.events = pick(fresh);
       return;
     }
-    loadShared<CalEvent[]>(key, fetch, []).then((all) => {
+    loadShared<CalEvent[]>(key, request, []).then((all) => {
       this.events = pick(all);
       m.redraw();
     });

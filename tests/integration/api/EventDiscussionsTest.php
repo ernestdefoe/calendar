@@ -2,6 +2,7 @@
 
 namespace ErnestDefoe\Calendar\Tests\integration\api;
 
+use ErnestDefoe\Calendar\Tests\integration\CalendarApi;
 use Carbon\Carbon;
 use Flarum\Discussion\Discussion;
 use Flarum\Group\Group;
@@ -14,6 +15,7 @@ use PHPUnit\Framework\Attributes\Test;
 
 class EventDiscussionsTest extends TestCase
 {
+    use CalendarApi;
     use RetrievesAuthorizedUsers;
 
     protected function setUp(): void
@@ -65,14 +67,14 @@ class EventDiscussionsTest extends TestCase
             $options['json'] = ['data' => ['attributes' => $attrs]];
         }
 
-        $response = $this->send($this->request($method, $path, $options));
+        $response = $this->send($this->calendarRequest($method, $path, $options));
 
-        return [$response->getStatusCode(), json_decode((string) $response->getBody(), true)];
+        return [$response->getStatusCode(), $this->flatten(json_decode((string) $response->getBody(), true))];
     }
 
     private function create(array $attrs = []): array
     {
-        return $this->json('POST', '/api/calendar/events', 3, $attrs + [
+        return $this->json('POST', '/api/calendar-events', 3, $attrs + [
             'title' => 'Launch party', 'start' => '2030-06-01T18:00:00Z', 'timezone' => 'UTC', 'location' => 'The Old Mill',
         ]);
     }
@@ -151,7 +153,7 @@ class EventDiscussionsTest extends TestCase
         $this->restrictedTag(false);
 
         // An event from before threads were on, started by hand.
-        [$status, $error] = $this->json('POST', '/api/calendar/events/1/discussion', 3);
+        [$status, $error] = $this->json('POST', '/api/calendar-events/1/discussion', 3);
 
         $this->assertSame(422, $status);
         // The test app has no English strings loaded: the key comes back, with the tag filled in.
@@ -164,7 +166,7 @@ class EventDiscussionsTest extends TestCase
     {
         $this->restrictedTag(true);
 
-        [$status, $body] = $this->json('POST', '/api/calendar/events/1/discussion', 3);
+        [$status, $body] = $this->json('POST', '/api/calendar-events/1/discussion', 3);
 
         $this->assertSame(200, $status);
         $discussion = Discussion::query()->find($body['data']['discussionId']);
@@ -174,9 +176,9 @@ class EventDiscussionsTest extends TestCase
 
     private function saveSettings(array $settings): array
     {
-        $response = $this->send($this->request('POST', '/api/settings', ['authenticatedAs' => 1, 'json' => $settings]));
+        $response = $this->send($this->calendarRequest('POST', '/api/settings', ['authenticatedAs' => 1, 'json' => $settings]));
 
-        return [$response->getStatusCode(), json_decode((string) $response->getBody(), true)];
+        return [$response->getStatusCode(), $this->flatten(json_decode((string) $response->getBody(), true))];
     }
 
     #[Test]
@@ -243,7 +245,7 @@ class EventDiscussionsTest extends TestCase
         $this->assertSame(0, Discussion::query()->count());
 
         // Starting it by hand says what is missing.
-        [$status, $error] = $this->json('POST', '/api/calendar/events/'.$body['data']['id'].'/discussion', 3);
+        [$status, $error] = $this->json('POST', '/api/calendar-events/'.$body['data']['id'].'/discussion', 3);
         $this->assertSame(422, $status);
         $this->assertSame('/data/attributes/discussion', $error['errors'][0]['source']['pointer']);
     }
@@ -254,7 +256,7 @@ class EventDiscussionsTest extends TestCase
         $this->setting('ernestdefoe-calendar.event_discussions', '1');
         [, $body] = $this->create();
 
-        [$status] = $this->json('PATCH', '/api/calendar/events/'.$body['data']['id'], 3, ['title' => 'Launch party (moved)']);
+        [$status] = $this->json('PATCH', '/api/calendar-events/'.$body['data']['id'], 3, ['title' => 'Launch party (moved)']);
 
         $this->assertSame(200, $status);
         $this->assertSame('Launch party (moved)', Discussion::query()->find($body['data']['discussionId'])->title);
@@ -263,13 +265,13 @@ class EventDiscussionsTest extends TestCase
     #[Test]
     public function an_older_event_gets_its_thread_on_request_once()
     {
-        [$status, $body] = $this->json('POST', '/api/calendar/events/1/discussion', 3);
+        [$status, $body] = $this->json('POST', '/api/calendar-events/1/discussion', 3);
 
         $this->assertSame(200, $status);
         $id = $body['data']['discussionId'];
         $this->assertSame('Made before threads', Discussion::query()->find($id)->title);
 
-        [$status, $body] = $this->json('POST', '/api/calendar/events/1/discussion', 3);
+        [$status, $body] = $this->json('POST', '/api/calendar-events/1/discussion', 3);
         $this->assertSame(200, $status);
         $this->assertSame($id, $body['data']['discussionId'], 'A second request starts no second thread');
         $this->assertSame(1, Discussion::query()->count());
@@ -278,10 +280,10 @@ class EventDiscussionsTest extends TestCase
     #[Test]
     public function only_the_organiser_or_a_manager_can_start_it()
     {
-        [$status] = $this->json('POST', '/api/calendar/events/1/discussion', 4);
+        [$status] = $this->json('POST', '/api/calendar-events/1/discussion', 4);
         $this->assertSame(403, $status);
 
-        [$status] = $this->json('POST', '/api/calendar/events/1/discussion', 2);
+        [$status] = $this->json('POST', '/api/calendar-events/1/discussion', 2);
         $this->assertSame(403, $status);
 
         $this->assertSame(0, Discussion::query()->count());
@@ -290,7 +292,7 @@ class EventDiscussionsTest extends TestCase
     #[Test]
     public function a_draft_never_gets_a_public_thread()
     {
-        [$status] = $this->json('POST', '/api/calendar/events/2/discussion', 3);
+        [$status] = $this->json('POST', '/api/calendar-events/2/discussion', 3);
 
         $this->assertSame(404, $status);
         $this->assertSame(0, Discussion::query()->count());

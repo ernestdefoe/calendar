@@ -5,7 +5,7 @@
  * extension that isn't on Packagist, so CI can't install it. These are its
  * block contracts (ernestdefoe/page-builder src/Block) for PHPStan to analyse
  * against. Never autoloaded; extend.php only registers the blocks when the
- * real classes exist.
+ * extension is enabled.
  */
 
 namespace Ernestdefoe\PageBuilder\Block;
@@ -49,5 +49,22 @@ abstract class AbstractBlock implements BlockInterface
     public function resolve(array $settings, User $actor): array
     {
         return [];
+    }
+}
+
+namespace Ernestdefoe\PageBuilder\Extend;
+
+use Flarum\Extend\ExtenderInterface;
+use Flarum\Extension\Extension;
+use Illuminate\Contracts\Container\Container;
+
+class PageBuilderBlock implements ExtenderInterface
+{
+    public function __construct(protected string $blockClass)
+    {
+    }
+
+    public function extend(Container $container, ?Extension $extension = null): void
+    {
     }
 }

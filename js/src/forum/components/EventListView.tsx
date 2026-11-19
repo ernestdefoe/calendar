@@ -3,7 +3,6 @@ import Component from 'flarum/common/Component';
 import { formatRange, loc, eventDate, endsAt, num } from '../../common/dates';
 import { type CalEvent } from '../../common/api';
 
-declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
 
 /**

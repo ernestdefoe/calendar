@@ -2,26 +2,29 @@
 
 namespace ErnestDefoe\Calendar;
 
+use Flarum\Extension\ExtensionManager;
 use Flarum\User\User;
-use Illuminate\Database\ConnectionInterface;
 
 /**
  * The attendee lists for an event's RSVP panel: who's going / interested,
  * enriched with each member's main WoW character (class, spec, item level)
  * when the ernestdefoe/armory extension is installed — so a raid signup
- * doubles as a composition sheet. Armory is a soft dependency: without its
- * table the lists are plain avatars + names.
+ * doubles as a composition sheet. Armory is a soft dependency: without it
+ * enabled the lists are plain avatars + names.
  */
 class Attendees
 {
     public const LIMIT = 60;
 
-    public static function build(int $eventId): array
-    {
-        /** @var ConnectionInterface $db */
-        $db = resolve(ConnectionInterface::class);
+    public function __construct(
+        private ExtensionManager $extensions,
+        private BasicUser $basicUser,
+    ) {
+    }
 
-        $rsvps = $db->table('calendar_event_rsvps')
+    public function build(int $eventId): array
+    {
+        $rsvps = EventRsvp::query()
             ->where('event_id', $eventId)
             ->orderBy('created_at')
             ->limit(self::LIMIT)
@@ -38,7 +41,7 @@ class Attendees
         // so every attendee rendered as a broken image.
         $users = User::query()->whereIn('id', $userIds)->get()->keyBy('id');
 
-        $characters = self::armoryCharacters($db, $userIds);
+        $characters = $this->armoryCharacters($userIds);
 
         $out = ['going' => [], 'interested' => []];
         foreach ($rsvps as $row) {
@@ -51,7 +54,7 @@ class Attendees
             $bucket = $row->status === 'interested' ? 'interested' : 'going';
             $out[$bucket][] = [
                 'id' => (int) $user->id,
-                ...BasicUser::of($user),
+                ...$this->basicUser->of($user),
                 'character' => $characters[$user->id] ?? null,
             ];
         }
@@ -60,22 +63,20 @@ class Attendees
     }
 
     /** Best visible character per user from armory's table, or [] without armory. */
-    protected static function armoryCharacters(ConnectionInterface $db, array $userIds): array
+    protected function armoryCharacters(array $userIds): array
     {
-        if (! $userIds || ! $db->getSchemaBuilder()->hasTable('armory_characters')) {
+        if (! $userIds || ! $this->extensions->isEnabled('ernestdefoe-armory')) {
             return [];
         }
 
-        try {
-            $rows = $db->table('armory_characters')
-                ->whereIn('user_id', $userIds)
-                ->where('is_visible', true)
-                ->orderByDesc('is_main')
-                ->orderByDesc('item_level')
-                ->get(['user_id', 'name', 'class', 'spec', 'item_level', 'level']);
-        } catch (\Throwable $e) {
-            return [];
-        }
+        // Armory's own table, read through the query builder: Calendar must not
+        // depend on Armory's model classes, which aren't there without it.
+        $rows = EventRsvp::query()->getConnection()->table('armory_characters')
+            ->whereIn('user_id', $userIds)
+            ->where('is_visible', true)
+            ->orderByDesc('is_main')
+            ->orderByDesc('item_level')
+            ->get(['user_id', 'name', 'class', 'spec', 'item_level', 'level']);
 
         $best = [];
         foreach ($rows as $c) {

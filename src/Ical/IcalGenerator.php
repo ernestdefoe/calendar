@@ -16,7 +16,8 @@ use ErnestDefoe\Calendar\Event;
 class IcalGenerator
 {
     public function __construct(
-        protected string $domain = 'localhost'
+        protected string $domain = 'localhost',
+        protected bool $withLocation = true,
     ) {
     }
 
@@ -86,7 +87,7 @@ class IcalGenerator
         if ($description !== '') {
             $lines[] = 'DESCRIPTION:'.$this->escape($description);
         }
-        if ($event->location) {
+        if ($this->withLocation && $event->location) {
             $lines[] = 'LOCATION:'.$this->escape($event->location);
         }
         if ($event->url) {

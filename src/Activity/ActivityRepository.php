@@ -4,6 +4,7 @@ namespace ErnestDefoe\Calendar\Activity;
 
 use Carbon\Carbon;
 use Flarum\Post\Post;
+use Flarum\User\User;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -17,34 +18,38 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class ActivityRepository
 {
-    /** Daily comment counts for one user over the last $days days, keyed 'Y-m-d'. */
-    public function userDaily(int $userId, int $days = 365): array
+    /** Daily comment counts for one user over the last $days days, keyed 'Y-m-d', counting only posts $viewer can see. */
+    public function userDaily(User $viewer, int $userId, int $days = 365): array
     {
-        return $this->daily($days, fn ($q) => $q->where('user_id', $userId));
+        return $this->daily($viewer, $days, fn ($q) => $q->where('posts.user_id', $userId));
     }
 
     /**
      * Daily comment counts across the whole forum over the last $days days,
      * leaving out the authors in $exclude (see excluding()).
      */
-    public function forumDaily(int $days = 120, array $exclude = []): array
+    public function forumDaily(User $viewer, int $days = 120, array $exclude = []): array
     {
-        return $this->daily($days, fn ($q) => $this->excluding($q->whereNotNull('user_id'), $exclude));
+        return $this->daily($viewer, $days, fn ($q) => $this->excluding($q->whereNotNull('posts.user_id'), $exclude));
     }
 
     /** Top contributors (by comment count) over the last $days days. */
-    public function leaders(int $days = 30, int $limit = 10, array $exclude = []): array
+    public function leaders(User $viewer, int $days = 30, int $limit = 10, array $exclude = []): array
     {
         $from = Carbon::now()->subDays($days - 1)->startOfDay();
 
-        return $this->excluding(Post::query(), $exclude)
-            ->selectRaw('user_id, COUNT(*) as c')
-            ->where('type', 'comment')
-            ->whereNotNull('user_id')
-            ->where('is_private', false)
-            ->whereNull('hidden_at')
-            ->where('created_at', '>=', $from)
-            ->groupBy('user_id')
+        $query = Post::query()->whereVisibleTo($viewer);
+        // Raw SQL takes the table prefix verbatim, so the column goes through the grammar.
+        $userId = $query->getQuery()->getGrammar()->wrap('posts.user_id');
+
+        return $this->excluding($query, $exclude)
+            ->selectRaw("$userId as user_id, COUNT(*) as c")
+            ->where('posts.type', 'comment')
+            ->whereNotNull('posts.user_id')
+            ->where('posts.is_private', false)
+            ->whereNull('posts.hidden_at')
+            ->where('posts.created_at', '>=', $from)
+            ->groupBy('posts.user_id')
             ->orderByDesc('c')
             ->limit($limit)
             ->toBase()
@@ -108,17 +113,17 @@ class ActivityRepository
     private function excluding(Builder $query, array $exclude): Builder
     {
         if (! empty($exclude['groups'])) {
-            $query->whereNotIn('user_id', fn ($q) => $q->select('user_id')->from('group_user')->whereIn('group_id', $exclude['groups']));
+            $query->whereNotIn('posts.user_id', fn ($q) => $q->select('user_id')->from('group_user')->whereIn('group_id', $exclude['groups']));
         }
 
         if (! empty($exclude['users'])) {
-            $query->whereNotIn('user_id', $exclude['users']);
+            $query->whereNotIn('posts.user_id', $exclude['users']);
         }
 
         return $query;
     }
 
-    private function daily(int $days, callable $scope): array
+    private function daily(User $viewer, int $days, callable $scope): array
     {
         $from = Carbon::now()->subDays($days - 1)->startOfDay();
 
@@ -126,12 +131,13 @@ class ActivityRepository
         // function-style cast, and GROUP BY accepts output-column names) and
         // SQLite all run it, proved on PostgreSQL 16. CAST(... AS DATE) is NOT:
         // SQLite turns '2026-11-02 10:00:00' into 2026.
-        $q = Post::query()
-            ->selectRaw('DATE(created_at) as d, COUNT(*) as c')
-            ->where('type', 'comment')
-            ->where('is_private', false)
-            ->whereNull('hidden_at')
-            ->where('created_at', '>=', $from)
+        $q = Post::query()->whereVisibleTo($viewer);
+        $createdAt = $q->getQuery()->getGrammar()->wrap('posts.created_at'); // raw SQL: the prefix is ours to add
+        $q->selectRaw("DATE($createdAt) as d, COUNT(*) as c")
+            ->where('posts.type', 'comment')
+            ->where('posts.is_private', false)
+            ->whereNull('posts.hidden_at')
+            ->where('posts.created_at', '>=', $from)
             ->groupBy('d');
 
         $scope($q);

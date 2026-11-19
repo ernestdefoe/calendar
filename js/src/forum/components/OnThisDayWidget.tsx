@@ -4,7 +4,6 @@ import { onThisDay, type Memory } from '../../common/api';
 import { bind } from '../../common/widgetData';
 import { num } from '../../common/dates';
 
-declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
 
 /**

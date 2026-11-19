@@ -44,8 +44,15 @@
         "color": "#fff"
       },
       "optional-dependencies": [
+        "flarum/tags",
+        "flarum/markdown",
+        "flarum/bbcode",
         "fof/upload",
-        "fof/badges"
+        "fof/badges",
+        "fof/forum-widgets-core",
+        "ernestdefoe/page-builder",
+        "ernestdefoe/bespoke",
+        "ernestdefoe/armory"
       ]
     },
     "flarum-cli": {

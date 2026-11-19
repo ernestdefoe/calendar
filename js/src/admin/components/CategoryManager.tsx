@@ -3,7 +3,6 @@ import Component from 'flarum/common/Component';
 import Button from 'flarum/common/components/Button';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
 
-declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.admin.' + k, p);
 // Plain-text form, for attributes (aria-label, title).
 const tx = (k: string, p: any = {}): string => app.translator.trans('ernestdefoe-calendar.admin.' + k, p, true);
@@ -19,6 +18,8 @@ interface Cat {
 }
 
 const api = (path: string) => app.forum.attribute('apiUrl') + path;
+/** A calendar-categories resource object as the row model this page edits. */
+const toCat = (r: any): Cat => ({ id: Number(r.id), ...r.attributes });
 const PRESETS = ['#3b5bdb', '#e8590c', '#2f9e44', '#9c36b5', '#e03131', '#1098ad', '#f08c00', '#495057'];
 
 // Module-level cache. The admin settings page re-runs customSetting's
@@ -52,9 +53,9 @@ export default class CategoryManager extends Component {
   load() {
     this.loading = true;
     app
-      .request<any>({ method: 'GET', url: api('/calendar/categories') })
+      .request<any>({ method: 'GET', url: api('/calendar-categories') })
       .then((res: any) => {
-        this.cats = CACHE = res.data || [];
+        this.cats = CACHE = (res.data || []).map(toCat);
         this.loading = false;
         m.redraw();
       })
@@ -176,9 +177,11 @@ export default class CategoryManager extends Component {
     app
       .request({
         method: 'PATCH',
-        url: api('/calendar/categories/' + c.id),
+        url: api('/calendar-categories/' + c.id),
         body: {
           data: {
+            type: 'calendar-categories',
+            id: String(c.id),
             attributes: {
               name: c.name,
               color: c.color,
@@ -205,11 +208,11 @@ export default class CategoryManager extends Component {
     app
       .request<any>({
         method: 'POST',
-        url: api('/calendar/categories'),
-        body: { data: { attributes: { name: this.draft.name, color: this.draft.color } } },
+        url: api('/calendar-categories'),
+        body: { data: { type: 'calendar-categories', attributes: { name: this.draft.name, color: this.draft.color } } },
       })
       .then((res: any) => {
-        this.cats.push(res.data);
+        this.cats.push(toCat(res.data));
         CACHE = this.cats;
         this.draft = { name: '', color: PRESETS[this.cats.length % PRESETS.length] };
         this.saving['new'] = false;
@@ -224,11 +227,13 @@ export default class CategoryManager extends Component {
   remove(c: Cat) {
     if (!confirm(t('category_delete_confirm') as any)) return;
     app
-      .request({ method: 'DELETE', url: api('/calendar/categories/' + c.id) })
+      .request({ method: 'DELETE', url: api('/calendar-categories/' + c.id) })
       .then(() => {
         this.cats = CACHE = this.cats.filter((x) => x !== c);
         m.redraw();
       })
-      .catch(() => {});
+      .catch(() => {
+        // app.request already showed the alert; the category stays in the list.
+      });
   }
 }

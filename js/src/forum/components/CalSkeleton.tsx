@@ -1,7 +1,5 @@
 import Component from 'flarum/common/Component';
 
-declare const m: any;
-
 /**
  * Remembered heights for the calendar's loading states.
  *

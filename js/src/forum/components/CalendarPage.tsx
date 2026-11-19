@@ -10,7 +10,6 @@ import EventListView from './EventListView';
 import { listEvents, showEvent, feedUrl, type CalEvent, type CalCategory } from '../../common/api';
 import { monthMatrix, monthLabel, weekDays, weekRangeLabel, dayTitle, startOfDay, addDays } from '../../common/dates';
 
-declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
 
 type Mode = 'month' | 'week' | 'day' | 'list';
@@ -40,7 +39,9 @@ export default class CalendarPage extends Page {
     if (id) {
       showEvent(id)
         .then((ev) => this.openEvent(ev))
-        .catch(() => {});
+        .catch(() => {
+          // app.request already showed the alert; the calendar itself still loads.
+        });
     }
   }
 

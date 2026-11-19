@@ -1,112 +1,57 @@
 <?php
 
+/*
+ * This file is part of ernestdefoe/calendar.
+ *
+ * Calendar & Events for Flarum 2.
+ */
+
 namespace ErnestDefoe\Calendar\Api;
 
 use Carbon\Carbon;
+use Carbon\Exceptions\InvalidFormatException;
 use ErnestDefoe\Calendar\Event;
 use Flarum\Foundation\ValidationException;
 use Illuminate\Support\Str;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Validates and applies incoming event attributes onto an Event model. Datetimes
- * arrive as ISO strings (the client sends UTC); we store them in UTC and keep
- * the chosen display timezone in `timezone`.
+ * Cleans what a member types into the event form. EventResource's field
+ * setters call the static cleaners one field at a time; validate() then checks
+ * the rules that span fields before the event is saved.
  */
 class EventInput
 {
-    public static function apply(Event $event, array $attrs, bool $creating): void
+    public function __construct(private TranslatorInterface $translator)
+    {
+    }
+
+    /** Reject an event without a title or a start, or one that ends before it starts. */
+    public function validate(Event $event): void
     {
         $errors = [];
 
-        if (array_key_exists('title', $attrs) || $creating) {
-            $title = trim((string) ($attrs['title'] ?? ''));
-            if ($title === '') {
-                $errors['title'] = self::t('title_required');
-            } else {
-                $event->title = mb_substr($title, 0, 255);
-            }
+        if (trim((string) $event->title) === '') {
+            $errors['title'] = $this->translator->trans('ernestdefoe-calendar.api.title_required');
         }
-
-        if (array_key_exists('start', $attrs) || $creating) {
-            $start = self::parseDate($attrs['start'] ?? null);
-            if (! $start) {
-                $errors['start'] = self::t('start_required');
-            } else {
-                $event->start_at = $start;
-            }
-        }
-
-        if (array_key_exists('end', $attrs)) {
-            $end = self::parseDate($attrs['end']);
-            $event->end_at = $end; // null clears it
-            if ($end && isset($event->start_at) && $end->lt($event->start_at)) {
-                $errors['end'] = self::t('end_before_start');
-            }
-        }
-
-        if (array_key_exists('allDay', $attrs)) {
-            $event->all_day = (bool) $attrs['allDay'];
-        }
-        if (array_key_exists('timezone', $attrs)) {
-            $event->timezone = self::safeTimezone((string) $attrs['timezone']);
-        }
-        if (array_key_exists('description', $attrs)) {
-            $event->description = mb_substr((string) $attrs['description'], 0, 20000);
-        }
-        // Ignored while the admin has the location field switched off.
-        if (array_key_exists('location', $attrs) && Event::locationEnabled()) {
-            $event->location = self::str($attrs['location'], 255);
-        }
-        if (array_key_exists('url', $attrs)) {
-            $event->url = self::url($attrs['url']);
-        }
-        if (array_key_exists('coverUrl', $attrs)) {
-            $event->cover_url = self::url($attrs['coverUrl']);
-        }
-        if (array_key_exists('rrule', $attrs)) {
-            $event->rrule = self::rrule($attrs['rrule']);
-        }
-        if (array_key_exists('categoryId', $attrs)) {
-            $event->category_id = $attrs['categoryId'] ? (int) $attrs['categoryId'] : null;
+        if (! $event->start_at) {
+            $errors['start'] = $this->translator->trans('ernestdefoe-calendar.api.start_required');
+        } elseif ($event->end_at && $event->end_at->lt($event->start_at)) {
+            $errors['end'] = $this->translator->trans('ernestdefoe-calendar.api.end_before_start');
         }
 
         if ($errors) {
             throw new ValidationException($errors);
         }
-
-        if ($creating || ! $event->slug) {
-            $event->slug = self::uniqueSlug($event->title, $event->id);
-        }
     }
 
-    /**
-     * Validation messages reach the member, so they are translated rather than
-     * hardcoded English. Resolved lazily: this class is also called from console
-     * context, where the translator may not be bound.
-     */
-    private static function t(string $key): string
+    public static function title(mixed $value): string
     {
-        $full = 'ernestdefoe-calendar.api.'.$key;
-
-        try {
-            $translated = resolve(TranslatorInterface::class)->trans($full);
-        } catch (\Throwable $e) {
-            return $full;
-        }
-
-        // Symfony returns the key itself when nothing is registered; the raw key
-        // is not a sentence, so fall back to something a human can read.
-        return $translated === $full ? self::FALLBACK[$key] ?? $full : $translated;
+        return mb_substr(trim((string) $value), 0, 255);
     }
 
-    private const FALLBACK = [
-        'title_required' => 'The title is required.',
-        'start_required' => 'A valid start date/time is required.',
-        'end_before_start' => 'The end must be after the start.',
-    ];
-
-    private static function parseDate(mixed $value): ?Carbon
+    /** A date the member typed, in UTC; null when it isn't one (validate() reports it). */
+    public static function date(mixed $value): ?Carbon
     {
         if ($value === null || $value === '') {
             return null;
@@ -114,24 +59,24 @@ class EventInput
 
         try {
             return Carbon::parse((string) $value)->utc();
-        } catch (\Throwable $e) {
+        } catch (InvalidFormatException) {
             return null;
         }
     }
 
-    private static function safeTimezone(string $tz): string
+    public static function timezone(mixed $tz): string
     {
         return in_array($tz, timezone_identifiers_list(), true) ? $tz : 'UTC';
     }
 
-    private static function str(mixed $v, int $max): ?string
+    public static function str(mixed $v, int $max): ?string
     {
         $v = trim((string) $v);
 
         return $v === '' ? null : mb_substr($v, 0, $max);
     }
 
-    private static function url(mixed $v): ?string
+    public static function url(mixed $v): ?string
     {
         $v = trim((string) $v);
         if ($v === '') {
@@ -156,7 +101,7 @@ class EventInput
     }
 
     /** Keep only a safe RRULE-ish charset; the expander/iCal tolerate the rest. */
-    private static function rrule(mixed $v): ?string
+    public static function rrule(mixed $v): ?string
     {
         $v = strtoupper(trim((string) $v));
         if ($v === '') {
@@ -167,7 +112,7 @@ class EventInput
         return mb_substr($v, 0, 600);
     }
 
-    private static function uniqueSlug(string $title, ?int $ignoreId = null): string
+    public static function uniqueSlug(string $title, ?int $ignoreId = null): string
     {
         $base = Str::slug($title) ?: 'event';
         $slug = $base;

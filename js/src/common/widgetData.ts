@@ -35,14 +35,14 @@ export function peek<T>(key: string): T | undefined {
 }
 
 /** The value for `key`, fetching at most once per TTL however many ask. */
-export function load<T>(key: string, fetch: () => Promise<T>, fallback: T): Promise<T> {
+export function load<T>(key: string, request: () => Promise<T>, fallback: T): Promise<T> {
   const fresh = peek<T>(key);
   if (fresh !== undefined) return Promise.resolve(fresh);
 
   const pending = store.get(key)?.promise;
   if (pending && !('value' in (store.get(key) as Entry))) return pending as Promise<T>;
 
-  const promise = fetch()
+  const promise = request()
     .catch(() => fallback)
     .then((value) => {
       store.set(key, { at: Date.now(), value });
@@ -65,7 +65,7 @@ export function invalidate(prefix: string): void {
  * The usual widget wiring: fill `target[prop]` now if the value is fresh,
  * otherwise once it arrives (then redraw).
  */
-export function bind<T>(target: any, prop: string, key: string, fetch: () => Promise<T>, fallback: T): void {
+export function bind<T>(target: any, prop: string, key: string, request: () => Promise<T>, fallback: T): void {
   const fresh = peek<T>(key);
 
   if (fresh !== undefined) {
@@ -75,10 +75,8 @@ export function bind<T>(target: any, prop: string, key: string, fetch: () => Pro
 
   target[prop] = null;
 
-  load(key, fetch, fallback).then((value) => {
+  load(key, request, fallback).then((value) => {
     target[prop] = value;
     m.redraw();
   });
 }
-
-declare const m: any;

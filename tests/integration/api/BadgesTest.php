@@ -2,6 +2,7 @@
 
 namespace ErnestDefoe\Calendar\Tests\integration\api;
 
+use ErnestDefoe\Calendar\Tests\integration\CalendarApi;
 use Carbon\Carbon;
 use Flarum\Discussion\Discussion;
 use Flarum\Post\Post;
@@ -14,6 +15,7 @@ use PHPUnit\Framework\Attributes\Test;
 /** Calendar's two FoF Badges metrics, awarded through fof/badges' triggers. */
 class BadgesTest extends TestCase
 {
+    use CalendarApi;
     use RetrievesAuthorizedUsers;
 
     private function badge(int $id, string $metric, int $value, array $extra = []): array
@@ -64,12 +66,12 @@ class BadgesTest extends TestCase
 
     private function json(string $method, string $path, int $actor, array $body): int
     {
-        return $this->send($this->request($method, $path, ['authenticatedAs' => $actor, 'json' => $body]))->getStatusCode();
+        return $this->send($this->calendarRequest($method, $path, ['authenticatedAs' => $actor, 'json' => $body]))->getStatusCode();
     }
 
     private function rsvp(int $event): int
     {
-        return $this->json('POST', "/api/calendar/events/$event/rsvp", 2, ['data' => ['status' => 'going']]);
+        return $this->json('POST', "/api/calendar-events/$event/rsvp", 2, ['data' => ['attributes' => ['status' => 'going']]]);
     }
 
     /** @return int[] */
@@ -131,7 +133,7 @@ class BadgesTest extends TestCase
         $this->prepareDatabase(['fof_badges' => [$this->badge(1, 'calendar_events_organized', 4), $this->badge(2, 'calendar_events_organized', 5)]]);
 
         // The organiser already has three published events.
-        $status = $this->json('POST', '/api/calendar/events', 3, ['data' => ['attributes' => ['title' => 'New', 'start' => '2030-06-01T18:00:00Z', 'timezone' => 'UTC']]]);
+        $status = $this->json('POST', '/api/calendar-events', 3, ['data' => ['attributes' => ['title' => 'New', 'start' => '2030-06-01T18:00:00Z', 'timezone' => 'UTC']]]);
 
         $this->assertSame(201, $status);
         $this->assertSame([1], $this->badgesOf(3));
@@ -143,6 +145,6 @@ class BadgesTest extends TestCase
         $this->extension('ernestdefoe-calendar');
 
         $this->assertSame(200, $this->rsvp(1));
-        $this->assertSame(201, $this->json('POST', '/api/calendar/events', 3, ['data' => ['attributes' => ['title' => 'New', 'start' => '2030-06-01T18:00:00Z', 'timezone' => 'UTC']]]));
+        $this->assertSame(201, $this->json('POST', '/api/calendar-events', 3, ['data' => ['attributes' => ['title' => 'New', 'start' => '2030-06-01T18:00:00Z', 'timezone' => 'UTC']]]));
     }
 }

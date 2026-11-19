@@ -46,35 +46,9 @@ export default function registerFofWidget(
   const widgets = new Widgets();
 
   WIDGETS.forEach(({ key, title, icon, position }) => {
-    class CalendarWidget extends WidgetBase {
-      className() {
-        // Flat: each component draws its own card + heading, so skip the
-        // widget-core container chrome to avoid a double header.
-        return 'CalendarFofWidget FofWidgets-Widget--flat';
-      }
-
-      header() {
-        // The component renders its own heading — the chrome title on top of
-        // it read as a duplicate.
-        return null;
-      }
-
-      icon() {
-        return icon;
-      }
-
-      title() {
-        return app.translator.trans('ernestdefoe-calendar.forum.' + title);
-      }
-
-      content() {
-        return render[key]();
-      }
-    }
-
     widgets.add({
       key,
-      component: CalendarWidget,
+      component: widgetClass(WidgetBase, app, title, icon, () => render[key]()),
       // How the tile reads in the widget manager's layout editor, in versions
       // that support it; older ones ignore these and label every tile with the
       // extension's name. A callback, so only the editor ever translates it.
@@ -88,4 +62,33 @@ export default function registerFofWidget(
   });
 
   widgets.extend(app, EXTENSION);
+}
+
+/** The fof/forum-widgets-core component for one calendar widget. */
+function widgetClass(WidgetBase: { new (...args: any[]): any }, app: any, title: string, icon: string, render: () => any) {
+  return class CalendarWidget extends WidgetBase {
+    className() {
+      // Flat: each component draws its own card + heading, so skip the
+      // widget-core container chrome to avoid a double header.
+      return 'CalendarFofWidget FofWidgets-Widget--flat';
+    }
+
+    header() {
+      // The component renders its own heading — the chrome title on top of
+      // it read as a duplicate.
+      return null;
+    }
+
+    icon() {
+      return icon;
+    }
+
+    title() {
+      return app.translator.trans('ernestdefoe-calendar.forum.' + title);
+    }
+
+    content() {
+      return render();
+    }
+  };
 }

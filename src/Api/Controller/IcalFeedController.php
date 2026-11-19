@@ -4,6 +4,7 @@ namespace ErnestDefoe\Calendar\Api\Controller;
 
 use Carbon\Carbon;
 use ErnestDefoe\Calendar\Event;
+use ErnestDefoe\Calendar\LocationSetting;
 use ErnestDefoe\Calendar\Ical\IcalGenerator;
 use Flarum\Http\RequestUtil;
 use Flarum\Settings\SettingsRepositoryInterface;
@@ -22,7 +23,8 @@ use Psr\Http\Server\RequestHandlerInterface;
 class IcalFeedController implements RequestHandlerInterface
 {
     public function __construct(
-        protected SettingsRepositoryInterface $settings
+        protected SettingsRepositoryInterface $settings,
+        protected LocationSetting $location,
     ) {
     }
 
@@ -44,10 +46,10 @@ class IcalFeedController implements RequestHandlerInterface
             ->limit(2000)
             ->get();
 
-        $name = (string) ($this->settings->get('forum_title') ?: 'Calendar');
+        $name = (string) $this->settings->get('forum_title');
         $host = $request->getUri()->getHost() ?: 'localhost';
 
-        $ics = (new IcalGenerator($host))->calendar($events, $name.' — Calendar');
+        $ics = (new IcalGenerator($host, $this->location->enabled()))->calendar($events, $name.' — Calendar');
 
         $response = new Response();
         $response->getBody()->write($ics);

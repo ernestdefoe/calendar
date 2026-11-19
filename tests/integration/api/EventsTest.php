@@ -2,6 +2,7 @@
 
 namespace ErnestDefoe\Calendar\Tests\integration\api;
 
+use ErnestDefoe\Calendar\Tests\integration\CalendarApi;
 use Carbon\Carbon;
 use Flarum\Group\Group;
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
@@ -11,6 +12,7 @@ use PHPUnit\Framework\Attributes\Test;
 
 class EventsTest extends TestCase
 {
+    use CalendarApi;
     use RetrievesAuthorizedUsers;
 
     protected function setUp(): void
@@ -75,7 +77,7 @@ class EventsTest extends TestCase
             $options['json'] = $body;
         }
 
-        $request = $this->request($method, $path, $options)->withQueryParams($query);
+        $request = $this->calendarRequest($method, $path, $options)->withQueryParams($query);
         if (! $actor) {
             // Past the CSRF check, so a guest reaches the permission check itself.
             $request = $request->withAttribute('bypassCsrfToken', true);
@@ -83,12 +85,12 @@ class EventsTest extends TestCase
 
         $response = $this->send($request);
 
-        return [$response->getStatusCode(), json_decode((string) $response->getBody(), true)];
+        return [$response->getStatusCode(), $this->flatten(json_decode((string) $response->getBody(), true))];
     }
 
     private function list(?int $actor = null, array $query = []): array
     {
-        return $this->json('GET', '/api/calendar/events', $actor, null, $query + ['from' => '2030-05-01T00:00:00Z', 'to' => '2030-05-31T23:59:59Z']);
+        return $this->json('GET', '/api/calendar-events', $actor, null, ['filter' => ($query['filter'] ?? []) + ['from' => '2030-05-01T00:00:00Z', 'to' => '2030-05-31T23:59:59Z']]);
     }
 
     #[Test]
@@ -111,7 +113,7 @@ class EventsTest extends TestCase
 
         $published = $body['data'][array_search('Published', $titles)];
         $this->assertSame(
-            ['id' => 1, 'name' => 'Meetups', 'slug' => 'meetups', 'color' => '#ff0000', 'rsvp' => true, 'goingLabel' => null, 'interestedLabel' => null],
+            ['id' => 1, 'name' => 'Meetups', 'slug' => 'meetups', 'color' => '#ff0000', 'rsvp' => true, 'goingLabel' => null, 'interestedLabel' => null, 'position' => 0],
             $published['category']
         );
         $this->assertSame('organiser', $published['author']['username']);
@@ -121,7 +123,7 @@ class EventsTest extends TestCase
     #[Test]
     public function the_list_filters_by_category_slug()
     {
-        [, $body] = $this->list(null, ['category' => 'meetups']);
+        [, $body] = $this->list(null, ['filter' => ['category' => 'meetups']]);
 
         $this->assertSame(['Published'], array_column($body['data'], 'title'));
     }
@@ -153,20 +155,20 @@ class EventsTest extends TestCase
     #[Test]
     public function a_draft_is_visible_only_to_its_author_and_managers()
     {
-        $this->assertSame(404, $this->json('GET', '/api/calendar/events/2')[0], 'Guest');
-        $this->assertSame(404, $this->json('GET', '/api/calendar/events/2', 2)[0], 'Another member');
-        $this->assertSame(404, $this->json('GET', '/api/calendar/events/2', 5)[0], 'Another organiser');
-        $this->assertSame(200, $this->json('GET', '/api/calendar/events/2', 3)[0], 'Its author');
-        $this->assertSame(200, $this->json('GET', '/api/calendar/events/2', 4)[0], 'A manager');
-        $this->assertSame(200, $this->json('GET', '/api/calendar/events/2', 1)[0], 'An admin');
+        $this->assertSame(404, $this->json('GET', '/api/calendar-events/2')[0], 'Guest');
+        $this->assertSame(404, $this->json('GET', '/api/calendar-events/2', 2)[0], 'Another member');
+        $this->assertSame(404, $this->json('GET', '/api/calendar-events/2', 5)[0], 'Another organiser');
+        $this->assertSame(200, $this->json('GET', '/api/calendar-events/2', 3)[0], 'Its author');
+        $this->assertSame(200, $this->json('GET', '/api/calendar-events/2', 4)[0], 'A manager');
+        $this->assertSame(200, $this->json('GET', '/api/calendar-events/2', 1)[0], 'An admin');
 
-        $this->assertSame(404, $this->json('GET', '/api/calendar/events/999')[0]);
+        $this->assertSame(404, $this->json('GET', '/api/calendar-events/999')[0]);
     }
 
     #[Test]
     public function can_edit_is_true_only_for_the_author_and_managers()
     {
-        $canEdit = fn (?int $actor) => $this->json('GET', '/api/calendar/events/1', $actor)[1]['data']['canEdit'];
+        $canEdit = fn (?int $actor) => $this->json('GET', '/api/calendar-events/1', $actor)[1]['data']['canEdit'];
 
         $this->assertFalse($canEdit(null));
         $this->assertFalse($canEdit(2));
@@ -179,7 +181,7 @@ class EventsTest extends TestCase
     #[Test]
     public function a_published_event_shows_to_a_guest()
     {
-        [$status, $body] = $this->json('GET', '/api/calendar/events/1');
+        [$status, $body] = $this->json('GET', '/api/calendar-events/1');
 
         $this->assertSame(200, $status);
         $this->assertSame('Published', $body['data']['title']);
@@ -197,10 +199,10 @@ class EventsTest extends TestCase
 
         $event = ['data' => ['attributes' => ['title' => 'New', 'start' => '2030-06-01T10:00:00Z']]];
 
-        $this->assertSame(401, $this->json('POST', '/api/calendar/events', null, $event)[0], 'Guest');
-        $this->assertSame(403, $this->json('POST', '/api/calendar/events', 2, $event)[0], 'Member without permission');
+        $this->assertSame(401, $this->json('POST', '/api/calendar-events', null, $event)[0], 'Guest');
+        $this->assertSame(403, $this->json('POST', '/api/calendar-events', 2, $event)[0], 'Member without permission');
 
-        [$status, $body] = $this->json('POST', '/api/calendar/events', 3, $event);
+        [$status, $body] = $this->json('POST', '/api/calendar-events', 3, $event);
         $this->assertSame(201, $status);
         $this->assertSame('New', $body['data']['title']);
         $this->assertSame('organiser', $body['data']['author']['username']);
@@ -211,19 +213,19 @@ class EventsTest extends TestCase
     #[Test]
     public function creating_validates_and_sanitises_the_input()
     {
-        [$status] = $this->json('POST', '/api/calendar/events', 3, ['data' => ['attributes' => ['title' => '  ', 'start' => '2030-06-01T10:00:00Z']]]);
+        [$status] = $this->json('POST', '/api/calendar-events', 3, ['data' => ['attributes' => ['title' => '  ', 'start' => '2030-06-01T10:00:00Z']]]);
         $this->assertSame(422, $status, 'A title is required');
 
-        [$status] = $this->json('POST', '/api/calendar/events', 3, ['data' => ['attributes' => ['title' => 'When?', 'start' => 'not a date']]]);
+        [$status] = $this->json('POST', '/api/calendar-events', 3, ['data' => ['attributes' => ['title' => 'When?', 'start' => 'not a date']]]);
         $this->assertSame(422, $status, 'A start is required');
         $this->assertSame(0, $this->database()->table('calendar_events')->where('user_id', 3)->where('title', 'When?')->count());
 
-        [$status] = $this->json('POST', '/api/calendar/events', 3, ['data' => ['attributes' => [
+        [$status] = $this->json('POST', '/api/calendar-events', 3, ['data' => ['attributes' => [
             'title' => 'Backwards', 'start' => '2030-06-02T10:00:00Z', 'end' => '2030-06-01T10:00:00Z',
         ]]]);
         $this->assertSame(422, $status, 'An end before the start is rejected');
 
-        [$status, $body] = $this->json('POST', '/api/calendar/events', 3, ['data' => ['attributes' => [
+        [$status, $body] = $this->json('POST', '/api/calendar-events', 3, ['data' => ['attributes' => [
             'title' => 'Links',
             'start' => '2030-06-01T10:00:00Z',
             'url' => 'javascript://example.com/%0Aalert(1)',
@@ -241,8 +243,8 @@ class EventsTest extends TestCase
     {
         $event = ['data' => ['attributes' => ['title' => 'Same', 'start' => '2030-06-01T10:00:00Z']]];
 
-        $first = $this->json('POST', '/api/calendar/events', 3, $event)[1]['data']['slug'];
-        $second = $this->json('POST', '/api/calendar/events', 3, $event)[1]['data']['slug'];
+        $first = $this->json('POST', '/api/calendar-events', 3, $event)[1]['data']['slug'];
+        $second = $this->json('POST', '/api/calendar-events', 3, $event)[1]['data']['slug'];
 
         $this->assertSame('same', $first);
         $this->assertSame('same-2', $second);
@@ -253,31 +255,31 @@ class EventsTest extends TestCase
     {
         $patch = ['data' => ['attributes' => ['title' => 'Renamed']]];
 
-        $this->assertSame(401, $this->json('PATCH', '/api/calendar/events/1', null, $patch)[0], 'Guest');
-        $this->assertSame(403, $this->json('PATCH', '/api/calendar/events/1', 2, $patch)[0], 'Member');
-        $this->assertSame(403, $this->json('PATCH', '/api/calendar/events/1', 5, $patch)[0], 'Another organiser');
+        $this->assertSame(401, $this->json('PATCH', '/api/calendar-events/1', null, $patch)[0], 'Guest');
+        $this->assertSame(403, $this->json('PATCH', '/api/calendar-events/1', 2, $patch)[0], 'Member');
+        $this->assertSame(403, $this->json('PATCH', '/api/calendar-events/1', 5, $patch)[0], 'Another organiser');
         $this->assertSame('Published', $this->database()->table('calendar_events')->where('id', 1)->value('title'));
 
-        [$status, $body] = $this->json('PATCH', '/api/calendar/events/1', 3, $patch);
+        [$status, $body] = $this->json('PATCH', '/api/calendar-events/1', 3, $patch);
         $this->assertSame(200, $status, 'Author');
         $this->assertSame('Renamed', $body['data']['title']);
 
-        $this->assertSame(200, $this->json('PATCH', '/api/calendar/events/1', 4, ['data' => ['attributes' => ['title' => 'Managed']]])[0], 'Manager');
+        $this->assertSame(200, $this->json('PATCH', '/api/calendar-events/1', 4, ['data' => ['attributes' => ['title' => 'Managed']]])[0], 'Manager');
         $this->assertSame('Managed', $this->database()->table('calendar_events')->where('id', 1)->value('title'));
     }
 
     #[Test]
     public function only_the_author_or_a_manager_can_delete()
     {
-        $this->assertSame(401, $this->json('DELETE', '/api/calendar/events/1')[0], 'Guest');
-        $this->assertSame(403, $this->json('DELETE', '/api/calendar/events/1', 2)[0], 'Member');
-        $this->assertSame(403, $this->json('DELETE', '/api/calendar/events/1', 5)[0], 'Another organiser');
+        $this->assertSame(401, $this->json('DELETE', '/api/calendar-events/1')[0], 'Guest');
+        $this->assertSame(403, $this->json('DELETE', '/api/calendar-events/1', 2)[0], 'Member');
+        $this->assertSame(403, $this->json('DELETE', '/api/calendar-events/1', 5)[0], 'Another organiser');
         $this->assertTrue($this->database()->table('calendar_events')->where('id', 1)->exists());
 
-        $this->assertSame(204, $this->json('DELETE', '/api/calendar/events/1', 3)[0], 'Author');
+        $this->assertSame(204, $this->json('DELETE', '/api/calendar-events/1', 3)[0], 'Author');
         $this->assertFalse($this->database()->table('calendar_events')->where('id', 1)->exists());
 
-        $this->assertSame(204, $this->json('DELETE', '/api/calendar/events/3', 4)[0], 'Manager');
+        $this->assertSame(204, $this->json('DELETE', '/api/calendar-events/3', 4)[0], 'Manager');
         $this->assertFalse($this->database()->table('calendar_events')->where('id', 3)->exists());
     }
 }

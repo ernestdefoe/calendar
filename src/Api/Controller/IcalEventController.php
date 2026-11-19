@@ -3,6 +3,7 @@
 namespace ErnestDefoe\Calendar\Api\Controller;
 
 use ErnestDefoe\Calendar\Event;
+use ErnestDefoe\Calendar\LocationSetting;
 use ErnestDefoe\Calendar\Ical\IcalGenerator;
 use Flarum\Http\RequestUtil;
 use Illuminate\Support\Arr;
@@ -14,6 +15,10 @@ use Psr\Http\Server\RequestHandlerInterface;
 /** GET /calendar/events/{id}/ical — download a single event as .ics. */
 class IcalEventController implements RequestHandlerInterface
 {
+    public function __construct(protected LocationSetting $location)
+    {
+    }
+
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         // A forum guests can't view keeps its calendar from them too.
@@ -26,7 +31,7 @@ class IcalEventController implements RequestHandlerInterface
         $event = Event::query()->where('is_published', true)->findOrFail($id);
 
         $host = $request->getUri()->getHost() ?: 'localhost';
-        $ics = (new IcalGenerator($host))->single($event, $event->title);
+        $ics = (new IcalGenerator($host, $this->location->enabled()))->single($event, $event->title);
 
         $response = new Response();
         $response->getBody()->write($ics);

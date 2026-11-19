@@ -6,7 +6,6 @@ import { num } from '../../common/dates';
 import { asUser } from '../../common/users';
 import Avatar from 'flarum/common/components/Avatar';
 
-declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
 
 /**

@@ -2,7 +2,6 @@ import app from 'flarum/forum/app';
 import Button from 'flarum/common/components/Button';
 import { loc, num } from '../../common/dates';
 
-declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
 
 const pad = (n: number) => String(n).padStart(2, '0');

@@ -2,6 +2,7 @@
 
 namespace ErnestDefoe\Calendar\Tests\integration\api;
 
+use ErnestDefoe\Calendar\Tests\integration\CalendarApi;
 use Carbon\Carbon;
 use Flarum\Discussion\Discussion;
 use Flarum\Post\Post;
@@ -14,6 +15,7 @@ use PHPUnit\Framework\Attributes\Test;
 
 class OnThisDayTagsTest extends TestCase
 {
+    use CalendarApi;
     use RetrievesAuthorizedUsers;
 
     protected function setUp(): void
@@ -52,7 +54,7 @@ class OnThisDayTagsTest extends TestCase
     {
         $this->app()->getContainer()->make(Repository::class)->flush();
 
-        $response = $this->send($this->request('GET', '/api/calendar/onthisday', ['authenticatedAs' => 2]));
+        $response = $this->send($this->calendarRequest('GET', '/api/calendar-widgets/memories', ['authenticatedAs' => 2]));
 
         $this->assertSame(200, $response->getStatusCode());
 

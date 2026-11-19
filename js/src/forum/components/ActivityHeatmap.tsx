@@ -4,7 +4,6 @@ import { userActivity, type UserActivity } from '../../common/api';
 import { load, peek } from '../../common/widgetData';
 import { loc, dateLoc, num } from '../../common/dates';
 
-declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
 
 const DAY_MS = 86400000;
@@ -131,46 +130,51 @@ const ActivityHeatmap = {
         stat(d.streak.longest, t('heat_longest_streak')),
         stat(d.activeDays, t('heat_active_days')),
       ]),
-
-      m(
-        '.CalHeat-scroll',
-        m('.CalHeat-cal', [
-          m(
-            '.CalHeat-months',
-            months.map((mo: any) => m('span.CalHeat-month', { style: { '--col': mo.idx } }, mo.label))
-          ),
-          m(
-            '.CalHeat-grid',
-            weeks.map((week: any) =>
-              m(
-                '.CalHeat-week',
-                week.map((cell: any) =>
-                  cell
-                    ? m('span.CalHeat-cell', { 'data-lvl': cell.lvl, title: t('heat_cell', { count: num(cell.count), date: cell.date }) })
-                    : m('span.CalHeat-cell.is-future')
-                )
-              )
-            )
-          ),
-        ])
-      ),
-
-      m('.CalHeat-foot', [
-        badges.length
-          ? m(
-              '.CalHeat-badges',
-              badges.map((b: any) => m('span.CalHeat-badge', { title: b.label }, [b.icon, ' ', m('span.CalHeat-badgeLbl', b.label)]))
-            )
-          : m('span'),
-        m('.CalHeat-legend', [
-          m('span.CalHeat-legendLbl', t('heat_less')),
-          [0, 1, 2, 3, 4].map((l) => m('span.CalHeat-cell', { 'data-lvl': l })),
-          m('span.CalHeat-legendLbl', t('heat_more')),
-        ]),
-      ]),
+      m('.CalHeat-scroll', heatCalendar(weeks, months)),
+      heatFoot(badges),
     ]);
   },
 };
+
+/** The month labels over the grid of weeks, one cell per day. */
+function heatCalendar(weeks: any[], months: any[]) {
+  return m('.CalHeat-cal', [
+    m(
+      '.CalHeat-months',
+      months.map((mo: any) => m('span.CalHeat-month', { style: { '--col': mo.idx } }, mo.label))
+    ),
+    m(
+      '.CalHeat-grid',
+      weeks.map((week: any) =>
+        m(
+          '.CalHeat-week',
+          week.map((cell: any) =>
+            cell
+              ? m('span.CalHeat-cell', { 'data-lvl': cell.lvl, title: t('heat_cell', { count: num(cell.count), date: cell.date }) })
+              : m('span.CalHeat-cell.is-future')
+          )
+        )
+      )
+    ),
+  ]);
+}
+
+/** Earned badges on the left, the less → more legend on the right. */
+function heatFoot(badges: any[]) {
+  return m('.CalHeat-foot', [
+    badges.length
+      ? m(
+          '.CalHeat-badges',
+          badges.map((b: any) => m('span.CalHeat-badge', { title: b.label }, [b.icon, ' ', m('span.CalHeat-badgeLbl', b.label)]))
+        )
+      : m('span'),
+    m('.CalHeat-legend', [
+      m('span.CalHeat-legendLbl', t('heat_less')),
+      [0, 1, 2, 3, 4].map((l) => m('span.CalHeat-cell', { 'data-lvl': l })),
+      m('span.CalHeat-legendLbl', t('heat_more')),
+    ]),
+  ]);
+}
 
 function stat(value: any, label: string) {
   return m('.CalHeat-stat', [m('span.CalHeat-statNum', typeof value === 'number' ? num(value) : value), m('span.CalHeat-statLbl', label)]);

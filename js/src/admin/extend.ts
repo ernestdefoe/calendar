@@ -3,8 +3,6 @@ import app from 'flarum/admin/app';
 import CategoryManager from './components/CategoryManager';
 import { hasFofWidgets } from '../common/registerFofWidget';
 
-declare const m: any;
-declare const flarum: any;
 const t = (k: string) => app.translator.trans('ernestdefoe-calendar.admin.' + k);
 
 /**
