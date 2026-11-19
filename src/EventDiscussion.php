@@ -6,7 +6,6 @@ use Carbon\Carbon;
 use Flarum\Api\JsonApi;
 use Flarum\Api\Resource\DiscussionResource;
 use Flarum\Discussion\Discussion;
-use Flarum\Extension\ExtensionManager;
 use Flarum\Foundation\ValidationException;
 use Flarum\Http\UrlGenerator;
 use Flarum\Settings\SettingsRepositoryInterface;
@@ -32,7 +31,7 @@ class EventDiscussion
     public function __construct(
         private JsonApi $api,
         private SettingsRepositoryInterface $settings,
-        private ExtensionManager $extensions,
+        private Integrations $integrations,
         private UrlGenerator $url,
         private TranslatorInterface $translator,
         private LoggerInterface $log,
@@ -63,7 +62,7 @@ class EventDiscussion
         // tag — an empty list is refused too — so without one configured the
         // organiser is told what is missing instead of "tags is required".
         $tags = null;
-        if ($this->extensions->isEnabled('flarum-tags')) {
+        if ($this->integrations->tags()) {
             $tags = $this->tagIds();
             if ($tags) {
                 $data['relationships']['tags']['data'] = array_map(fn (int $id) => ['type' => 'tags', 'id' => (string) $id], $tags);
@@ -177,10 +176,10 @@ class EventDiscussion
             $url = ($base['scheme'] ?? 'https').'://'.($base['host'] ?? '').(isset($base['port']) ? ':'.$base['port'] : '').$url;
         }
 
-        if ($this->extensions->isEnabled('flarum-markdown')) {
+        if ($this->integrations->markdown()) {
             return '![]('.$url.')';
         }
 
-        return $this->extensions->isEnabled('flarum-bbcode') ? '[img]'.$url.'[/img]' : null;
+        return $this->integrations->bbcode() ? '[img]'.$url.'[/img]' : null;
     }
 }

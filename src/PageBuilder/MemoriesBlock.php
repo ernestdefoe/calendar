@@ -1,24 +1,19 @@
 <?php
 
 /*
- * Page Builder "On this day" block (server manifest half; client self-fetches).
- * See EventsBlock for the architecture note.
+ * This file is part of ernestdefoe/calendar.
+ *
+ * Calendar & Events for Flarum 2.
  */
 
 namespace ErnestDefoe\Calendar\PageBuilder;
 
-use Ernestdefoe\PageBuilder\Block\AbstractBlock;
-
-class MemoriesBlock extends AbstractBlock
+/** The on-this-day block: discussions started on today's date in earlier years. */
+class MemoriesBlock extends CalendarBlock
 {
     public function type(): string
     {
         return 'memories';
-    }
-
-    public function name(): string
-    {
-        return 'On This Day';
     }
 
     public function icon(): string
@@ -26,16 +21,11 @@ class MemoriesBlock extends AbstractBlock
         return 'fas fa-history';
     }
 
-    public function category(): string
-    {
-        return 'forum';
-    }
-
     public function settingsSchema(): array
     {
         return [
-            ['key' => 'title', 'type' => 'text', 'label' => 'Title', 'default' => 'On this day'],
-            ['key' => 'count', 'type' => 'range', 'label' => 'How many', 'default' => 6, 'min' => 1, 'max' => 20],
+            $this->titleField(),
+            $this->countField(6),
         ];
     }
 }

@@ -162,6 +162,24 @@ ernestdefoe-calendar:
       calendarMemories: On this day
 
   admin:
+    page_builder:
+      title_label: Title
+      count_label: How many
+      events:
+        name: Upcoming Events
+        title: Upcoming events
+        category_label: Category slug (optional)
+      pulse:
+        name: Forum Pulse
+        title: Forum pulse
+        count_label: Leaderboard size
+        weeks_label: Weeks of activity
+      memories:
+        name: On This Day
+        title: On this day
+      celebrations:
+        name: Celebrations
+        title: Celebrations
     settings_title: Calendar
     default_view: Default calendar view
     view_month_opt: Month grid

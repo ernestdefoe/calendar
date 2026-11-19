@@ -4,13 +4,22 @@ import { num } from '../common/dates';
 /**
  * Live countdowns. The formatter renders `[countdown=…]` as an inert
  * `<span class="CalCountdown" data-deadline="…">label</span>` placeholder (server
- * output is cached, so the clock can't run there). One global 1s ticker scans the
- * DOM and turns every placeholder into a ticking timer — which also covers
- * countdowns rendered anywhere else (e.g. the event detail modal). New posts /
- * modals are picked up on the next tick, so there are no per-component hooks.
+ * output is cached, so the clock can't run there). This also covers countdowns
+ * rendered anywhere else (e.g. the event detail modal), with no per-component
+ * hooks.
+ *
+ * The 1s ticker only runs while a countdown on the page still needs ticking
+ * (not yet built, or live). Once every countdown is done, invalid or gone, the
+ * ticker stops and a MutationObserver waits for the next placeholder (a new
+ * post, page or modal), which starts it again.
  */
 
+/** Countdowns that still need a tick: everything but finished and invalid ones. */
+const PENDING = '.CalCountdown[data-deadline]:not([data-state="done"]):not([data-state="invalid"])';
+
 let started = false;
+let timer: number | null = null;
+let observer: MutationObserver | null = null;
 
 /** Plain-string translation (trans() can return an array; we build innerHTML). */
 function tr(key: string): string {
@@ -18,15 +27,37 @@ function tr(key: string): string {
   return Array.isArray(r) ? r.join('') : String(r);
 }
 
+/** Render every pending countdown; stop ticking and go back to watching when none remain. */
+function tick(): void {
+  const nodes = document.querySelectorAll<HTMLElement>(PENDING);
+  for (let i = 0; i < nodes.length; i++) render(nodes[i]);
+
+  if (!document.querySelector(PENDING)) idle();
+}
+
+function run(): void {
+  observer?.disconnect();
+  tick();
+  if (timer === null && document.querySelector(PENDING)) timer = window.setInterval(tick, 1000);
+}
+
+function idle(): void {
+  if (timer !== null) {
+    window.clearInterval(timer);
+    timer = null;
+  }
+  if (!observer) {
+    observer = new MutationObserver(() => {
+      if (document.querySelector(PENDING)) run();
+    });
+  }
+  observer.observe(document.body, { childList: true, subtree: true });
+}
+
 export function startCountdowns(): void {
   if (started || typeof document === 'undefined') return;
   started = true;
-  const tick = () => {
-    const nodes = document.querySelectorAll<HTMLElement>('.CalCountdown[data-deadline]');
-    for (let i = 0; i < nodes.length; i++) render(nodes[i]);
-  };
-  tick();
-  window.setInterval(tick, 1000);
+  run();
 }
 
 function parseDeadline(raw: string): number | null {

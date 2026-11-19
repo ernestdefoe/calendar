@@ -1,4 +1,4 @@
-import app from 'flarum/forum/app';
+import app from 'flarum/common/app';
 import { invalidate } from './widgetData';
 import type { BasicUser } from './users';
 

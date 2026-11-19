@@ -14,7 +14,6 @@ use Flarum\Api\Resource\AbstractDatabaseResource;
 use Flarum\Api\Schema;
 use Flarum\Foundation\ValidationException;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Str;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Tobyz\JsonApiServer\Context as OriginalContext;
@@ -28,6 +27,8 @@ use Tobyz\JsonApiServer\Context as OriginalContext;
  */
 class EventCategoryResource extends AbstractDatabaseResource
 {
+    use UniqueSlugs;
+
     public function __construct(private TranslatorInterface $translator)
     {
     }
@@ -93,27 +94,10 @@ class EventCategoryResource extends AbstractDatabaseResource
         }
 
         if (! $model->slug || $model->isDirty('name')) {
-            $model->slug = self::uniqueSlug($model->name, $model->id);
+            $model->slug = $this->uniqueSlug($model, $model->name, 'category');
         }
 
         return $model;
-    }
-
-    /** The slug is check-then-insert: on a collision, retry with a fresh suffix instead of a 500. */
-    public function create(object $model, OriginalContext $context): object
-    {
-        $baseSlug = $model->slug;
-
-        for ($attempt = 0;; $attempt++) {
-            try {
-                return parent::create($model, $context);
-            } catch (UniqueConstraintViolationException $e) {
-                if ($attempt >= 3) {
-                    throw $e;
-                }
-                $model->slug = $baseSlug.'-'.Str::lower(Str::random(5));
-            }
-        }
     }
 
     private static function label(mixed $value): ?string
@@ -121,17 +105,5 @@ class EventCategoryResource extends AbstractDatabaseResource
         $label = trim((string) $value);
 
         return $label === '' ? null : mb_substr($label, 0, 50);
-    }
-
-    private static function uniqueSlug(string $name, ?int $ignoreId = null): string
-    {
-        $base = Str::slug($name) ?: 'category';
-        $slug = $base;
-        $i = 2;
-        while (EventCategory::where('slug', $slug)->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))->exists()) {
-            $slug = $base.'-'.$i++;
-        }
-
-        return $slug;
     }
 }

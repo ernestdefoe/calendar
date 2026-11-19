@@ -1,6 +1,7 @@
 import app from 'flarum/admin/app';
 import { extend, override } from 'flarum/common/extend';
 import Select from 'flarum/common/components/Select';
+import { listCategories } from '../common/api';
 
 /**
  * Calendar's two FoF Badges metrics in its trigger builder. The builder's
@@ -16,10 +17,9 @@ let categories: { id: number; name: string }[] | null = null;
 function loadCategories() {
   if (categories) return;
   categories = [];
-  app
-    .request<any>({ method: 'GET', url: app.forum.attribute('apiUrl') + '/calendar-categories' })
-    .then((res: any) => {
-      categories = (res.data || []).map((r: any) => ({ id: Number(r.id), name: r.attributes.name }));
+  listCategories()
+    .then((cats) => {
+      categories = cats.map(({ id, name }) => ({ id, name }));
       m.redraw();
     })
     .catch(() => {

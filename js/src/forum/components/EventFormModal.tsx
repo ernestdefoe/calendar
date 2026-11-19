@@ -353,7 +353,8 @@ export default class EventFormModal extends Modal<FormAttrs> {
       ...(locationOn() ? { location: d.location } : {}),
       url: d.url,
       coverUrl: d.coverUrl,
-      categoryId: d.categoryId || null,
+      // A <select> value is a string; the API's categoryId is an Integer.
+      categoryId: d.categoryId ? Number(d.categoryId) : null,
       rrule: d.repeat ? 'FREQ=' + d.repeat : null,
     };
 

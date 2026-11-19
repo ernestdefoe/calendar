@@ -85,6 +85,15 @@ return [
         ->listen(\Flarum\Settings\Event\Saving::class, \ErnestDefoe\Calendar\Listener\ValidateDiscussionAuthor::class)
         ->subscribe(\ErnestDefoe\Calendar\Listener\EventThreads::class),
 
+    // ---- Attendees' game characters: none, or Armory's while it is enabled ----
+    (new Extend\ServiceProvider())
+        ->register(\ErnestDefoe\Calendar\Characters\CharactersServiceProvider::class),
+    (new Extend\Conditional())
+        ->whenExtensionEnabled('ernestdefoe-armory', fn () => [
+            (new Extend\ServiceProvider())
+                ->register(\ErnestDefoe\Calendar\Characters\ArmoryServiceProvider::class),
+        ]),
+
     // ---- FoF Badges: two metrics (events attended, events organized), and
     // RSVPs and saved events checked against their triggers ----
     (new Extend\Conditional())

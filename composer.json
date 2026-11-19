@@ -52,7 +52,8 @@
         "fof/forum-widgets-core",
         "ernestdefoe/page-builder",
         "ernestdefoe/bespoke",
-        "ernestdefoe/armory"
+        "ernestdefoe/armory",
+        "ernestdefoe/cadence"
       ]
     },
     "flarum-cli": {

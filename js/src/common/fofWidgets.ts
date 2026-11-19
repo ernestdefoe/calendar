@@ -38,42 +38,62 @@ export interface EditorWidget {
 
 /**
  * Offer the widgets to FoF's layout editor, which lists only widgets
- * registered on the admin side too. Registered as the editor opens; a widget
- * no saved layout places goes in the editor's list of available widgets, not
- * into a section — FoF would otherwise draw it placed, while the forum rightly
- * shows nothing until it is saved.
+ * registered on the admin side too. Registered through FoF's public `Widgets`
+ * extender (`common/extend/Widgets`), with an empty component: the admin only
+ * places them, it never renders them. Then `leaveUnplaced` keeps a widget no
+ * saved layout places in the editor's list of available widgets.
  */
 export function registerEditorWidgets(app: any, extension: string, widgets: EditorWidget[]): void {
   const Widgets = fof('common/extend/Widgets');
+  if (!Widgets || !app.widgets) return;
+
+  const add = new Widgets();
+  widgets.forEach((w, position) =>
+    add.add({
+      key: w.key,
+      component: { component: () => null },
+      title: w.title,
+      icon: w.icon,
+      isDisabled: false,
+      isUnique: true,
+      placement: w.placement || 'end',
+      position,
+    })
+  );
+  add.extend(app, extension);
+
+  leaveUnplaced(extension, widgets);
+}
+
+/**
+ * Start the editor with our unplaced widgets in its "available" list instead
+ * of in a section.
+ *
+ * 🚨 Relies on fof/forum-widgets-core internals, because 2.x has no public way
+ * to register a widget as "not placed by default": FoF's WidgetManager adds
+ * every registered widget no saved layout mentions to its registered
+ * placement, and the editor shows a widget in the store list only when its id
+ * is in `config.disabled`. So this extends `WidgetEditor.prototype.oninit`
+ * (module `admin/components/WidgetEditor`) and, after FoF's own oninit has set
+ * the private `this.config` from the `fof-forum-widgets-core.config` setting
+ * and handed the same object to `app.widgets.setConfig()`, appends our
+ * unplaced ids to `this.config.disabled` in place. Nothing is saved until the
+ * admin saves the layout. If FoF renames any of these, the widgets simply
+ * start inside a section in the editor, as FoF draws them by default.
+ */
+function leaveUnplaced(extension: string, widgets: EditorWidget[]): void {
   const WidgetEditor = fof('admin/components/WidgetEditor');
-  if (!Widgets || !WidgetEditor) return;
+  if (!WidgetEditor?.prototype) return;
 
   extend(WidgetEditor.prototype, 'oninit', function (this: any) {
-    const manager = app.widgets;
-    if (!manager) return;
+    const config = this.config;
+    if (!config || typeof config !== 'object') return;
 
-    if (!manager.widgets.some((w: any) => w.extension === extension)) {
-      const add = new Widgets();
-      widgets.forEach((w, position) =>
-        add.add({
-          key: w.key,
-          component: { component: () => null },
-          title: w.title,
-          icon: w.icon,
-          isDisabled: false,
-          isUnique: true,
-          placement: w.placement || 'end',
-          position,
-        })
-      );
-      add.extend(app, extension);
-    }
-
-    const config = this.config || {};
-    const disabled: string[] = config.disabled || [];
+    const disabled: string[] = Array.isArray(config.disabled) ? config.disabled : [];
+    const instances: any[] = Array.isArray(config.instances) ? config.instances : [];
     const unplaced = widgets
       .map((w) => `${extension}:${w.key}`)
-      .filter((id) => !disabled.includes(id) && !(config.instances || []).some((i: any) => i?.id === id));
+      .filter((id) => !disabled.includes(id) && !instances.some((i: any) => i?.id === id));
     config.disabled = [...disabled, ...unplaced];
   });
 }

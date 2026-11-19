@@ -3,6 +3,7 @@
 namespace ErnestDefoe\Calendar;
 
 use Carbon\Carbon;
+use ErnestDefoe\Calendar\Recurrence\RecurrenceExpander;
 use Flarum\Database\AbstractModel;
 use Flarum\Database\ScopeVisibilityTrait;
 use Flarum\Discussion\Discussion;
@@ -27,6 +28,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $description
  * @property \Carbon\Carbon $start_at
  * @property \Carbon\Carbon|null $end_at
+ * @property \Carbon\Carbon|null $finishes_at when it, or the last of its series, is over; null = repeats forever
  * @property bool $all_day
  * @property string $timezone
  * @property string|null $location
@@ -49,6 +51,7 @@ class Event extends AbstractModel
     protected $casts = [
         'start_at' => 'datetime',
         'end_at' => 'datetime',
+        'finishes_at' => 'datetime',
         'all_day' => 'boolean',
         'is_published' => 'boolean',
         'created_at' => 'datetime',
@@ -60,6 +63,24 @@ class Event extends AbstractModel
         'timezone' => 'UTC',
         'is_published' => true,
     ];
+
+    protected static function booted(): void
+    {
+        // Kept with every save, so a window query can skip what is over.
+        static::saving(fn (self $event) => $event->finishes_at = $event->finishesAt());
+    }
+
+    /** When the event, or the last occurrence of its series, is over; null when it repeats forever. */
+    public function finishesAt(): ?Carbon
+    {
+        $duration = $this->end_at ? (int) $this->start_at->diffInSeconds($this->end_at, true) : 0;
+
+        if (! $this->isRecurring()) {
+            return $this->start_at->copy()->addSeconds($duration);
+        }
+
+        return RecurrenceExpander::lastStart($this->rrule, $this->start_at)?->addSeconds($duration);
+    }
 
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
@@ -91,25 +112,15 @@ class Event extends AbstractModel
     }
 
     /**
-     * Events that overlap the [$from, $to] window. For recurring events this only
-     * matches the SERIES anchor by its first occurrence window being before $to;
-     * occurrence expansion within the range is done in the recurrence layer.
+     * Events, and series, with anything inside the [$from, $to] window; a
+     * series' own occurrences are worked out by RecurrenceExpander.
      */
     public function scopeInWindow(Builder $query, Carbon $from, Carbon $to): Builder
     {
-        // A series anchor that starts after the window end can't produce any
-        // occurrence inside [$from, $to], so we only need rows whose start_at is
-        // on/before $to. The inner orWhereNotNull('rrule') already pulls in
-        // recurring series that started before the window (their occurrences are
-        // expanded in the recurrence layer) — so the old standalone
-        // `orWhere(whereNotNull('rrule'))` was a strict superset that loaded
-        // EVERY recurring event ever created on every window query. Dropped.
+        // Started by the window's end, and not over before it starts. An event
+        // with no end is a point in time; a series repeating forever is never
+        // over (finishes_at null), and its occurrences are expanded later.
         return $query->where('start_at', '<=', $to)
-            // …and either ends after the window starts, is open-ended, or recurs.
-            ->where(function (Builder $q2) use ($from) {
-                $q2->whereNull('end_at')
-                    ->orWhere('end_at', '>=', $from)
-                    ->orWhereNotNull('rrule');
-            });
+            ->where(fn (Builder $q) => $q->whereNull('finishes_at')->orWhere('finishes_at', '>=', $from));
     }
 }

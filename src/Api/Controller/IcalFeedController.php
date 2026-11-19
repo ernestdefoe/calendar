@@ -17,8 +17,8 @@ use Psr\Http\Server\RequestHandlerInterface;
  * GET /calendar/feed.ics — the whole calendar as a subscribable iCal feed.
  *
  * Recurring events are emitted once with their RRULE (the subscriber's client
- * expands them). Non-recurring events from the last month onward are included so
- * a fresh subscription shows recent + upcoming items.
+ * expands them). Everything not over before last month is included, so a fresh
+ * subscription shows recent + upcoming items.
  */
 class IcalFeedController implements RequestHandlerInterface
 {
@@ -31,17 +31,18 @@ class IcalFeedController implements RequestHandlerInterface
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         // A forum guests can't view keeps its calendar from them too.
-        RequestUtil::getActor($request)->assertCan('viewForum');
+        $actor = RequestUtil::getActor($request);
+        $actor->assertCan('viewForum');
 
         // Eager-load category + user so per-event serialisation below doesn't
         // lazy-load them one row at a time (N+1). The 2000-row ceiling bounds
         // peak memory for forums with long event histories / many recurrences.
         $events = Event::query()
+            ->whereVisibleTo($actor)
             ->with(['category', 'user'])
             ->where('is_published', true)
-            ->where(function ($q) {
-                $q->whereNotNull('rrule')->orWhere('start_at', '>=', Carbon::now()->subMonth());
-            })
+            // Anything not over before last month: series still repeating included.
+            ->where(fn ($q) => $q->whereNull('finishes_at')->orWhere('finishes_at', '>=', Carbon::now()->subMonth()))
             ->orderBy('start_at')
             ->limit(2000)
             ->get();

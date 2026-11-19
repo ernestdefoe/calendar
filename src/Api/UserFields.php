@@ -27,7 +27,9 @@ class UserFields
                 ->nullable()
                 ->visible(fn (User $user, Context $context) => $context->getActor()->id === $user->id)
                 ->writable(fn (User $user, Context $context) => $context->getActor()->id === $user->id
-                    || $context->getActor()->can('editUser', $user))
+                    || $context->getActor()->can('edit', $user))
+                // Month and day, or empty to clear it.
+                ->rule('regex:'.Birthday::FORMAT)
                 ->get(fn (User $user) => Birthday::query()->find($user->id)?->birthday)
                 ->set(fn () => null) // stored after the user is saved, below
                 ->save(fn (User $user, ?string $value) => Birthday::setFor((int) $user->id, $value)),

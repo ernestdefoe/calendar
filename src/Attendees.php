@@ -2,7 +2,7 @@
 
 namespace ErnestDefoe\Calendar;
 
-use Flarum\Extension\ExtensionManager;
+use ErnestDefoe\Calendar\Characters\CharacterSource;
 use Flarum\User\User;
 
 /**
@@ -17,7 +17,7 @@ class Attendees
     public const LIMIT = 60;
 
     public function __construct(
-        private ExtensionManager $extensions,
+        private CharacterSource $characters,
         private BasicUser $basicUser,
     ) {
     }
@@ -41,7 +41,7 @@ class Attendees
         // so every attendee rendered as a broken image.
         $users = User::query()->whereIn('id', $userIds)->get()->keyBy('id');
 
-        $characters = $this->armoryCharacters($userIds);
+        $characters = $this->characters->forUsers($userIds);
 
         $out = ['going' => [], 'interested' => []];
         foreach ($rsvps as $row) {
@@ -60,38 +60,5 @@ class Attendees
         }
 
         return $out;
-    }
-
-    /** Best visible character per user from armory's table, or [] without armory. */
-    protected function armoryCharacters(array $userIds): array
-    {
-        if (! $userIds || ! $this->extensions->isEnabled('ernestdefoe-armory')) {
-            return [];
-        }
-
-        // Armory's own table, read through the query builder: Calendar must not
-        // depend on Armory's model classes, which aren't there without it.
-        $rows = EventRsvp::query()->getConnection()->table('armory_characters')
-            ->whereIn('user_id', $userIds)
-            ->where('is_visible', true)
-            ->orderByDesc('is_main')
-            ->orderByDesc('item_level')
-            ->get(['user_id', 'name', 'class', 'spec', 'item_level', 'level']);
-
-        $best = [];
-        foreach ($rows as $c) {
-            if (isset($best[$c->user_id])) {
-                continue; // rows are ordered best-first per the sort above
-            }
-            $best[$c->user_id] = [
-                'name' => (string) $c->name,
-                'class' => $c->class ? (string) $c->class : null,
-                'spec' => $c->spec ? (string) $c->spec : null,
-                'itemLevel' => $c->item_level ? (int) $c->item_level : null,
-                'level' => $c->level ? (int) $c->level : null,
-            ];
-        }
-
-        return $best;
     }
 }

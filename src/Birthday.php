@@ -30,12 +30,12 @@ class Birthday extends AbstractModel
 
     public $timestamps = false;
 
-    /** Store a member's birthday, or forget it when $value isn't a valid MM-DD. */
+    /** Store a member's birthday (validated as MM-DD by UserFields), or forget it when empty. */
     public static function setFor(int $userId, ?string $value): void
     {
         $value = trim((string) $value);
 
-        if (! preg_match(self::FORMAT, $value)) {
+        if ($value === '') {
             static::query()->where('user_id', $userId)->delete();
 
             return;

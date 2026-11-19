@@ -16,6 +16,7 @@ use Flarum\User\Event\LoggedIn;
 use Flarum\User\User;
 use FoF\Badges\Trigger\MetricInterface;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Query\Builder;
 
 /**
  * FoF Badges metric: events a member said they were going to, once each has
@@ -63,12 +64,10 @@ class EventsAttendedMetric implements MetricInterface
             ->where('calendar_event_rsvps.status', EventRsvp::GOING)
             ->where('calendar_events.is_published', true)
             ->where(fn ($q) => $q
-                ->where(fn ($q) => $q->where('calendar_events.all_day', false)->where(fn ($q) => $q
-                    ->where('calendar_events.end_at', '<=', $now)
-                    ->orWhere(fn ($q) => $q->whereNull('calendar_events.end_at')->where('calendar_events.start_at', '<=', $now->copy()->subHour()))))
-                ->orWhere(fn ($q) => $q->where('calendar_events.all_day', true)->where(fn ($q) => $q
-                    ->where('calendar_events.end_at', '<=', $now->copy()->subDay())
-                    ->orWhere(fn ($q) => $q->whereNull('calendar_events.end_at')->where('calendar_events.start_at', '<=', $now->copy()->subDay())))));
+                // A timed event counts once it ends, or an hour after it starts without an end…
+                ->where(fn ($q) => $this->endedBefore($q->where('calendar_events.all_day', false), $now, $now->copy()->subHour()))
+                // …an all-day one a day after its last day.
+                ->orWhere(fn ($q) => $this->endedBefore($q->where('calendar_events.all_day', true), $now->copy()->subDay(), $now->copy()->subDay())));
 
         if (! empty($config['calendar_category_id'])) {
             $query->where('calendar_events.category_id', (int) $config['calendar_category_id']);
@@ -83,6 +82,14 @@ class EventsAttendedMetric implements MetricInterface
         }
 
         return $query->count();
+    }
+
+    /** Ended by $endedBy, or, with no end, started by $startedBy. */
+    private function endedBefore(Builder $query, Carbon $endedBy, Carbon $startedBy): Builder
+    {
+        return $query->where(fn ($q) => $q
+            ->where('calendar_events.end_at', '<=', $endedBy)
+            ->orWhere(fn ($q) => $q->whereNull('calendar_events.end_at')->where('calendar_events.start_at', '<=', $startedBy)));
     }
 
     public function isBoolean(): bool

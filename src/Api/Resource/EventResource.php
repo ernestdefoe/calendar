@@ -44,6 +44,8 @@ use Tobyz\JsonApiServer\Exception\ForbiddenException;
  */
 class EventResource extends AbstractDatabaseResource
 {
+    use UniqueSlugs;
+
     /** A list never loads more series than this. */
     public const LIST_LIMIT = 400;
 
@@ -184,6 +186,7 @@ class EventResource extends AbstractDatabaseResource
             Schema\Integer::make('categoryId')
                 ->nullable()
                 ->writable()
+                ->rule('exists:calendar_categories,id')
                 ->property('category_id')
                 ->set(fn (Event $event, $value) => $event->category_id = $value ? (int) $value : null),
         ];
@@ -214,6 +217,11 @@ class EventResource extends AbstractDatabaseResource
                 ->set(fn (Event $event, $value) => $event->rrule = EventInput::rrule($value)),
             Schema\Boolean::make('recurring')
                 ->get(fn (Event $event) => $event->isRecurring()),
+            // A draft (false) is hidden from the calendar and gets no thread until
+            // it is published; its author and calendar managers can still open it.
+            Schema\Boolean::make('isPublished')
+                ->writable()
+                ->property('is_published'),
         ];
     }
 
@@ -250,31 +258,10 @@ class EventResource extends AbstractDatabaseResource
         $this->input->validate($model);
 
         if (! $model->slug || $model->isDirty('title')) {
-            $model->slug = EventInput::uniqueSlug($model->title, $model->id);
+            $model->slug = $this->uniqueSlug($model, $model->title, 'event');
         }
 
         return $model;
-    }
-
-    /**
-     * The slug is picked with a check-then-insert; two requests can pass the
-     * check together and collide on the unique index. Retry with a fresh suffix
-     * instead of returning a 500.
-     */
-    public function create(object $model, OriginalContext $context): object
-    {
-        $baseSlug = $model->slug;
-
-        for ($attempt = 0;; $attempt++) {
-            try {
-                return parent::create($model, $context);
-            } catch (UniqueConstraintViolationException $e) {
-                if ($attempt >= 3) {
-                    throw $e;
-                }
-                $model->slug = $baseSlug.'-'.Str::lower(Str::random(5));
-            }
-        }
     }
 
     public function saved(object $model, OriginalContext $context): ?object
@@ -301,13 +288,12 @@ class EventResource extends AbstractDatabaseResource
         if ($status === 'none' || $status === '') {
             $existing?->delete();
         } elseif (in_array($status, [EventRsvp::GOING, EventRsvp::INTERESTED], true)) {
-            // 🚨 Never construct with an attribute array: Flarum's AbstractModel
-            // guards every attribute, so it threw MassAssignmentException.
-            $rsvp = $existing ?: new EventRsvp();
-            $rsvp->event_id = $event->id;
-            $rsvp->user_id = $actor->id;
-            $rsvp->status = $status;
-            $rsvp->save();
+            try {
+                $this->saveRsvp($existing ?: new EventRsvp(), $event, $actor->id, $status);
+            } catch (UniqueConstraintViolationException) {
+                // A double click: the other request inserted the row first, so update it.
+                $this->saveRsvp(EventRsvp::query()->where('event_id', $event->id)->where('user_id', $actor->id)->firstOrFail(), $event, $actor->id, $status);
+            }
         }
 
         $event = $this->findVisible($context); // fresh counts and answer
@@ -316,6 +302,16 @@ class EventResource extends AbstractDatabaseResource
         }
 
         return $event;
+    }
+
+    private function saveRsvp(EventRsvp $rsvp, Event $event, int $userId, string $status): void
+    {
+        // 🚨 Never construct with an attribute array: Flarum's AbstractModel
+        // guards every attribute, so it threw MassAssignmentException.
+        $rsvp->event_id = $event->id;
+        $rsvp->user_id = $userId;
+        $rsvp->status = $status;
+        $rsvp->save();
     }
 
     private function startDiscussion(Context $context): Event

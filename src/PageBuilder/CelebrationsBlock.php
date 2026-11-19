@@ -1,24 +1,19 @@
 <?php
 
 /*
- * Page Builder "Celebrations" block (server manifest half; client self-fetches).
- * See EventsBlock for the architecture note.
+ * This file is part of ernestdefoe/calendar.
+ *
+ * Calendar & Events for Flarum 2.
  */
 
 namespace ErnestDefoe\Calendar\PageBuilder;
 
-use Ernestdefoe\PageBuilder\Block\AbstractBlock;
-
-class CelebrationsBlock extends AbstractBlock
+/** The celebrations block: today's birthdays and join anniversaries. */
+class CelebrationsBlock extends CalendarBlock
 {
     public function type(): string
     {
         return 'celebrations';
-    }
-
-    public function name(): string
-    {
-        return 'Celebrations';
     }
 
     public function icon(): string
@@ -26,15 +21,10 @@ class CelebrationsBlock extends AbstractBlock
         return 'fas fa-birthday-cake';
     }
 
-    public function category(): string
-    {
-        return 'forum';
-    }
-
     public function settingsSchema(): array
     {
         return [
-            ['key' => 'title', 'type' => 'text', 'label' => 'Title', 'default' => 'Celebrations'],
+            $this->titleField(),
         ];
     }
 }

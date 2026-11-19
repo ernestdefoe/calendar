@@ -4,14 +4,18 @@ import PulseWidget from './components/PulseWidget';
 import OnThisDayWidget from './components/OnThisDayWidget';
 import CelebrationsWidget from './components/CelebrationsWidget';
 
-/** A full key: Bespoke resolves a dotted schema label from our locale. */
+/**
+ * Our forum translation prefix. Schema labels are given as full (dotted) keys,
+ * which Bespoke resolves from Calendar's locale as they are.
+ */
 const K = 'ernestdefoe-calendar.forum.';
 const text = (k: string): string => app.translator.trans(K + k, {}, true) as string;
 
 /**
- * Register the calendar's placeable widgets ("Upcoming events" + "Forum pulse")
- * with sibling extensions when present. Each integration is feature-detected and
- * guarded, so this is a no-op on a stock forum (where index.ts mounts them).
+ * Register the calendar's four placeable widgets (upcoming events, forum
+ * pulse, on this day, celebrations) with Bespoke and Page Builder when they
+ * are present. Each integration is feature-detected and guarded, so this is a
+ * no-op on a forum with neither (where index.ts mounts the widgets itself).
  */
 export function registerIntegrations(): void {
   registerBespoke();
@@ -28,8 +32,9 @@ function widget(type: string, label: string, icon: string, schema: any[], view: 
 
 /**
  * The calendar's Bespoke widget definitions. Built on registration, not at
- * load, because the schema defaults are read from the translator. Each label
- * is resolved by Bespoke as forum.<label>; the keys come from our locale.
+ * load, because the schema defaults are read from the translator. A widget's
+ * own label is undotted, so Bespoke reads it as ernestdefoe-bespoke.forum.<label>;
+ * Calendar's locale ships those keys under ernestdefoe-bespoke.
  */
 function bespokeWidgets(): any[] {
   const title = (key: string) => ({ key: 'title', type: 'text', label: K + 'wf_title', default: text(key) });
@@ -83,10 +88,12 @@ function registerBespoke(): void {
 }
 
 /**
- * ernestdefoe/page-builder — register the block's RENDER component so a placed
- * "events" block renders (it self-fetches, ignoring PB's server data). Appearing
- * in PB's editor palette additionally needs a server-manifest entry on PB's side
- * (a small coordinated addition there).
+ * ernestdefoe/page-builder — register the render component for each of the
+ * four blocks (events, pulse, memories, celebrations). Each one fetches its own
+ * data, so Page Builder's server data for the block is not used. Their entries
+ * in Page Builder's editor palette come from the server: extend.php registers
+ * src/PageBuilder/*Block through Extend\Conditional while
+ * ernestdefoe-page-builder is enabled.
  */
 function registerPageBuilder(): void {
   try {

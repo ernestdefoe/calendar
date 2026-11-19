@@ -30,7 +30,7 @@ export default class CalendarPage extends Page {
   oninit(vnode: any) {
     super.oninit(vnode);
     this.cursor = new Date();
-    this.mode = (app.forum.attribute('ernestdefoe-calendar.defaultView') as Mode) || 'month';
+    this.mode = app.forum.attribute<Mode>('ernestdefoe-calendar.defaultView');
     app.setTitle(t('page_title'));
     this.load();
 
@@ -46,7 +46,7 @@ export default class CalendarPage extends Page {
   }
 
   weekStart(): number {
-    return (app.forum.attribute('ernestdefoe-calendar.weekStartsOn') as number) || 0;
+    return app.forum.attribute<number>('ernestdefoe-calendar.weekStartsOn');
   }
 
   range(): { from: Date; to: Date } {

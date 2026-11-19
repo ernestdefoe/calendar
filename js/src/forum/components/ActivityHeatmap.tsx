@@ -119,7 +119,7 @@ const ActivityHeatmap = {
       return m(CalWidgetSkeleton, { block: 'CalHeat', bar: 'CalHeat-bar', rows: 2, fallback: 140 });
     }
 
-    const weekStart = (app.forum.attribute('ernestdefoe-calendar.weekStartsOn') as number) || 0;
+    const weekStart = app.forum.attribute<number>('ernestdefoe-calendar.weekStartsOn');
     const { weeks, months } = buildWeeks(d.days, weekStart, d.max);
     const badges = earnedBadges(d);
 

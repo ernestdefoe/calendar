@@ -126,8 +126,11 @@ class EngagementTest extends TestCase
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('07-04', json_decode((string) $response->getBody(), true)['data']['attributes']['calendarBirthday']);
 
-        $patch(2, 2, '13-40');
-        $this->assertNull($this->database()->table('calendar_birthdays')->where('user_id', 2)->value('birthday'), 'An impossible date clears it');
+        $this->assertSame(422, $patch(2, 2, '13-40')->getStatusCode(), 'An impossible date is refused');
+        $this->assertSame('07-04', $this->database()->table('calendar_birthdays')->where('user_id', 2)->value('birthday'), '…and the stored one kept');
+
+        $patch(2, 2, '');
+        $this->assertNull($this->database()->table('calendar_birthdays')->where('user_id', 2)->value('birthday'), 'Empty clears it');
 
         $this->assertSame(403, $patch(4, 2, '01-01')->getStatusCode());
         $this->assertNull($this->database()->table('calendar_birthdays')->where('user_id', 4)->value('birthday'));

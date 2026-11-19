@@ -2,6 +2,7 @@ import app from 'flarum/admin/app';
 import Component from 'flarum/common/Component';
 import Button from 'flarum/common/components/Button';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
+import { listCategories, saveCategory, deleteCategory } from '../../common/api';
 
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.admin.' + k, p);
 // Plain-text form, for attributes (aria-label, title).
@@ -17,9 +18,6 @@ interface Cat {
   interestedLabel?: string | null;
 }
 
-const api = (path: string) => app.forum.attribute('apiUrl') + path;
-/** A calendar-categories resource object as the row model this page edits. */
-const toCat = (r: any): Cat => ({ id: Number(r.id), ...r.attributes });
 const PRESETS = ['#3b5bdb', '#e8590c', '#2f9e44', '#9c36b5', '#e03131', '#1098ad', '#f08c00', '#495057'];
 
 // Module-level cache. The admin settings page re-runs customSetting's
@@ -31,8 +29,8 @@ let CACHE: Cat[] | null = null;
 
 /**
  * In-place CRUD for event categories, rendered inside the extension's settings
- * page. Talks straight to the JSON API (admin-guarded) so it needs no store
- * models — keeping the extension's footprint small.
+ * page. Uses the shared calendar-categories client in common/api (writes are
+ * admin-guarded on the server), so it needs no store models.
  */
 export default class CategoryManager extends Component {
   loading = true;
@@ -52,10 +50,9 @@ export default class CategoryManager extends Component {
 
   load() {
     this.loading = true;
-    app
-      .request<any>({ method: 'GET', url: api('/calendar-categories') })
-      .then((res: any) => {
-        this.cats = CACHE = (res.data || []).map(toCat);
+    listCategories()
+      .then((cats) => {
+        this.cats = CACHE = cats;
         this.loading = false;
         m.redraw();
       })
@@ -174,24 +171,16 @@ export default class CategoryManager extends Component {
 
   save(c: Cat) {
     this.saving[c.id!] = true;
-    app
-      .request({
-        method: 'PATCH',
-        url: api('/calendar-categories/' + c.id),
-        body: {
-          data: {
-            type: 'calendar-categories',
-            id: String(c.id),
-            attributes: {
-              name: c.name,
-              color: c.color,
-              rsvp: c.rsvp !== false,
-              goingLabel: c.goingLabel || '',
-              interestedLabel: c.interestedLabel || '',
-            },
-          },
-        },
-      })
+    saveCategory(
+      {
+        name: c.name,
+        color: c.color,
+        rsvp: c.rsvp !== false,
+        goingLabel: c.goingLabel || '',
+        interestedLabel: c.interestedLabel || '',
+      },
+      c.id
+    )
       .then(() => {
         this.saving[c.id!] = false;
         app.alerts.show({ type: 'success' }, t('category_saved'));
@@ -205,14 +194,9 @@ export default class CategoryManager extends Component {
 
   create() {
     this.saving['new'] = true;
-    app
-      .request<any>({
-        method: 'POST',
-        url: api('/calendar-categories'),
-        body: { data: { type: 'calendar-categories', attributes: { name: this.draft.name, color: this.draft.color } } },
-      })
-      .then((res: any) => {
-        this.cats.push(toCat(res.data));
+    saveCategory({ name: this.draft.name, color: this.draft.color })
+      .then((cat) => {
+        this.cats.push(cat);
         CACHE = this.cats;
         this.draft = { name: '', color: PRESETS[this.cats.length % PRESETS.length] };
         this.saving['new'] = false;
@@ -226,8 +210,7 @@ export default class CategoryManager extends Component {
 
   remove(c: Cat) {
     if (!confirm(t('category_delete_confirm') as any)) return;
-    app
-      .request({ method: 'DELETE', url: api('/calendar-categories/' + c.id) })
+    deleteCategory(c.id!)
       .then(() => {
         this.cats = CACHE = this.cats.filter((x) => x !== c);
         m.redraw();

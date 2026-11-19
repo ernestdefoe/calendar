@@ -16,3 +16,4 @@ parameters:
     # ernestdefoe/page-builder isn't installable in CI; see the stub.
     scanFiles:
         - tests/phpstan/page-builder.stub.php
+        - tests/phpstan/armory.stub.php

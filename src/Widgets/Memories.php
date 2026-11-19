@@ -8,10 +8,10 @@
 
 namespace ErnestDefoe\Calendar\Widgets;
 
+use ErnestDefoe\Calendar\Integrations;
 use Carbon\Carbon;
 use ErnestDefoe\Calendar\SettingIds;
 use Flarum\Discussion\Discussion;
-use Flarum\Extension\ExtensionManager;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\User;
 use Illuminate\Contracts\Cache\Repository;
@@ -22,7 +22,7 @@ class Memories
     public function __construct(
         private Repository $cache,
         private SettingsRepositoryInterface $settings,
-        private ExtensionManager $extensions,
+        private Integrations $integrations,
     ) {
     }
 
@@ -78,7 +78,7 @@ class Memories
          */
         $excludedTags = SettingIds::from($this->settings->get('ernestdefoe-calendar.onthisday_exclude_tags'));
 
-        if ($excludedTags && $this->extensions->isEnabled('flarum-tags')) {
+        if ($excludedTags && $this->integrations->tags()) {
             $query->whereDoesntHave('tags', fn ($q) => $q->whereIn('tags.id', $excludedTags));
         }
 

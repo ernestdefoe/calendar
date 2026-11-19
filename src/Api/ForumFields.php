@@ -8,14 +8,14 @@
 
 namespace ErnestDefoe\Calendar\Api;
 
+use ErnestDefoe\Calendar\Integrations;
 use Flarum\Api\Context;
 use Flarum\Api\Schema;
-use Flarum\Extension\ExtensionManager;
 
 /** What the forum payload tells the frontend about the viewer's calendar permissions. */
 class ForumFields
 {
-    public function __construct(private ExtensionManager $extensions)
+    public function __construct(private Integrations $integrations)
     {
     }
 
@@ -29,7 +29,7 @@ class ForumFields
             // FoF Upload enabled AND the viewer may upload: the event form then
             // offers a file picker for the cover (else a plain URL field).
             Schema\Boolean::make('calendarCoverUploads')
-                ->get(fn ($forum, Context $context) => $this->extensions->isEnabled('fof-upload')
+                ->get(fn ($forum, Context $context) => $this->integrations->uploads()
                     && $context->getActor()->hasPermission('fof-upload.upload')),
         ];
     }

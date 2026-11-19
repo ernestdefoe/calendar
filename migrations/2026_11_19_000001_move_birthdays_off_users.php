@@ -41,11 +41,17 @@ return [
         });
     },
 
-    // Copy them back while the column is still there; this never adds it to
-    // users again, so uninstalling leaves core's table as it was.
+    // Put them back on users, as Calendar 2.8 kept them; rolling back further,
+    // 2026_06_04_000005 removes the column again.
     'down' => function (Builder $schema) {
-        if (! $schema->hasColumn('users', 'cal_birthday') || ! $schema->hasTable('calendar_birthdays')) {
+        if (! $schema->hasTable('calendar_birthdays')) {
             return;
+        }
+
+        if (! $schema->hasColumn('users', 'cal_birthday')) {
+            $schema->table('users', function (Blueprint $table) {
+                $table->string('cal_birthday', 5)->nullable()->index();
+            });
         }
 
         $db = $schema->getConnection();

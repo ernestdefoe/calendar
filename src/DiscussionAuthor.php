@@ -8,7 +8,6 @@
 
 namespace ErnestDefoe\Calendar;
 
-use Flarum\Extension\ExtensionManager;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\User;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -26,7 +25,7 @@ class DiscussionAuthor
 {
     public function __construct(
         private SettingsRepositoryInterface $settings,
-        private ExtensionManager $extensions,
+        private Integrations $integrations,
         private TranslatorInterface $translator,
     ) {
     }
@@ -62,7 +61,7 @@ class DiscussionAuthor
             return $this->translator->trans('ernestdefoe-calendar.api.discussion_author_cannot_start', $account);
         }
 
-        if (! $tagIds || ! $this->extensions->isEnabled('flarum-tags')) {
+        if (! $tagIds || ! $this->integrations->tags()) {
             return null;
         }
 

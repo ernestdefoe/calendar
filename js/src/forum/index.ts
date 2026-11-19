@@ -86,7 +86,7 @@ function addSidebarWidgets(): void {
     if (!app.current || !app.current.matches(IndexPage) || hasWidgetCore) return;
 
     if (app.forum.attribute('ernestdefoe-calendar.showIndexWidget')) {
-      const count = app.forum.attribute('ernestdefoe-calendar.indexWidgetCount') || 5;
+      const count = app.forum.attribute<number>('ernestdefoe-calendar.indexWidgetCount');
       items.add('calendar-upcoming', m(UpcomingEvents, { count }), -10);
     }
     if (app.forum.attribute('ernestdefoe-calendar.showPulseWidget')) {
@@ -148,7 +148,7 @@ function registerManagedWidgets(): void {
   registerFofWidget(
     app,
     {
-      calendarUpcoming: () => m(UpcomingEvents, { count: app.forum.attribute('ernestdefoe-calendar.indexWidgetCount') || 5 }),
+      calendarUpcoming: () => m(UpcomingEvents, { count: app.forum.attribute<number>('ernestdefoe-calendar.indexWidgetCount') }),
       calendarPulse: () => m(PulseWidget, { count: 5 }),
       calendarCelebrations: () => m(CelebrationsWidget),
       calendarMemories: () => m(OnThisDayWidget, { count: 6 }),

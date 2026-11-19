@@ -48,7 +48,9 @@ class RecurrenceExpander
     private static function expandSimple(string $freq, Carbon $start, Carbon $from, Carbon $to, int $interval, ?int $count, ?Carbon $until, int $cap): array
     {
         $out = [];
-        $occ = $start->copy();
+        // Without COUNT nothing before the window matters, so jump to it: an
+        // old daily series would otherwise spend every iteration getting there.
+        $occ = $count === null ? self::fastForward($freq, $start, $from, $interval) : $start->copy();
         $emitted = 0;
         $i = 0;
 
@@ -92,8 +94,12 @@ class RecurrenceExpander
         $out = [];
         $emitted = 0;
         $i = 0;
-        // Anchor on the Sunday of the series-start week; step whole weeks by $interval.
+        // Anchor on the Sunday of the series-start week; step whole weeks by
+        // $interval, jumping straight to the window when there's no COUNT.
         $weekStart = $start->copy()->startOfWeek(Carbon::SUNDAY);
+        if ($count === null) {
+            $weekStart = self::fastForward('WEEKLY', $weekStart, $from->copy()->startOfWeek(Carbon::SUNDAY), $interval);
+        }
 
         while ($i++ < self::MAX_ITERATIONS) {
             foreach ($days as $dow) {
@@ -122,6 +128,50 @@ class RecurrenceExpander
         }
 
         return $out;
+    }
+
+    /** The last step of the series on or before $from (or $start itself, when $from is earlier). */
+    private static function fastForward(string $freq, Carbon $start, Carbon $from, int $interval): Carbon
+    {
+        if ($from->lte($start)) {
+            return $start->copy();
+        }
+
+        $units = (int) match ($freq) {
+            'DAILY' => $start->diffInDays($from, true),
+            'WEEKLY' => $start->diffInWeeks($from, true),
+            'MONTHLY' => $start->diffInMonths($from, true),
+            default => $start->diffInYears($from, true),
+        };
+        $steps = intdiv($units, $interval) * $interval;
+
+        return match ($freq) {
+            'DAILY' => $start->copy()->addDays($steps),
+            'WEEKLY' => $start->copy()->addWeeks($steps),
+            'MONTHLY' => $start->copy()->addMonthsNoOverflow($steps),
+            default => $start->copy()->addYearsNoOverflow($steps),
+        };
+    }
+
+    /**
+     * When the series' last occurrence starts: the COUNT-th one, or UNTIL;
+     * null when it repeats forever (or more often than we will ever expand).
+     */
+    public static function lastStart(string $rrule, Carbon $start): ?Carbon
+    {
+        $rule = self::parse($rrule);
+
+        if (isset($rule['COUNT'])) {
+            $count = max(1, (int) $rule['COUNT']);
+            if ($count > self::MAX_ITERATIONS) {
+                return null;
+            }
+            $all = self::occurrences($rrule, $start, $start, $start->copy()->addYears(200), $count);
+
+            return $all ? end($all) : $start->copy();
+        }
+
+        return isset($rule['UNTIL']) ? self::parseUntil((string) $rule['UNTIL'], $start) : null;
     }
 
     /** Parse "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE" into an upper-cased key map. */

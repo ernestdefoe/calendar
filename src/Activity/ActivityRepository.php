@@ -38,7 +38,7 @@ class ActivityRepository
     {
         $from = Carbon::now()->subDays($days - 1)->startOfDay();
 
-        $query = Post::query()->whereVisibleTo($viewer);
+        $query = $this->publicPosts($viewer);
         // Raw SQL takes the table prefix verbatim, so the column goes through the grammar.
         $userId = $query->getQuery()->getGrammar()->wrap('posts.user_id');
 
@@ -123,6 +123,19 @@ class ActivityRepository
         return $query;
     }
 
+    /**
+     * Comments the viewer can see, and only public ones: never a private or
+     * hidden discussion, which core shows to their own author (and approval or
+     * private-discussion extensions to particular members). What is left
+     * depends only on the viewer's groups, which lets the pulse cache by them.
+     */
+    private function publicPosts(User $viewer): Builder
+    {
+        return Post::query()
+            ->whereVisibleTo($viewer)
+            ->whereHas('discussion', fn (Builder $q) => $q->where('is_private', false)->whereNull('hidden_at'));
+    }
+
     private function daily(User $viewer, int $days, callable $scope): array
     {
         $from = Carbon::now()->subDays($days - 1)->startOfDay();
@@ -131,7 +144,7 @@ class ActivityRepository
         // function-style cast, and GROUP BY accepts output-column names) and
         // SQLite all run it, proved on PostgreSQL 16. CAST(... AS DATE) is NOT:
         // SQLite turns '2026-11-02 10:00:00' into 2026.
-        $q = Post::query()->whereVisibleTo($viewer);
+        $q = $this->publicPosts($viewer);
         $createdAt = $q->getQuery()->getGrammar()->wrap('posts.created_at'); // raw SQL: the prefix is ours to add
         $q->selectRaw("DATE($createdAt) as d, COUNT(*) as c")
             ->where('posts.type', 'comment')

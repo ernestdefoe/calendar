@@ -22,13 +22,14 @@ class IcalEventController implements RequestHandlerInterface
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         // A forum guests can't view keeps its calendar from them too.
-        RequestUtil::getActor($request)->assertCan('viewForum');
+        $actor = RequestUtil::getActor($request);
+        $actor->assertCan('viewForum');
 
         $id = (int) Arr::get($request->getAttributes(), 'routeParameters.id');
         // Only published events are downloadable — mirror IcalFeedController so a
         // visitor who guesses an event id can't pull an unpublished/draft event's
         // full .ics (title, description, location, RRULE). Unpublished → 404.
-        $event = Event::query()->where('is_published', true)->findOrFail($id);
+        $event = Event::query()->whereVisibleTo($actor)->where('is_published', true)->findOrFail($id);
 
         $host = $request->getUri()->getHost() ?: 'localhost';
         $ics = (new IcalGenerator($host, $this->location->enabled()))->single($event, $event->title);

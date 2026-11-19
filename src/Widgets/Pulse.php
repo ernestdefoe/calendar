@@ -34,14 +34,15 @@ class Pulse
         /*
          * 🚨 Cached. The pulse widget sits on the index sidebar by default, so
          * this ran two aggregate scans over up to a year of the posts table for
-         * every visitor on every index view. It counts only posts the viewer can
-         * see, and that depends on their groups, so the groups are part of the
-         * key; so are the exclusions, so changing them in the admin takes effect
-         * on the next request instead of after the TTL.
+         * every visitor on every index view. It counts only public posts in
+         * public, visible discussions (ActivityRepository), so what the viewer
+         * may see depends only on the groups their permissions come from: those
+         * are part of the key. So are the exclusions, so changing them in the
+         * admin takes effect on the next request instead of after the TTL.
          */
         $groups = (string) $this->settings->get('ernestdefoe-calendar.pulse_exclude_groups');
         $users = (string) $this->settings->get('ernestdefoe-calendar.pulse_exclude_users');
-        $viewerGroups = $viewer->groups->pluck('id')->sort()->implode(',');
+        $viewerGroups = collect($viewer->permissionGroupIds())->sort()->implode(',');
 
         return $this->cache->remember(
             "ernestdefoe-calendar.pulse.$days.$leaderDays.$limit.".md5($groups.'|'.$users.'|'.$viewerGroups),

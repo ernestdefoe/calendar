@@ -12,7 +12,6 @@ use Carbon\Carbon;
 use Carbon\Exceptions\InvalidFormatException;
 use ErnestDefoe\Calendar\Event;
 use Flarum\Foundation\ValidationException;
-use Illuminate\Support\Str;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -110,17 +109,5 @@ class EventInput
         $v = preg_replace('/[^A-Z0-9;:=,\-]/', '', $v);
 
         return mb_substr($v, 0, 600);
-    }
-
-    public static function uniqueSlug(string $title, ?int $ignoreId = null): string
-    {
-        $base = Str::slug($title) ?: 'event';
-        $slug = $base;
-        $i = 2;
-        while (Event::where('slug', $slug)->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))->exists()) {
-            $slug = $base.'-'.$i++;
-        }
-
-        return $slug;
     }
 }

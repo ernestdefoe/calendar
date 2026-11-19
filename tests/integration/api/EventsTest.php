@@ -282,4 +282,49 @@ class EventsTest extends TestCase
         $this->assertSame(204, $this->json('DELETE', '/api/calendar-events/3', 4)[0], 'Manager');
         $this->assertFalse($this->database()->table('calendar_events')->where('id', 3)->exists());
     }
+
+    #[Test]
+    public function an_author_can_save_a_draft_that_only_they_and_managers_see()
+    {
+        [$status, $body] = $this->json('POST', '/api/calendar-events', 3, ['data' => ['attributes' => [
+            'title' => 'Secret plans', 'start' => '2030-05-20T10:00:00Z', 'isPublished' => false,
+        ]]]);
+        $this->assertSame(201, $status);
+        $id = $body['data']['id'];
+
+        $this->assertNotContains('Secret plans', array_column($this->list(3)[1]['data'], 'title'), 'Drafts stay off the calendar');
+        $this->assertSame(404, $this->json('GET', "/api/calendar-events/$id", 2)[0], 'Another member');
+        $this->assertSame(200, $this->json('GET', "/api/calendar-events/$id", 3)[0], 'Its author');
+        $this->assertSame(200, $this->json('GET', "/api/calendar-events/$id", 4)[0], 'A manager');
+
+        $this->json('PATCH', "/api/calendar-events/$id", 3, ['data' => ['attributes' => ['isPublished' => true]]]);
+        $this->assertContains('Secret plans', array_column($this->list(2)[1]['data'], 'title'), 'Published, it is listed');
+    }
+
+    #[Test]
+    public function the_window_skips_what_is_already_over_but_keeps_a_series_that_still_repeats()
+    {
+        $event = fn (array $attrs) => $this->json('POST', '/api/calendar-events', 3, ['data' => ['attributes' => $attrs + ['timezone' => 'UTC']]]);
+        $event(['title' => 'Last year, no end', 'start' => '2029-05-10T18:00:00Z']);
+        $event(['title' => 'Finished series', 'start' => '2029-01-01T09:00:00Z', 'rrule' => 'FREQ=DAILY;COUNT=10']);
+        $event(['title' => 'Old daily series', 'start' => '2010-01-01T09:00:00Z', 'end' => '2010-01-01T10:00:00Z', 'rrule' => 'FREQ=DAILY']);
+
+        $titles = array_column($this->list()[1]['data'], 'title');
+
+        $this->assertNotContains('Last year, no end', $titles);
+        $this->assertNotContains('Finished series', $titles);
+        $this->assertSame(31, count(array_keys($titles, 'Old daily series')), 'Twenty years of a daily series still reaches May 2030');
+        $this->assertNotNull($this->database()->table('calendar_events')->where('title', 'Finished series')->value('finishes_at'));
+        $this->assertNull($this->database()->table('calendar_events')->where('title', 'Old daily series')->value('finishes_at'), 'A series that never ends is never over');
+    }
+
+    #[Test]
+    public function an_unknown_category_is_refused_not_a_server_error()
+    {
+        [$status] = $this->json('POST', '/api/calendar-events', 3, ['data' => ['attributes' => [
+            'title' => 'Nowhere', 'start' => '2030-06-01T10:00:00Z', 'categoryId' => 999,
+        ]]]);
+
+        $this->assertSame(422, $status);
+    }
 }
