@@ -20,7 +20,7 @@ class ScopeEventVisibility
     public function __invoke(User $actor, Builder $query): void
     {
         if (! $actor->can('viewForum')) {
-            $query->whereRaw('1 = 0'); // a constant false: no row is visible
+            $query->whereIn('calendar_events.id', []); // no event is visible
 
             return;
         }

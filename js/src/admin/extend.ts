@@ -96,14 +96,12 @@ export default [
       type: 'select',
       label: t('default_view'),
       options: { month: t('view_month_opt'), week: t('view_week_opt'), day: t('view_day_opt'), list: t('view_list_opt') },
-      default: 'month',
     }))
     .setting(() => ({
       setting: 'ernestdefoe-calendar.week_starts_on',
       type: 'select',
       label: t('week_starts_on'),
       options: { '0': t('week_sunday'), '1': t('week_monday') },
-      default: '0',
     }))
     .setting(() => ({
       setting: 'ernestdefoe-calendar.date_order',
@@ -111,7 +109,6 @@ export default [
       label: t('date_order'),
       help: t('date_order_help'),
       options: { auto: t('date_order_auto'), dmy: t('date_order_dmy'), mdy: t('date_order_mdy') },
-      default: 'auto',
     }))
     .setting(() => ({
       setting: 'ernestdefoe-calendar.location_mode',
@@ -125,14 +122,12 @@ export default [
         text: t('location_text'),
         off: t('location_off'),
       },
-      default: 'google',
     }))
     .setting(() => ({
       setting: 'ernestdefoe-calendar.event_discussions',
       type: 'boolean',
       label: t('event_discussions'),
       help: t('event_discussions_help'),
-      default: false,
     }))
     .setting(() => ({
       setting: 'ernestdefoe-calendar.event_discussion_author',
@@ -151,21 +146,18 @@ export default [
       type: 'boolean',
       label: t('hide_nav_link'),
       help: t('hide_nav_link_help'),
-      default: false,
     }))
     .setting(() =>
       unlessWidgetCore({
         setting: 'ernestdefoe-calendar.show_index_widget',
         type: 'boolean',
         label: t('show_index_widget'),
-        default: true,
       })
     )
     .setting(() => ({
       setting: 'ernestdefoe-calendar.index_widget_count',
       type: 'number',
       label: t('index_widget_count'),
-      default: 5,
     }))
     .setting(() =>
       unlessWidgetCore({
@@ -173,7 +165,6 @@ export default [
         type: 'boolean',
         label: t('show_pulse_widget'),
         help: t('show_pulse_widget_help'),
-        default: true,
       })
     )
     .setting(() =>
@@ -199,7 +190,6 @@ export default [
         setting: 'ernestdefoe-calendar.show_memories_widget',
         type: 'boolean',
         label: t('show_memories_widget'),
-        default: true,
       })
     )
     .setting(() =>
@@ -212,7 +202,6 @@ export default [
         setting: 'ernestdefoe-calendar.show_celebrations_widget',
         type: 'boolean',
         label: t('show_celebrations_widget'),
-        default: true,
       })
     )
     .permission(() => ({ icon: 'fas fa-calendar-plus', label: t('permission_create'), permission: 'calendar.create' }), 'start')
