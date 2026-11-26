@@ -1,5 +1,46 @@
 import type { CalEvent } from './api';
 import app from 'flarum/common/app';
+import * as cal from './calendarSystem';
+import type { CalendarSystem } from './calendarSystem';
+
+let SYSTEMS: { main: CalendarSystem; second: CalendarSystem | null } | null = null;
+
+/** The forum's language, as Intl spells it ("pt_BR" → "pt-BR"), or undefined. */
+function forumLang(): string | undefined {
+  try {
+    const l = (app as any)?.data?.locale || (app as any)?.translator?.locale;
+
+    return typeof l === 'string' && l ? cal.baseLocale(l) : undefined;
+  } catch (e) {
+    return undefined;
+  }
+}
+
+/**
+ * The calendar system and numerals the admin chose for Calendar's dates, and
+ * the optional second calendar shown beside them; each as this browser can
+ * render it (calendarSystem.usable falls back to Gregorian / Latin quietly).
+ */
+export function systems(): { main: CalendarSystem; second: CalendarSystem | null } {
+  if (SYSTEMS) return SYSTEMS;
+
+  const attr = (key: string) => {
+    try {
+      return (app as any).forum?.attribute('ernestdefoe-calendar.' + key);
+    } catch (e) {
+      return undefined;
+    }
+  };
+  const lang = forumLang();
+  const main = cal.usable(lang, { calendar: attr('calendarSystem'), numerals: attr('numerals') });
+  const wantedSecond = attr('secondCalendar');
+  const second = wantedSecond && wantedSecond !== 'none' ? cal.usable(lang, { calendar: wantedSecond, numerals: main.numerals }) : null;
+
+  // Shown beside the main date only when it really differs from it.
+  SYSTEMS = { main, second: second && second.calendar !== main.calendar ? second : null };
+
+  return SYSTEMS;
+}
 
 /**
  * The locale to format dates and times in.
@@ -18,19 +59,13 @@ import app from 'flarum/common/app';
  * so this can never be worse than it was.
  */
 export function loc(): string | undefined {
-  try {
-    const l = (app as any)?.data?.locale || (app as any)?.translator?.locale;
+  const lang = forumLang();
 
-    // `_` → `-`: Intl throws a RangeError on "pt_BR". The Gregorian calendar
-    // is pinned because the grid IS Gregorian — left to the locale, Persian
-    // ("fa") headed an October grid with a Solar Hijri month name.
-    return typeof l === 'string' && l ? l.replace(/_/g, '-') + GREGORY : undefined;
-  } catch (e) {
-    return undefined;
-  }
+  // The calendar is always named: left to the locale, Persian ("fa") headed a
+  // grid with Solar Hijri months whatever the admin chose.
+  return lang ? cal.localeTag(lang, systems().main) : undefined;
 }
 
-const GREGORY = '-u-ca-gregory';
 const NF: Record<string, Intl.NumberFormat> = {};
 
 /**
@@ -69,25 +104,34 @@ export function dateLoc(): string | undefined {
   }
   if (order !== 'dmy' && order !== 'mdy') return loc();
 
-  const lang = (loc() || (typeof navigator !== 'undefined' && navigator.language) || 'en').split('-')[0];
+  const lang = (forumLang() || (typeof navigator !== 'undefined' && navigator.language) || 'en').split('-')[0];
 
-  return lang + (order === 'dmy' ? '-GB' : '-US') + GREGORY;
+  return cal.localeTag(lang + (order === 'dmy' ? '-GB' : '-US'), systems().main);
 }
 
-/** A 6×7 grid of Dates covering the month, padded to whole weeks. */
-export function monthMatrix(year: number, month: number, weekStartsOn = 0): Date[] {
-  const first = new Date(year, month, 1);
-  const start = new Date(first);
-  const shift = (first.getDay() - weekStartsOn + 7) % 7;
-  start.setDate(first.getDate() - shift);
+/** A 6×7 grid of Dates covering the month that holds `d`, in the chosen calendar, padded to whole weeks. */
+export function monthMatrix(d: Date, weekStartsOn = 0): Date[] {
+  return cal.monthMatrix(d, systems().main.calendar, weekStartsOn);
+}
 
-  const days: Date[] = [];
-  for (let i = 0; i < 42; i++) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    days.push(d);
-  }
-  return days;
+/** Midnight of the first day of the chosen calendar's month that holds `d`. */
+export function monthOf(d: Date): Date {
+  return cal.monthStart(d, systems().main.calendar);
+}
+
+/** The first day of the month `delta` months from the one holding `d`. */
+export function shiftMonth(d: Date, delta: number): Date {
+  return cal.addMonths(d, delta, systems().main.calendar);
+}
+
+/** Whether two days fall in the same month of the chosen calendar. */
+export function sameMonth(a: Date, b: Date): boolean {
+  return cal.sameMonth(a, b, systems().main.calendar);
+}
+
+/** The day's number within its month, in the chosen calendar and numerals. */
+export function dayNum(d: Date): string {
+  return num(cal.dayParts(d, systems().main.calendar).day);
 }
 
 export function sameDay(a: Date, b: Date): boolean {
@@ -99,17 +143,35 @@ export function isToday(d: Date): boolean {
 }
 
 /** Localised weekday short names, ordered from the configured first day. */
-export function weekdayNames(weekStartsOn = 0): string[] {
+export function weekdayNames(weekStartsOn = 0, style: 'short' | 'narrow' = 'short'): string[] {
   // 🚨 This used to be a hardcoded English array, under a docblock that said
   // "localised". Derived from real dates instead: 2023-01-01 was a Sunday, so
   // adding 0..6 days walks Sun→Sat and Intl names them in the forum's locale.
-  const base = Array.from({ length: 7 }, (_, i) => new Date(2023, 0, 1 + i).toLocaleDateString(loc(), { weekday: 'short' }));
+  const base = Array.from({ length: 7 }, (_, i) => new Date(2023, 0, 1 + i).toLocaleDateString(loc(), { weekday: style }));
 
   return [...base.slice(weekStartsOn), ...base.slice(0, weekStartsOn)];
 }
 
-export function monthLabel(year: number, month: number): string {
-  return new Date(year, month, 1).toLocaleDateString(loc(), { month: 'long', year: 'numeric' });
+/** "Aban 1405" / "November 2026": the month holding `d`, with the second calendar's months beside it. */
+export function monthLabel(d: Date): string {
+  const first = monthOf(d);
+  const main = first.toLocaleDateString(loc(), { month: 'long', year: 'numeric' });
+  const last = addDays(shiftMonth(first, 1), -1);
+
+  return withSecond(main, first, last, { month: 'long', year: 'numeric' });
+}
+
+/**
+ * `label` followed by the same span in the second calendar, if the admin chose
+ * one: "29 Aban 1405 | November 20, 2026".
+ */
+export function withSecond(label: string, a: Date, b: Date | null, opts: Intl.DateTimeFormatOptions): string {
+  const second = systems().second;
+  if (!second) return label;
+
+  // Each half in its own bidi isolate: a Persian month beside a Gregorian one
+  // would otherwise be reordered into "۱۴۰۵ ۲۰۲۶ آذر | …" on either page direction.
+  return '\u2068' + label + '\u2069 | \u2068' + dateRange(a, b || a, opts, cal.localeTag(forumLang(), second)) + '\u2069';
 }
 
 // ---- week / day helpers ----
@@ -142,7 +204,9 @@ export function weekDays(d: Date, weekStartsOn = 0): Date[] {
 
 /** "Mon, June 7, 2026" — full label for the day view. */
 export function dayTitle(d: Date): string {
-  return d.toLocaleDateString(dateLoc(), { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const label = d.toLocaleDateString(dateLoc(), { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+  return withSecond(label, d, null, { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 /** "Jun 1 – 7, 2026" / "Jun 29 – Jul 5, 2026" — label for the week view. */
@@ -157,21 +221,25 @@ export function weekRangeLabel(days: Date[]): string {
   // a repeated month or year, in every locale. It is ES2021 and present in
   // every browser Flarum 2 supports; the hand-built form stays as a fallback
   // for anything exotic rather than throwing.
-  return dateRange(a, b, { day: 'numeric', month: 'short', year: 'numeric' });
+  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+
+  return withSecond(dateRange(a, b, opts), a, b, opts);
 }
 
 /**
  * A date range formatted for the reader's locale, falling back to a plain
  * "a – b" if the engine has no formatRange.
  */
-export function dateRange(a: Date, b: Date, opts: Intl.DateTimeFormatOptions): string {
+export function dateRange(a: Date, b: Date, opts: Intl.DateTimeFormatOptions, locale = dateLoc()): string {
+  if (sameDay(a, b)) return a.toLocaleDateString(locale, opts);
+
   try {
-    const fmt: any = new Intl.DateTimeFormat(dateLoc(), opts);
+    const fmt: any = new Intl.DateTimeFormat(locale, opts);
     if (typeof fmt.formatRange === 'function') return fmt.formatRange(a, b);
 
     return `${fmt.format(a)} – ${fmt.format(b)}`;
   } catch (e) {
-    return `${a.toLocaleDateString(dateLoc(), opts)} – ${b.toLocaleDateString(dateLoc(), opts)}`;
+    return `${a.toLocaleDateString(locale, opts)} – ${b.toLocaleDateString(locale, opts)}`;
   }
 }
 
@@ -301,6 +369,14 @@ export function formatRange(ev: CalEvent): string {
   if (!e) return `${date}, ${startT}`;
   if (sameDay(s, e)) return `${date}, ${startT} – ${e.toLocaleTimeString(loc(), tOpts)}`;
   return `${date}, ${startT} – ${e.toLocaleDateString(dateLoc(), dOpts)}, ${e.toLocaleTimeString(loc(), tOpts)}`;
+}
+
+/** An event's dates and times, followed by its dates in the second calendar, if the admin chose one. */
+export function formatRangeWithSecond(ev: CalEvent): string {
+  const s = eventDate(ev, ev.start);
+  const e = ev.end ? eventDate(ev, ev.end) : null;
+
+  return withSecond(formatRange(ev), s, e, { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 export function shortTime(iso: string): string {

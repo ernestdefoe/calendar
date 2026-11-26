@@ -2,7 +2,7 @@ import app from 'flarum/forum/app';
 import Modal, { IInternalModalAttrs } from 'flarum/common/components/Modal';
 import Button from 'flarum/common/components/Button';
 import { rsvp, deleteEvent, showEvent, startDiscussion, abs, type CalEvent, type RsvpAttendee } from '../../common/api';
-import { formatRange, num } from '../../common/dates';
+import { num, formatRangeWithSecond } from '../../common/dates';
 import Avatar from 'flarum/common/components/Avatar';
 import { asUser } from '../../common/users';
 
@@ -124,7 +124,7 @@ export default class EventDetailModal extends Modal<DetailAttrs> {
       new Date(ev.start).getTime() > Date.now() ? m('.CalCountdown.CalCountdown--event', { 'data-deadline': ev.start }, t('starts_in')) : null,
 
       m('.CalendarDetail-meta', [
-        row('fas fa-clock', formatRange(ev) + (ev.recurring ? ' · ' + t('repeat_' + freqWord(ev.rrule)) : '')),
+        row('fas fa-clock', formatRangeWithSecond(ev) + (ev.recurring ? ' · ' + t('repeat_' + freqWord(ev.rrule)) : '')),
         ev.location ? m('.CalendarDetail-row', [m('i.icon.fas.fa-location-dot'), locationLink(ev.location)]) : null,
         ev.url && (/^https?:\/\//i.test(ev.url) || (ev.url.startsWith('/') && !ev.url.startsWith('//')))
           ? m('.CalendarDetail-row', [m('i.icon.fas.fa-link'), m('a', { href: ev.url, target: '_blank', rel: 'noopener noreferrer' }, ev.url)])

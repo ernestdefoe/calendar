@@ -1,5 +1,5 @@
 import Component from 'flarum/common/Component';
-import { monthMatrix, weekdayNames, eventOnDay, isToday, shortTime, sameDay, dayTitle, formatRange, num } from '../../common/dates';
+import { monthMatrix, weekdayNames, eventOnDay, isToday, shortTime, sameDay, sameMonth, dayTitle, formatRange, dayNum } from '../../common/dates';
 import { type CalEvent } from '../../common/api';
 import { measure } from './CalSkeleton';
 import app from 'flarum/forum/app';
@@ -9,8 +9,8 @@ const addLabel = () => app.translator.trans('ernestdefoe-calendar.forum.add_even
 const noneLabel = () => app.translator.trans('ernestdefoe-calendar.forum.no_events_day');
 
 interface MonthGridAttrs {
-  year: number;
-  month: number;
+  /** The first day of the month shown, in the chosen calendar. */
+  month: Date;
   weekStart: number;
   events: CalEvent[];
   canCreate: boolean;
@@ -28,13 +28,13 @@ export default class MonthGrid extends Component {
 
   view() {
     const a = this.attrs as MonthGridAttrs;
-    const cells = monthMatrix(a.year, a.month, a.weekStart);
+    const cells = monthMatrix(a.month, a.weekStart);
 
     // Today when it is in this month, otherwise the 1st — kept across redraws
     // until the reader taps another day or changes month.
-    if (!this.selected || this.selected.getMonth() !== a.month || this.selected.getFullYear() !== a.year) {
+    if (!this.selected || !sameMonth(this.selected, a.month)) {
       const today = new Date();
-      this.selected = today.getMonth() === a.month && today.getFullYear() === a.year ? today : new Date(a.year, a.month, 1);
+      this.selected = sameMonth(today, a.month) ? today : a.month;
     }
 
     return [
@@ -83,7 +83,7 @@ export default class MonthGrid extends Component {
 
   dayCell(day: Date) {
     const a = this.attrs as MonthGridAttrs;
-    const inMonth = day.getMonth() === a.month;
+    const inMonth = sameMonth(day, a.month);
     const dayEvents = a.events.filter((e) => eventOnDay(e, day)).slice(0, 4);
     return m(
       '.CalendarGrid-cell' + (inMonth ? '' : '.is-out') + (isToday(day) ? '.is-today' : '') + (sameDay(day, this.selected!) ? '.is-selected' : ''),
@@ -92,7 +92,7 @@ export default class MonthGrid extends Component {
         ondblclick: a.canCreate ? () => a.onCreate(day) : undefined,
       },
       [
-        m('span.CalendarGrid-num', num(day.getDate())),
+        m('span.CalendarGrid-num', dayNum(day)),
         m(
           '.CalendarGrid-events',
           dayEvents.map((ev) =>

@@ -17,7 +17,8 @@
     "build": "webpack --mode production",
     "format": "prettier --write src",
     "check-typings": "tsc --noEmit --project tsconfig.json",
-    "format-check": "prettier --check src"
+    "format-check": "prettier --check src",
+    "test": "node --test --experimental-strip-types tests/*.test.ts"
   },
   "prettier": "@flarum/prettier-config"
 }

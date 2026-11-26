@@ -2,6 +2,7 @@ import Extend from 'flarum/common/extenders';
 import app from 'flarum/admin/app';
 import CategoryManager from './components/CategoryManager';
 import { hasFofWidgets } from '../common/registerFofWidget';
+import { CALENDARS, NUMERALS } from '../common/calendarSystem';
 
 declare const m: any;
 declare const flarum: any;
@@ -116,6 +117,27 @@ export default [
       default: 'auto',
     }))
     .setting(() => ({
+      setting: 'ernestdefoe-calendar.calendar_system',
+      type: 'select',
+      label: t('calendar_system'),
+      help: t('calendar_system_help'),
+      options: calendarOptions(),
+    }))
+    .setting(() => ({
+      setting: 'ernestdefoe-calendar.numerals',
+      type: 'select',
+      label: t('numerals'),
+      help: t('numerals_help'),
+      options: Object.fromEntries(NUMERALS.map((n) => [n, String(t('numerals_' + n))])),
+    }))
+    .setting(() => ({
+      setting: 'ernestdefoe-calendar.second_calendar',
+      type: 'select',
+      label: t('second_calendar'),
+      help: t('second_calendar_help'),
+      options: { none: t('second_calendar_none'), ...calendarOptions() },
+    }))
+    .setting(() => ({
       setting: 'ernestdefoe-calendar.location_mode',
       type: 'select',
       label: t('location_mode'),
@@ -223,3 +245,8 @@ export default [
     // declarative replacement for app.extensionData.for(...).registerSetting().
     .customSetting(() => m(CategoryManager), -10),
 ];
+
+/** The calendar systems, by their Intl names, labelled in the admin's language. */
+function calendarOptions(): Record<string, string> {
+  return Object.fromEntries(CALENDARS.map((c) => [c, String(t('calendar_' + c.replace('-', '_')))]));
+}

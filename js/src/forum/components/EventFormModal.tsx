@@ -2,6 +2,7 @@ import app from 'flarum/forum/app';
 import Modal, { IInternalModalAttrs } from 'flarum/common/components/Modal';
 import Button from 'flarum/common/components/Button';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
+import CalendarDateInput from './CalendarDateInput';
 import { saveEvent, listCategories, type CalEvent, type CalCategory } from '../../common/api';
 import { toLocalInput, eventDate } from '../../common/dates';
 
@@ -134,18 +135,23 @@ export default class EventFormModal extends Modal<FormAttrs> {
           m('.CalendarForm-grid', [
             field(
               t('field_start'),
-              m('input.FormControl', {
-                type: d.allDay ? 'date' : 'datetime-local',
-                value: d.allDay ? d.start.slice(0, 10) : d.start,
-                oninput: (e: any) => (d.start = d.allDay ? e.target.value + 'T00:00' : e.target.value),
+              m(CalendarDateInput, {
+                value: d.start,
+                allDay: d.allDay,
+                weekStart: weekStart(),
+                label: t('field_start'),
+                onchange: (v: string) => (d.start = v),
               })
             ),
             field(
               t('field_end'),
-              m('input.FormControl', {
-                type: d.allDay ? 'date' : 'datetime-local',
-                value: d.allDay ? (d.end || '').slice(0, 10) : d.end,
-                oninput: (e: any) => (d.end = d.allDay ? (e.target.value ? e.target.value + 'T00:00' : '') : e.target.value),
+              m(CalendarDateInput, {
+                value: d.end,
+                allDay: d.allDay,
+                weekStart: weekStart(),
+                label: t('field_end'),
+                optional: true,
+                onchange: (v: string) => (d.end = v),
               })
             ),
           ]),
@@ -430,4 +436,9 @@ function localToIso(val: string, allDay: boolean): string {
   }
 
   return new Date(val).toISOString();
+}
+
+/** The admin's first day of the week (0 = Sunday), for the date picker. */
+function weekStart(): number {
+  return app.forum.attribute<number>('ernestdefoe-calendar.weekStartsOn');
 }

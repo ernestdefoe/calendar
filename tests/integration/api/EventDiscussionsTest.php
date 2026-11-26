@@ -56,6 +56,14 @@ class EventDiscussionsTest extends TestCase
         ]);
 
         $this->setting('ernestdefoe-calendar.event_discussion_tags', '[1]');
+
+        // flarum/tags' own limits, as its install seeds them: on a fresh test
+        // database they are not there yet for the first test that posts, and
+        // tags then refuses every new discussion.
+        $this->setting('flarum-tags.min_primary_tags', '1');
+        $this->setting('flarum-tags.max_primary_tags', '1');
+        $this->setting('flarum-tags.min_secondary_tags', '0');
+        $this->setting('flarum-tags.max_secondary_tags', '3');
     }
 
     private function json(string $method, string $path, int $actor, ?array $attrs = null): array
@@ -75,6 +83,37 @@ class EventDiscussionsTest extends TestCase
         return $this->json('POST', '/api/calendar/events', 3, $attrs + [
             'title' => 'Launch party', 'start' => '2030-06-01T18:00:00Z', 'timezone' => 'UTC', 'location' => 'The Old Mill',
         ]);
+    }
+
+    public static function calendarSystems(): array
+    {
+        return [
+            'Gregorian, the default' => ['gregory', 'latn', 'none', ['Saturday, June 1, 2030'], ['|']],
+            'Persian with Gregorian beside it' => ['persian', 'latn', 'gregory', ['Khordad 11, 1409', ' | ', 'June 1, 2030'], ['۱']],
+            'Persian numerals' => ['persian', 'arabext', 'none', ['۱۴۰۹'], ['1409', '|']],
+            'an unknown system falls back to Gregorian' => ['martian', 'roman', 'none', ['Saturday, June 1, 2030'], ['|']],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('calendarSystems')]
+    public function the_thread_writes_the_date_in_the_calendar_system(string $calendar, string $numerals, string $second, array $has, array $hasNot)
+    {
+        $this->setting('ernestdefoe-calendar.event_discussions', '1');
+        $this->setting('ernestdefoe-calendar.calendar_system', $calendar);
+        $this->setting('ernestdefoe-calendar.numerals', $numerals);
+        $this->setting('ernestdefoe-calendar.second_calendar', $second);
+
+        [, $body] = $this->create(['allDay' => true, 'start' => '2030-06-01T00:00:00Z']);
+        $content = Discussion::query()->find($body['data']['discussionId'])->firstPost->content;
+        $line = (string) current(array_filter(explode("\n\n", $content), fn ($l) => str_starts_with($l, '📅')));
+
+        foreach ($has as $text) {
+            $this->assertStringContainsString($text, $line);
+        }
+        foreach ($hasNot as $text) {
+            $this->assertStringNotContainsString($text, $line);
+        }
     }
 
     #[Test]

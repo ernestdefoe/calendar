@@ -8,7 +8,7 @@ import MonthGrid from './MonthGrid';
 import TimeGrid from './TimeGrid';
 import EventListView from './EventListView';
 import { listEvents, showEvent, feedUrl, type CalEvent, type CalCategory } from '../../common/api';
-import { monthMatrix, monthLabel, weekDays, weekRangeLabel, dayTitle, startOfDay, addDays } from '../../common/dates';
+import { monthMatrix, monthLabel, weekDays, weekRangeLabel, dayTitle, startOfDay, addDays, shiftMonth, monthOf } from '../../common/dates';
 
 declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
@@ -50,7 +50,7 @@ export default class CalendarPage extends Page {
 
   range(): { from: Date; to: Date } {
     if (this.mode === 'month') {
-      const cells = monthMatrix(this.cursor.getFullYear(), this.cursor.getMonth(), this.weekStart());
+      const cells = monthMatrix(this.cursor, this.weekStart());
       const to = new Date(cells[41]);
       to.setHours(23, 59, 59);
       return { from: cells[0], to };
@@ -87,7 +87,8 @@ export default class CalendarPage extends Page {
   }
 
   step(delta: number) {
-    if (this.mode === 'month') this.cursor = new Date(this.cursor.getFullYear(), this.cursor.getMonth() + delta, 1);
+    // Months of the chosen calendar: a Persian forum steps Aban → Azar.
+    if (this.mode === 'month') this.cursor = shiftMonth(this.cursor, delta);
     else if (this.mode === 'week') this.cursor = addDays(this.cursor, 7 * delta);
     else if (this.mode === 'day') this.cursor = addDays(this.cursor, delta);
     this.load();
@@ -131,8 +132,7 @@ export default class CalendarPage extends Page {
 
     if (this.mode === 'month') {
       return m(MonthGrid, {
-        year: this.cursor.getFullYear(),
-        month: this.cursor.getMonth(),
+        month: monthOf(this.cursor),
         weekStart: this.weekStart(),
         events: this.events,
         canCreate,
@@ -150,7 +150,7 @@ export default class CalendarPage extends Page {
   }
 
   title(): string {
-    if (this.mode === 'month') return monthLabel(this.cursor.getFullYear(), this.cursor.getMonth());
+    if (this.mode === 'month') return monthLabel(this.cursor);
     if (this.mode === 'week') return weekRangeLabel(weekDays(this.cursor, this.weekStart()));
     if (this.mode === 'day') return dayTitle(this.cursor);
     return t('upcoming');

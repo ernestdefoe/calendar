@@ -37,6 +37,7 @@ class EventDiscussion
         private TranslatorInterface $translator,
         private LoggerInterface $log,
         private DiscussionAuthor $author,
+        private EventDates $dates,
     ) {
     }
 
@@ -134,10 +135,7 @@ class EventDiscussion
         // An all-day event's date is stored at UTC midnight; shown in its own
         // zone it would land a day early west of Greenwich.
         $start = Carbon::parse($event->start_at)->setTimezone($event->all_day ? 'UTC' : $tz);
-        $when = $start->copy()->locale($dateLocale)->isoFormat('dddd, LL');
-        if (! $event->all_day) {
-            $when .= ', '.$start->copy()->locale($locale)->isoFormat('LT').' ('.$tz.')';
-        }
+        $when = $this->dates->when($start, (bool) $event->all_day, $tz, $locale, $dateLocale);
 
         $organiser = $event->user_id && (int) $event->user_id !== (int) $author->id ? $event->user : null;
 

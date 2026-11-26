@@ -2,7 +2,7 @@ import app from 'flarum/forum/app';
 import { CalWidgetSkeleton, measure } from './CalSkeleton';
 import { userActivity, type UserActivity } from '../../common/api';
 import { load, peek } from '../../common/widgetData';
-import { loc, dateLoc, num } from '../../common/dates';
+import { loc, dateLoc, num, monthOf } from '../../common/dates';
 
 declare const m: any;
 const t = (k: string, p?: any): any => app.translator.trans('ernestdefoe-calendar.forum.' + k, p);
@@ -46,24 +46,24 @@ function buildWeeks(days: Record<string, number>, weekStart: number, max: number
   const df = new Intl.DateTimeFormat(dateLoc(), { day: 'numeric', month: 'short', year: 'numeric' });
   const weeks: any[] = [];
   const months: any[] = [];
-  let lastMonth = -1;
+  let lastMonth: Date | null = null;
   while (cur <= today) {
     const week: any[] = [];
-    let weekMonth = -1;
+    let weekMonth: Date | null = null;
     for (let i = 0; i < 7; i++) {
       if (cur > today) {
         week.push(null);
       } else {
         const key = ymd(cur);
         const count = days[key] || 0;
-        if (weekMonth < 0) weekMonth = cur.getMonth();
+        if (!weekMonth) weekMonth = monthOf(cur);
         week.push({ date: df.format(cur), count, lvl: level(count, max) });
       }
       cur = new Date(cur.getTime() + DAY_MS);
     }
-    // Month label appears above the first week of each new month.
-    if (weekMonth >= 0 && weekMonth !== lastMonth) {
-      months.push({ idx: weeks.length, label: new Date(2000, weekMonth, 1).toLocaleDateString(loc(), { month: 'short' }) });
+    // Month label (in the chosen calendar) above the first week of each new month.
+    if (weekMonth && (!lastMonth || weekMonth.getTime() !== lastMonth.getTime())) {
+      months.push({ idx: weeks.length, label: weekMonth.toLocaleDateString(loc(), { month: 'short' }) });
       lastMonth = weekMonth;
     }
     weeks.push(week);

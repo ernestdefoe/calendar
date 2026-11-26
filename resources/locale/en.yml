@@ -46,6 +46,11 @@ ernestdefoe-calendar:
     field_description: Description
     field_start: Start
     field_end: End
+    picker_empty: Pick a date
+    picker_time: Time
+    picker_previous: Previous month
+    picker_next: Next month
+    picker_clear: Clear
     field_all_day: All-day event
     field_timezone: Time zone
     field_location: Location (optional)

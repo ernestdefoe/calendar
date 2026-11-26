@@ -58,6 +58,15 @@ $extenders = [
 
     // ---- Expose settings + the create permission to the forum payload ----
     (new Extend\Settings())
+        ->default('ernestdefoe-calendar.calendar_system', 'gregory')
+        ->default('ernestdefoe-calendar.numerals', 'latn')
+        ->default('ernestdefoe-calendar.second_calendar', 'none')
+        // The calendar system, numerals and second calendar of Calendar's own
+        // dates; js/src/common/calendarSystem.ts checks each against its list
+        // and what the browser can show.
+        ->serializeToForum('ernestdefoe-calendar.calendarSystem', 'ernestdefoe-calendar.calendar_system', 'strval')
+        ->serializeToForum('ernestdefoe-calendar.numerals', 'ernestdefoe-calendar.numerals', 'strval')
+        ->serializeToForum('ernestdefoe-calendar.secondCalendar', 'ernestdefoe-calendar.second_calendar', 'strval')
         ->serializeToForum('ernestdefoe-calendar.dateOrder', 'ernestdefoe-calendar.date_order', fn ($v) => in_array($v, ['dmy', 'mdy'], true) ? $v : 'auto')
         ->serializeToForum('ernestdefoe-calendar.locationMode', 'ernestdefoe-calendar.location_mode', fn ($v) => in_array($v, ['apple', 'osm', 'text', 'off'], true) ? $v : 'google')
         // Whether one account starts every event thread: the "Start a discussion"
