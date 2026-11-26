@@ -54,3 +54,11 @@ test('twelve months forward from a Gregorian 31st lands on the 1st of each month
   }
   assert.equal(iso(d), '2027-01-01');
 });
+
+test('Japanese and Buddhist months are Gregorian months, across an era change too', () => {
+  // 8 January 1989: Showa ended and Heisei began in the middle of the month.
+  assert.equal(iso(monthStart(day(1989, 1, 20), 'japanese')), '1989-01-01');
+  assert.equal(daysInMonth(day(1989, 1, 20), 'japanese'), 31);
+  assert.equal(iso(addMonths(day(1989, 1, 5), 1, 'japanese')), '1989-02-01');
+  assert.equal(iso(monthStart(day(2026, 11, 20), 'buddhist')), '2026-11-01');
+});

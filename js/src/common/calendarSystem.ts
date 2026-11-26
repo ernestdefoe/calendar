@@ -5,8 +5,8 @@
  * how they are named and how they group into months changes. Intl names them
  * in any calendar (`fa-u-ca-persian-nu-arabext`), but it has no "first day of
  * this Hijri month", so months are found by reading a day's numbers back with
- * formatToParts and walking day by day: at most 31 steps, from one cached
- * formatter per calendar.
+ * formatToParts (one cached formatter per calendar): a day numbered 20 starts
+ * its month 19 days earlier, and a month ends where the month number changes.
  *
  * Pure module, no Flarum imports: dates.ts feeds it the forum's settings, and
  * the unit tests (js/tests) run it directly.
@@ -65,6 +65,10 @@ const PARTS: Record<string, Intl.DateTimeFormat> = {};
 
 /** A day's year, month and day numbers in `calendar` (Latin digits, for arithmetic). */
 export function dayParts(date: Date, calendar: CalendarId): { year: string; month: string; day: number } {
+  // Japanese and Buddhist months ARE Gregorian months under another year count;
+  // counting them by era would split January 1989 at the Showa → Heisei change.
+  if (calendar === 'japanese' || calendar === 'buddhist') calendar = 'gregory';
+
   const fmt =
     PARTS[calendar] ||
     (PARTS[calendar] = makeFormat(`en-u-ca-${calendar}-nu-latn`, { year: 'numeric', month: 'numeric', day: 'numeric', era: 'short' }));

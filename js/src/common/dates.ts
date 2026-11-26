@@ -66,6 +66,17 @@ export function loc(): string | undefined {
   return lang ? cal.localeTag(lang, systems().main) : undefined;
 }
 
+/**
+ * The forum's locale with the Gregorian calendar, in the chosen numerals: for
+ * things that are Gregorian whatever the calendar, such as a birthday's month
+ * (stored as MM-DD), so January is never labelled with another calendar's month.
+ */
+export function gregLoc(): string | undefined {
+  const lang = forumLang();
+
+  return lang ? cal.localeTag(lang, { calendar: 'gregory', numerals: systems().main.numerals }) : undefined;
+}
+
 const NF: Record<string, Intl.NumberFormat> = {};
 
 /**

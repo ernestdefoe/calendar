@@ -91,6 +91,7 @@ class EventDiscussionsTest extends TestCase
             'Gregorian, the default' => ['gregory', 'latn', 'none', ['Saturday, June 1, 2030'], ['|']],
             'Persian with Gregorian beside it' => ['persian', 'latn', 'gregory', ['Khordad 11, 1409', ' | ', 'June 1, 2030'], ['۱']],
             'Persian numerals' => ['persian', 'arabext', 'none', ['۱۴۰۹'], ['1409', '|']],
+            'Gregorian with Persian beside it' => ['gregory', 'latn', 'persian', ['Saturday, June 1, 2030', ' | ', 'Khordad 11, 1409'], []],
             'an unknown system falls back to Gregorian' => ['martian', 'roman', 'none', ['Saturday, June 1, 2030'], ['|']],
         ];
     }

@@ -1,7 +1,9 @@
 import app from 'flarum/forum/app';
 import Component from 'flarum/common/Component';
+import { dayParts } from '../../common/calendarSystem';
 import {
   systems,
+  startOfDay,
   monthMatrix,
   monthOf,
   shiftMonth,
@@ -54,7 +56,8 @@ function parseDay(value: string): Date | null {
  */
 export default class CalendarDateInput extends Component<CalendarDateInputAttrs> {
   open = false;
-  focused: Date = new Date();
+  focused: Date = startOfDay(new Date());
+  dayName: Intl.DateTimeFormat | null = null;
   outside = (e: MouseEvent) => {
     if (this.open && !this.element.contains(e.target as Node)) {
       this.open = false;
@@ -117,7 +120,7 @@ export default class CalendarDateInput extends Component<CalendarDateInputAttrs>
 
   toggle(day: Date | null) {
     this.open = !this.open;
-    this.focused = day || new Date();
+    this.focused = startOfDay(day || new Date());
   }
 
   dialog(day: Date | null) {
@@ -126,7 +129,12 @@ export default class CalendarDateInput extends Component<CalendarDateInputAttrs>
     const month = monthOf(this.focused);
     const rows = Array.from({ length: 6 }, (_, r) => cells.slice(r * 7, r * 7 + 7));
 
-    return m('.CalendarDateInput-dialog', { role: 'dialog', 'aria-label': a.label }, [
+    // One formatter per redraw for the 42 day names, not one per day.
+    this.dayName = new Intl.DateTimeFormat(dateLoc(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const narrow = weekdayNames(a.weekStart, 'narrow');
+    const full = weekdayNames(a.weekStart);
+
+    return m('.CalendarDateInput-dialog', { role: 'dialog', 'aria-label': a.label, onkeydown: (e: KeyboardEvent) => this.escape(e) }, [
       m('.CalendarDateInput-head', [
         m(
           'button.Button.Button--icon.Button--link',
@@ -180,7 +188,7 @@ export default class CalendarDateInput extends Component<CalendarDateInputAttrs>
           type: 'button',
           tabindex: focused ? 0 : -1,
           'data-focused': focused ? 'true' : undefined,
-          'aria-label': d.toLocaleDateString(dateLoc(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+          'aria-label': this.dayName!.format(d),
           onclick: () => this.pick(d),
         },
         dayNum(d)
@@ -213,16 +221,22 @@ export default class CalendarDateInput extends Component<CalendarDateInputAttrs>
     } else if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       this.pick(this.focused);
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      this.open = false;
-      (this.element.querySelector('.CalendarDateInput-button') as HTMLElement | null)?.focus();
     }
+  }
+
+  /** Escape closes the picker from anywhere in it, back on its button. */
+  escape(e: KeyboardEvent) {
+    if (e.key !== 'Escape') return;
+
+    e.preventDefault();
+    e.stopPropagation(); // the modal underneath stays open
+    this.open = false;
+    (this.element.querySelector('.CalendarDateInput-button') as HTMLElement | null)?.focus();
   }
 
   /** The same day number `delta` months away in the chosen calendar, or that month's last day. */
   sameDayIn(delta: number): Date {
-    const offset = Math.round((this.focused.getTime() - monthOf(this.focused).getTime()) / 864e5);
+    const offset = dayParts(this.focused, systems().main.calendar).day - 1;
     const target = shiftMonth(this.focused, delta);
     const candidate = addDays(target, offset);
 
