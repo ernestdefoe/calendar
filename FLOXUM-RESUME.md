@@ -1,6 +1,8 @@
 # Calendar Floxum wave 3: paused 2026-11-19 (Ernest: "Yes, pause rewrites")
 
-Resume after the weekly usage reset (Nov 26). Branch `wip/floxum-wave`, local only, never pushed. `main` is still at v2.8.1 (2fdfc6f).
+Resume after the weekly usage reset (Nov 26).
+
+**Rebase first (2026-11-26):** this branch must be rebased onto main AFTER the calendar-systems release (branch `feat/calendar-systems`, mabioca d/284). That release touches js/src/common/dates.ts, MonthGrid/CalendarPage/TimeGrid/EventFormModal/EventDetailModal/EventListView/UpcomingEvents/ActivityHeatmap, the admin settings, extend.php settings, EventDiscussion (new EventDates service) and EventDiscussionsTest; expect conflicts in api.ts consumers, EventFormModal and extend.php. Its new code (calendarSystem.ts, CalendarDateInput.tsx, EventDates.php) needs the wave's conventions after the rebase (store models, extend.ts, no `declare const m`, Settings defaults without JS defaults). Branch `wip/floxum-wave`, local only, never pushed. `main` is still at v2.8.1 (2fdfc6f).
 Brief: ~/github/command-center/floxum/fix-wave-brief.md. Floxum's review of v2.8.1: 91 (one medium "custom PSR-15 controllers", one low "optional deps / class_exists").
 
 ## Done (7 commits on top of v2.8.1)
